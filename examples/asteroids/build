@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+../../bin/rapydscript asteroids.pyj && mv asteroids.js output/

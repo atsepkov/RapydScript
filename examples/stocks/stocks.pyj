@@ -1,0 +1,304 @@
+######################################################
+# Copyright 2013 Pyjeon Software LLC
+# Author:	Alexander Tsepkov
+# License: Creative Commons: Attribution + Noncommerial + ShareAlike
+######################################################
+
+
+import stdlib
+import yql
+
+
+class Stock:
+	"""
+	Class responsible for tracking stock information. It handles tracking current stock name
+	as well as performing the YQL query to retrieve stock data from Google and storing the
+	data.
+	"""
+	def __init__(self, symbols, callback=None):
+
+		self.callback = callback
+
+		# pre-cache these so we're not retrieving the element again on every blur/enter event
+		$start = $('#start-date')
+		$end = $('#end-date')
+		main = self
+		onUpdate = def($event, ui):
+			# select triggers before the update occurs, so we have to use 'select' name instead of .val()
+			if $event.type == 'autocompleteselect':
+				main.$widget.val(ui.item.value)
+			startdate = $start.val()
+			enddate = $end.val()
+			main.get(startdate, enddate)
+
+		self.$widget = $('<input></input>').autocomplete({
+			'minLength':	2,
+			'source':		symbols,
+			'select':		onUpdate,
+		})
+		self.data = None
+		self.$widget.blur(onUpdate)
+
+		ENTER = 13
+		onKeypress = def($event):
+			code = $event.keyCode or $event.which
+			if code == ENTER:
+				onUpdate($event)
+		self.$widget.keypress(onKeypress)
+
+	def get(self, startDate, endDate):
+		"""
+		get method for this stock, which retrieves info from google finance
+		"""
+		name = self.$widget.val()
+		if self.symbol == name and self.startDate == startDate and self.endDate == endDate:
+			# don't trigger a refresh unless the parameters have been updated
+			return
+		self.symbol = name
+		self.startDate = startDate
+		self.endDate = endDate
+
+		format = def(date):
+			mmddyyyy = date.split('/')
+			return '-'.join([mmddyyyy[2], mmddyyyy[0], mmddyyyy[1]])
+
+		# google's historical data is only available in CSV format, but we need it in
+		# JSON if we want to work with it in JavaScript. We will use Yahoo's YQL to
+		# convert it. We will also need to create a callback function, since the request
+		# is asynchronous
+		main = self
+		onUpdate = def(query):
+			if query['results'] is None:
+				# bad symbol
+				main.data = None
+				main.$widget.css('background', '#fdd')
+			else:
+				main.data = query['results']['row']
+				main.$widget.css('background', '')
+			if main.callback is not None:
+				main.callback(name, main.data)
+
+		if self.symbol != '':
+			# we will use csv version of the data to avoid dealing with unnecessary html
+			url = 'http://www.google.com/finance/historical?q=' + name \
+				+ '&startdate=' + format(startDate) \
+				+ '&enddate=' + format(endDate) + '&output=csv'
+
+			YQL('select * from csv where url="' + url + '"', onUpdate).fetch()
+		else:
+			# box is blank, don't try to request YQL for it
+			self.data = None
+			self.$widget.css('background', '')
+			self.callback(name, main.data)
+
+class StockChart:
+	"""
+	This is a wrapper around Google Charts. It handles displaying and updating the chart,
+	abstracting Google Charts away from the rest of the app. It also handles compiling
+	the data in a representation Google Charts supports since the format of the API is
+	somewhat clunky compared to other plotting tools like jqPlot. The only thing it doesn't
+	wrap around is the loading logic for Google Charts API, unfortunately, which is due to
+	awkward loading implementation on Google's part.
+	"""
+	def __init__(self):
+		$options = $('#chart-options')
+		main = self
+
+		# create various technical indicator filters the user can play with
+		self._filters = {}
+		self._filterLogic = {}
+		addFilter = def(name, callback):
+			$button = $('<input type="checkbox" value="'
+					+ name.replace(' ', '-') + '">' + name + '</input>')
+			$options.append($button)
+			main._filterLogic[name] = callback
+			setFilter = def():
+				main._filters[name] = $(self).is(':checked')
+				main.redraw()
+			$button.click(setFilter)
+
+		normalize = def(cols, rows):
+			# divide all stocks by their starting value so we can compare them better
+			normalized = []
+			orig = rows[len(rows)-1]
+			for day, row in enumerate(rows):
+				normalized.append([row[0]])
+				for num, stock in enumerate(row[1:]):
+					normalized[day].append(stock/orig[num+1])
+			return cols, normalized
+		makeMovingAvg = def(name, days, ema):
+			sum = def(a, b):
+				return a + b
+			return name, def(cols, rows):
+				for idx, col in enumerate(cols):
+					if col[len(col)-1] != ')':
+						avgs = [{}]
+						moving = []
+						if ema:
+							alpha = 2/(days+1)
+							moving = rows[len(rows)-1][idx+1]
+						for row in reversed(rows):
+							if ema:
+								moving = alpha * row[idx+1] + (1-alpha)*moving
+								avgs.unshift({'col4': moving})
+							else:
+								moving.append(row[idx+1])
+								avgs.unshift({'col4': moving.reduce(sum)/len(moving)})
+								if len(moving) >= days:
+									moving.shift()
+						main.add(col + ' (' + name + ')', avgs, cols, rows)
+				return cols, rows
+		rsi = def(cols, rows):
+			# relative strength index filter
+			tmp, ema15 = makeMovingAvg('', 15, True)
+			for idx, col in enumerate(cols):
+				if col[len(col)-1] != ')':
+					rsis = [{}]
+					ups = []
+					downs = []
+					prev = rows[len(rows)-1][idx+1]
+					for row in reversed(rows):
+						current = row[idx+1]
+						DATE = 0	# fake date placeholder
+						if current > prev:
+							ups.unshift([DATE, current-prev])
+							downs.unshift([DATE, 0])
+						else:
+							ups.unshift([DATE, 0])
+							downs.unshift([DATE, prev-current])
+						prev = current
+					tmp, ups = ema15(['up'], ups)
+					tmp, downs = ema15(['down'], downs)
+					for index in range(len(ups)):
+						if downs[index][2]:
+							rs = ups[index][2]/downs[index][2]
+						else:
+							rs = 100
+						rsis.append({'col4': 100-100/(1+rs)})
+					main.add(col + ' (RSI)', rsis, cols, rows)
+			return cols, rows
+
+		for name, fun in [\
+				('Normalize', normalize), \
+				makeMovingAvg('15-Day SMA', 15, False), \
+				makeMovingAvg('50-Day SMA', 50, False), \
+				makeMovingAvg('15-Day EMA', 15, True), \
+				makeMovingAvg('50-Day EMA', 50, True), \
+				('15-Day RSI', rsi)]:
+			addFilter(name, fun)
+
+		# this is an external API, so we have to use the 'new' keyword
+		self.annotatedTimeline = new google.visualization.AnnotatedTimeLine($('#chart').get(0))
+		self.clear()
+
+	def clear(self):
+		self._cols = []
+		self._rows = []
+
+	def add(self, symbol, data, cols=self._cols, rows=self._rows):
+		if data is not None:
+			if not len(cols):
+				# this is the first symbol, create rows and append date
+				for item in data[1:]:
+					rows.append([Date(item['col0']), float(item['col4'])])
+			else:
+				# rows have already been generated, just append to them
+				for index, item in enumerate(data[1:]):
+					rows[index].append(float(item['col4']))
+			cols.append(symbol)
+
+	def redraw(self):
+		# make a deep-copies of the data
+		cols = $.extend(True, [], self._cols)
+		rows = $.extend(True, [], self._rows)
+		for key, val in dict.items(self._filters):
+			if val:
+				cols, rows = self._filterLogic[key](cols, rows)
+
+		data = new google.visualization.DataTable()
+		data.addColumn('date', 'Date')
+		for col in cols:
+			data.addColumn('number', col)
+		data.addRows(rows)
+		self.annotatedTimeline.draw(data, {})
+
+def main():
+	stockFields = []
+
+	# declare a dummy method to avoid errors in case it is triggered before Google Charts finish loading
+	updateChart = def():
+		pass
+
+	# load charting widget
+	onChartLoad = def():
+		nonlocal updateChart
+		chart = StockChart()
+		updateChart = def(symbol, data):
+			chart.clear()
+			for stock in stockFields:
+				chart.add(stock.symbol, stock.data)
+			chart.redraw()
+	google.load('visualization', '1', {'packages':['annotatedtimeline'], 'callback': onChartLoad})
+
+	# set up stock picker and dates
+	triggerChange = def():
+		$(self).change()
+	$start = $('#start-date').datepicker({'onSelect': triggerChange})
+	$end = $('#end-date').datepicker({'onSelect': triggerChange})
+	$start.datepicker('setDate', -90)
+	$end.datepicker('setDate', Date())
+
+	symbols = []
+	$stocks = $('#stock-input')
+
+	# add new input widget
+	newStock = def():
+		symbol = Stock(symbols)
+		$stocks.append(symbol.$widget)
+		get = def():
+			startdate = $start.val()
+			enddate = $end.val()
+			symbol.get(startdate, enddate)
+		$start.change(get)
+		$end.change(get)
+		stockFields.append(symbol)
+
+		# handle addition and removal of new widgets
+		# new widgets will get added when there are no more empty widgets
+		# empty widgets will get removed when there is more than one
+		onWidgetUpdate = def(label, data):
+			value = symbol.symbol
+			isLast = symbol.$widget.is(':last-child')
+			if isLast and value != '':
+				newStock()
+			elif value == '' and not isLast:
+				stockFields.remove(symbol)
+				symbol.$widget.remove()
+			updateChart(label, data)
+		symbol.callback = onWidgetUpdate
+
+
+	# NASDAQ returns stock symbols in CSV format as well, YQL will convert them for us
+	# it also seems to store companies from other stock exchanges, which makes work easier for us
+	sync = 0
+	exchanges = ['nyse', 'nasdaq', 'lon']
+	onUpdate = def(query):
+		nonlocal sync, symbols
+		for symbol in query['results']['row']:
+			symbols.append(symbol['col0'])
+		sync += 1
+
+		if sync == len(exchanges):
+			# all exchanges loaded, remove duplicates and create stock picker
+			$stocks.text('Stocks:')
+			unique = def(element, index):
+				return self.index(element) == index
+			symbols = symbols.filter(unique, symbols)
+			newStock()
+
+	$stocks.text('Loading Symbols from Stock Exchanges')
+	for exchange in exchanges:
+		YQL('select col0 from csv where url="http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=' + exchange + '&render=download"', onUpdate).fetch()
+
+
+$(document).ready(main)

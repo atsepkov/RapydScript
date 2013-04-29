@@ -1,0 +1,160 @@
+<!-- This page has been auto-generated using RapydML (http://www.pyjeon.com) -->
+<!doctype html>
+<html>
+	<head>
+		<title>
+			RapydScript Online Paint App Example
+		</title>
+		<link rel='stylesheet' href='http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css' />
+		<link rel='stylesheet' href='paint.css' />
+		<link rel='stylesheet' href='farbtastic/farbtastic.css' />
+		<script src='http://code.jquery.com/jquery-1.8.3.js'>
+		</script>
+		<script src='http://code.jquery.com/ui/1.9.2/jquery-ui.js'>
+		</script>
+		<script src='stdlib.js'>
+		</script>
+		<script src='farbtastic/farbtastic.js'>
+		</script>
+		<script src='paint.js'>
+		</script>
+	</head>
+	<body>
+		<div id='menubar'>
+			<div class='menubar-item' id='menubar-item-file'>
+				File
+			</div>
+			<ul class='menubar-menu' id='menubar-menu-file'>
+				<li id='menubar-menu-item-new'>
+					New
+				</li>
+				<li id='menubar-menu-item-export-to-image'>
+					Export To Image
+				</li>
+			</ul>
+			<div class='menubar-item' id='menubar-item-edit'>
+				Edit
+			</div>
+			<ul class='menubar-menu' id='menubar-menu-edit'>
+				<li id='menubar-menu-item-undo'>
+					Undo
+				</li>
+				<li id='menubar-menu-item-redo'>
+					Redo
+				</li>
+			</ul>
+			<div class='menubar-item' id='menubar-item-selection'>
+				Selection
+			</div>
+			<ul class='menubar-menu' id='menubar-menu-selection'>
+				<li id='menubar-menu-item-invert-colors'>
+					Invert Colors
+				</li>
+				<li id='menubar-menu-item-red-filter'>
+					Red Filter
+				</li>
+				<li id='menubar-menu-item-green-filter'>
+					Green Filter
+				</li>
+				<li id='menubar-menu-item-blue-filter'>
+					Blue Filter
+				</li>
+				<li id='menubar-menu-item-darken'>
+					Darken
+				</li>
+				<li id='menubar-menu-item-lighten'>
+					Lighten
+				</li>
+			</ul>
+			<div class='menubar-item' id='menubar-item-help'>
+				Help
+			</div>
+			<ul class='menubar-menu' id='menubar-menu-help'>
+				<li id='menubar-menu-item-features'>
+					Features
+				</li>
+				<li id='menubar-menu-item-about'>
+					About
+				</li>
+			</ul>
+		</div>
+		<div id='main'>
+			<div id='toolbox'>
+				<div class='toolbox-item'>
+					<img src='brush.png' id='toolbox-brush' />
+				</div>
+				<div class='toolbox-item'>
+					<img src='eraser.png' id='toolbox-eraser' />
+				</div>
+				<div class='toolbox-item'>
+					<img src='line.png' id='toolbox-line' />
+				</div>
+				<div class='toolbox-item'>
+					<img src='select.png' id='toolbox-select' />
+				</div>
+				<div class='toolbox-item'>
+					<img src='colorselect.png' id='toolbox-colorselect' />
+				</div>
+				<div class='toolbox-item'>
+					<img src='lasso.png' id='toolbox-lasso' />
+				</div>
+				<div class='toolbox-item'>
+					<img src='rectangle.png' id='toolbox-rectangle' />
+				</div>
+				<div class='toolbox-item'>
+					<img src='ellipse.png' id='toolbox-ellipse' />
+				</div>
+				<div class='toolbox-item'>
+					<img src='sampler.png' id='toolbox-sampler' />
+				</div>
+				<div class='toolbox-item'>
+					<img src='bucket.png' id='toolbox-bucket' />
+				</div>
+				<div class='toolbox-item'>
+					<img src='text.png' id='toolbox-text' />
+				</div>
+				<div id='color-swatch'>
+					<label>
+						Stroke:
+					</label>
+					<div id='stroke'>
+						<div id='no-stroke' class='x-button'>
+						</div>
+					</div>
+					<label>
+						Fill:
+					</label>
+					<div id='fill'>
+						<div id='no-fill' class='x-button'>
+						</div>
+					</div>
+					<label>
+						Stroke Width:
+					</label>
+					<input id='brush-size' />
+				</div>
+				<div id='fg-color' class='colorpicker'>
+				</div>
+				<div id='bg-color' class='colorpicker'>
+				</div>
+			</div>
+			<div id='drawing'>
+				<canvas id='perm-dwg' width='600' height='400'>
+				</canvas>
+				<canvas id='temp-dwg' width='600' height='400'>
+				</canvas>
+			</div>
+		</div>
+		<div id='about' title='About This Paint App'>
+			<p>
+				Author: Alexander Tsepkov
+			</p>
+			<p>
+				License: Creative Commons: Attribution + Noncommerial + ShareAlike
+			</p>
+			<p>
+This app is meant both, as a showcase of RapydScript and RapydML potential as well as a means to showcase clean and DRY coding conventions using RapydScript. 
+			</p>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,68 @@
+# empty classes are allowed
+class Blank:
+	pass
+blank = Blank()
+assert.ok(isinstance(blank, Blank))
+
+# basic class
+class Human:
+	def __init__(self, name):
+		self.name = name
+
+	def greet(self):
+		return "Hello, I'm " + self.name
+
+bob = Human("Bob")
+assert.equal(bob.greet(), "Hello, I'm Bob")
+
+# don't have to declare __init__, it either gets inherited or stays empty
+# isinstance correctly sees inheritance
+class Friend(Human):
+	def greet(self):
+		return "Yo, it's me, " + self.name
+
+joe = Friend("Joe")
+assert.equal(joe.greet(), "Yo, it's me, Joe")
+assert.ok(isinstance(joe, Friend))
+assert.ok(isinstance(joe, Human))
+
+# __init__ doesn't have to come first
+# can call methods of other classes
+class OldFriend(Friend):
+	def how_long(self):
+		return "I've known you for " + self.duration + " years"
+	def __init__(self, name, duration):
+		self.duration = duration
+		Friend.__init__(self, name)
+angela = OldFriend("Angela", 8)
+assert.equal(angela.greet(), "Yo, it's me, Angela")
+assert.equal(angela.how_long(), "I've known you for 8 years")
+
+(def module():
+	# test that we can declare classes inside other blocks
+	# test that we can call methods of classes we didn't inherit from
+	nonlocal dude
+	class Stranger(Human):
+		def greet(self):
+			return Friend.greet(self)
+	dude = Stranger("some guy")
+)()
+assert.equal(dude.greet(), "Yo, it's me, some guy")
+
+# nested classes
+# not yet fully implemented
+#class Molecule:
+#	class Atom:
+#		def __init__(self, element):
+#			self.element = element
+#
+#	def __init__(self, elements):
+#		self.structure = []
+#		for e in elements:
+#			self.structure.push(Molecule.Atom(e))
+#
+#water = Molecule(['H', "H", 'O'])
+#assert.equal(len(water.structure), 3)
+#assert.equal(water.structure[0].element, 'H')
+#for atom in water.structure:
+#	assert.ok(isinstance(atom, Molecule.Atom))

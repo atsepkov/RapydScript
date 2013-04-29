@@ -1,0 +1,101 @@
+//######################################################
+//# Copyright 2012 Pyjeon Software LLC
+//# Author:	Alexander Tsepkov
+//# License:	License: Creative Commons: Attribution + Noncommerial + ShareAlike
+//######################################################
+
+$icon_size:	32px
+$highlight:	#afa
+$padding:	5px
+
+@mixin transparent
+	background-image: url('transparent.png')
+
+@mixin border
+	border:	1px solid black
+	border-radius: 5px
+
+@mixin popup
+	position: absolute
+	z-index: 3
+	display: none
+
+body
+	font-size: 10pt
+
+.menubar
+	@include border
+
+.menubar-item
+	float:	left
+	cursor:	pointer
+	padding: $padding
+	&:hover
+		background: $highlight
+
+.menubar-menu
+	@include popup
+	
+	& > li
+		padding: $padding
+		cursor:	pointer
+		&:hover
+			background: $highlight
+
+#main
+	clear:	both
+
+#toolbox
+	width:	($icon_size+$padding*3)*2
+	float:	left
+	padding: $padding
+	@include border
+
+.toolbox-item
+	cursor:	pointer
+	float:	left
+	width:	$icon_size
+	height:	$icon_size
+	padding: $padding
+	border: 1px solid transparent
+	
+	&.selected
+		background:	$highlight
+		@include border
+
+#color-swatch
+	float:	left
+	width:	100%
+	
+	& > #stroke, & > #fill
+		@include border
+		@include transparent
+		height:	$icon_size
+	
+	& > *
+		width:	100%
+
+.x-button
+	float: right
+	width: 16px
+	height: 16px
+	background: url("http://code.jquery.com/ui/1.9.2/themes/base/images/ui-icons_222222_256x240.png") -32px -192px
+	cursor: pointer
+
+.colorpicker
+	@include popup
+	@include border
+	background: #fff
+
+#drawing
+	position:	relative
+
+#perm-dwg, #temp-dwg
+	@include border
+	position:	absolute
+
+#perm-dwg
+	@include transparent
+
+#temp-dwg
+	z-index:	2

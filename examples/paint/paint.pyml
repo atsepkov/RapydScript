@@ -1,0 +1,100 @@
+######################################################
+# Copyright 2012 Pyjeon Software LLC
+# Author:	Alexander Tsepkov
+# License:	License: Creative Commons: Attribution + Noncommerial + ShareAlike
+######################################################
+
+import lib.common
+
+def tool($icon):
+	div(class='toolbox-item'):
+		img(src=$icon+'.png', id='toolbox-'+$icon)
+
+def menubar($name):
+	div(class='menubar-item', id='menubar-item-'+$name):
+		python.str.title($name)
+	ul(class='menubar-menu', id='menubar-menu-'+$name)
+
+def menuitem($name):
+	li(id='menubar-menu-item-' + python.str.replace($name, ' ', '-')):
+		python.str.title($name)
+
+$dwg_dim := width='600', height='400'
+
+!doctype(html)
+html:
+	head:
+		title:
+			'RapydScript Online Paint App Example'
+		link(rel='stylesheet', href='http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css')
+		link(rel='stylesheet', href='paint.css')
+		link(rel='stylesheet', href='farbtastic/farbtastic.css')
+		script(src='http://code.jquery.com/jquery-1.8.3.js')
+		script(src='http://code.jquery.com/ui/1.9.2/jquery-ui.js')
+		script(src='stdlib.js')
+		script(src='farbtastic/farbtastic.js')
+		script(src='paint.js')
+	body:
+		# menubar
+		div(id='menubar'):
+			menubar('file')
+				menuitem('new')
+				menuitem('export to image')
+			menubar('edit')
+				menuitem('undo')
+				menuitem('redo')
+			menubar('selection')
+				menuitem('invert colors')
+				menuitem('red filter')
+				menuitem('green filter')
+				menuitem('blue filter')
+				menuitem('darken')
+				menuitem('lighten')
+			menubar('help')
+				menuitem('features')
+				menuitem('about')
+	
+		div(id='main'):
+			# toolbox menu
+			div(id='toolbox'):
+				tool('brush')
+				tool('eraser')
+				tool('line')
+				tool('select')
+				tool('colorselect')
+				tool('lasso')
+				tool('rectangle')
+				tool('ellipse')
+				tool('sampler')
+				tool('bucket')
+				tool('text')
+			
+				div(id='color-swatch')
+					label:
+						'Stroke:'
+					div(id='stroke')
+						div(id='no-stroke', class='x-button')
+					label:
+						'Fill:'
+					div(id='fill')
+						div(id='no-fill', class='x-button')
+					label:
+						'Stroke Width:'
+					input(id='brush-size')
+				div(id='fg-color', class='colorpicker')
+				div(id='bg-color', class='colorpicker')
+			
+			# canvas
+			div(id='drawing')
+				canvas(id='perm-dwg', $dwg_dim)
+				canvas(id='temp-dwg', $dwg_dim)
+		
+		div(id='about', title='About This Paint App'):
+			p:
+				'Author: Alexander Tsepkov'
+			p:
+				'License: Creative Commons: Attribution + Noncommerial + ShareAlike'
+			text:
+				This app is meant both, as a showcase of RapydScript and RapydML potential as well
+				as a means to showcase clean and DRY coding conventions using RapydScript.
+			

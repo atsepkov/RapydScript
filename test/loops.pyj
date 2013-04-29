@@ -1,0 +1,25 @@
+import stdlib
+
+# loop through values, not indices
+a = ['foo', 'bar', 'baz']
+for val in a:
+	assert.ok(val in a)
+
+for i in range(len(a)):
+	assert.ok(a[i] in a)
+
+for i, val in enumerate(a):
+	assert.equal(a[i], val)
+
+i = 0
+while i < len(a):
+	assert.ok(a[i] in a)
+	i += 1
+
+counter = 5
+factorial = 1
+do:
+	factorial *= counter
+	counter -= 1
+.while counter > 0
+assert.equal(factorial, 120)

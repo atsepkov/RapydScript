@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# you can uncomment rapydml and rapydcss if you have them installed
+#rapydml stocks.pyml && mv stocks.html output/
+#rapydcss stocks.sass && mv stocks.css output/
+../../bin/rapydscript stocks.pyj && mv stocks.js output/

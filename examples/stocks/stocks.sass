@@ -1,0 +1,53 @@
+//######################################################
+//# Copyright 2013 Pyjeon Software LLC
+//# Author:	Alexander Tsepkov
+//# License: Creative Commons: Attribution + Noncommerial + ShareAlike
+//######################################################
+
+@mixin border
+	border:	1px solid black
+	border-radius: 5px
+
+body
+	font-size: 10pt
+
+input
+	@include border
+
+#date-picker
+	float:	left
+
+.date-field
+	clear:	both
+	max-width:	300px
+
+	& > label
+		float: left
+		font-size: 1.1em
+
+	& > input
+		float:	right
+
+#logo > img
+	padding:	15px
+
+#stock-input
+	float:	left
+	padding: 10px
+	
+	& > input
+		display: block
+
+#chart-container
+	@include border
+	float:	left
+	padding:	10px
+	margin:		10px
+	
+#chart-options > input
+	font-size:	1.1 em
+	margin:		15px 3px 30px 30px
+
+#chart
+	width:	800px
+	height:	400px

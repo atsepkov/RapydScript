@@ -1,0 +1,48 @@
+# ARRAYS
+a = [4,5,6,7]
+
+# access and slicing
+assert.equal(len(a), 4)
+assert.equal(a[-1], 7)
+assert.equal(a[-2], 6)
+assert.deepEqual(a[1:3], [5,6])
+assert.deepEqual(a[:3], [4,5,6])
+assert.deepEqual(a[2:], [6,7])
+assert.ok(7 in a)
+
+# assignment
+a[-1] = 9
+assert.equal(a[-1], 9)
+
+one = "one"
+two = "two"
+one, two = two, one
+[x, y, z] = 'x', 'y', 'z'
+assert.equal(one, "two")
+assert.equal(two, "one")
+assert.equal(x, 'x')
+assert.equal(y, 'y')
+assert.equal(z, 'z')
+
+
+# DICTIONARIES
+d0 = {'a':'b','c':2, d:		'd',}
+d1 = {
+	'foo': 1,
+	"bar": "baz",
+	"fun1": def():
+		return 5
+	,
+	fun2: def(c):
+		return c+1
+}
+
+# access
+assert.equal(d0.a, d0['a'])
+assert.equal(d1['fun1'](), 5)
+assert.equal(d1.fun2(3), 4)
+assert.equal(len(d0), 3)
+
+# assignment
+d1["bar"] += "!"
+assert.equal(d1.bar, "baz!")

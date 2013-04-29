@@ -1,0 +1,6 @@
+# use glob syntax
+
+*~
+*.swp
+*.tmp
+*.orig

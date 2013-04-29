@@ -1,0 +1,42 @@
+######################################################
+# Copyright 2013 Pyjeon Software LLC
+# Author:	Alexander Tsepkov
+# License: Creative Commons: Attribution + Noncommerial + ShareAlike
+######################################################
+
+import lib.common
+
+def datefield($label, $id):
+	div(class='date-field'):
+		label:
+			$label
+		input(id=$id, type='text')
+
+!doctype(html)
+html:
+	head:
+		title:
+			'RapydScript Online Stock Analysis App Example'
+		link(rel='stylesheet', href='http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css')
+		link(rel='stylesheet', href='stocks.css')
+		script(src='http://code.jquery.com/jquery-1.8.3.js')
+		script(src='http://code.jquery.com/ui/1.9.2/jquery-ui.js')
+		script(src='https://www.google.com/jsapi')
+		script(src='stocks.js')
+	body:
+		div(id='date-picker'):
+			datefield('Start Date:', 'start-date')
+			datefield('End Date:', 'end-date')
+		
+		div(id='logo')
+			img(src='logo.png')
+		
+		# placeholder for stock search input fields
+		div(id='stock-input')
+		
+		# placeholder for the chart
+		div(id='chart-container'):
+			div(id='chart-options')
+			div(id='chart')
+		
+		

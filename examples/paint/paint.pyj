@@ -1,0 +1,199 @@
+######################################################
+# Copyright 2012 Pyjeon Software LLC
+# Author:	Alexander Tsepkov
+# License:	License: Creative Commons: Attribution + Noncommerial + ShareAlike
+######################################################
+
+import Drawing
+
+
+class ColorSwatch:
+	"""
+	Color selection and preview widget
+	"""
+	def __init__(self):
+		fg = $('<div></div>')\
+			.width(36).height(36)\
+			.css({'position': 'absolute', 'border': '1px solid black'})
+		fg.change = def(color):
+			$(self).css('background', color)
+		bg = fg.clone()
+		$('#color-swatch')
+
+
+
+def main():
+	dwg = Drawing()
+
+	# control brush sizes
+	# NOTE: jQuery UI spinner implementation is inconsistent with its documentation, since their
+	# implementation was buggy, this required some testing and work-arounds on my end, in particular
+	# .value() method doesn't exist (.val() does), and .change() doesn't trigger when using the
+	# arrows to update the value, instead I had to add my own manual trigger for it
+	onChange = def():
+		dwg.setWidth($(self).val())
+	$brushWidget = $('#brush-size').spinner({'min': 1, 'max': 40})
+	$brushWidget.change(onChange)
+	triggerChange = def():
+		$(self).siblings('input').change()
+	$('.ui-spinner-button').click(triggerChange)
+	$brushWidget.val(1)
+
+	# map toolbox buttons to drawing modes
+	$tools = $('.toolbox-item')
+	makeMode = def(mode):
+		setMode = def(event):
+			dwg.setMode(mode)
+			$tools.removeClass('selected')
+			$(event.target).parent().addClass('selected')
+		return setMode
+	$('#toolbox-brush').click(makeMode(BRUSH))
+	$('#toolbox-eraser').click(makeMode(ERASER))
+	$('#toolbox-line').click(makeMode(LINE))
+	$('#toolbox-select').click(makeMode(SELECT))
+	$('#toolbox-colorselect').click(makeMode(COLORSELECT))
+	$('#toolbox-lasso').click(makeMode(LASSO))
+	$('#toolbox-rectangle').click(makeMode(RECT))
+	$('#toolbox-ellipse').click(makeMode(ELLIPSE))
+	$('#toolbox-sampler').click(makeMode(SAMPLER))
+	$('#toolbox-bucket').click(makeMode(BUCKET))
+	$('#toolbox-text').click(makeMode(TEXT))
+	$('#toolbox-brush').click()		# default to brush
+
+	# set up color selection menus
+	$stroke = $('#stroke')
+	$fill = $('#fill')
+	setStroke = def(style):
+		dwg.setStroke(style)
+		$stroke.css('background', style)
+	setFill = def(style):
+		dwg.setFill(style)
+		$fill.css('background', style)
+	setStroke('black')
+
+	# farbtastic is an open-source color-picker we will be leveraging to avoid reinventing the wheel:
+	# http://acko.net/blog/farbtastic-jquery-color-picker-plug-in/
+	$colorPickers = $('.colorpicker')
+	for $swatch, idtag, resetid, callback in [($stroke, '#fg-color', '#no-stroke', setStroke), \
+											($fill, '#bg-color', '#no-fill', setFill)]:
+		$colorPicker = $(idtag)
+		$colorPicker.farbtastic(callback)
+
+		# a function generator allows us to create a handler tied to current values, not the final ones
+		# that the loop terminates with (useful for keeping color-pickers independent)
+		makeHandler = def($target, $popup):
+			showColorpicker = def(event):
+				$colorPickers.hide()
+				popupUnder(event, $target, $popup)
+			return showColorpicker
+		$swatch.click(makeHandler($swatch, $colorPicker))
+
+		# now add a button that resets color to transparent
+		makeReset = def($target, setFunction):
+			reset = def():
+				event.stopPropagation()	# prevent colorpicker from showing
+				setFunction('transparent')
+				$target.css('background', '')
+			return reset
+		$(resetid).click(makeReset($swatch, callback))
+
+	# set up top menubar
+	popupUnder = def(event, $element, $popup):
+		event.stopPropagation() # prevent document from closing us
+		absolute = $element.offset()
+		$popup.css({'left': absolute.left, 'top': absolute.top+$element.outerHeight()}).show()
+	$menus = $('.menubar-menu')
+	makeMenu = def():
+		$this = $(self)
+		idtag = $this.attr('id').split('-')[2]
+		showMenu = def(event):
+			$menus.hide()
+			popupUnder(event, $this, $('#menubar-menu-'+idtag))
+		$this.click(showMenu)
+
+	# hide menus if we click anywhere outside the menu div
+	hideMenus = def():
+		$menus.hide()
+		$colorPickers.hide()
+	$(document).click(hideMenus)
+
+	$menus.menu().removeClass('ui-widget')	# ui-widget adds ugly font, we don't want that
+	$('.menubar-item').each(makeMenu)
+
+	# attach actual functionality to menu items
+	$('#menubar-menu-item-new').click(
+		# start new drawing
+		def():
+			dwg.clear()
+	)
+
+	$('#menubar-menu-item-export-to-image').click(
+		# export drawing to PNG
+		def():
+			url = dwg.exportDwg()
+			window.open(url, '_blank')
+	)
+
+	$('#menubar-menu-item-undo').click(
+		# undo last action
+		def():
+			dwg.undo()
+	)
+
+	$('#menubar-menu-item-redo').click(
+		# redo last action
+		def():
+			dwg.redo()
+	)
+
+	$('#menubar-menu-item-invert-colors').click(
+		# invert colors
+		def():
+			dwg.invert()
+	)
+
+	$('#menubar-menu-item-red-filter').click(
+		# filter out red channel
+		def():
+			dwg.redFilter()
+	)
+
+	$('#menubar-menu-item-green-filter').click(
+		# filter out green channel
+		def():
+			dwg.greenFilter()
+	)
+
+	$('#menubar-menu-item-blue-filter').click(
+		# filter out blue channel
+		def():
+			dwg.blueFilter()
+	)
+
+	$('#menubar-menu-item-darken').click(
+		# make image half as bright
+		def():
+			dwg.darken()
+	)
+
+	$('#menubar-menu-item-lighten').click(
+		# make image twice as bright
+		def():
+			dwg.lighten()
+	)
+
+	# pre-cache the element, so we don't have to 'select' it repeatedly
+	$about = $('#about').dialog({'modal': True})
+	$('#menubar-menu-item-about').click(
+		# show info about this app
+		def():
+			$about.dialog('open')
+	)
+
+
+	# disable right-click menu
+	window.oncontextmenu = def():
+		return False
+
+
+$(document).ready(main)

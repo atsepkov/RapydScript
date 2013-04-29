@@ -1,0 +1,73 @@
+###########################################################
+# RapydScript Standard Library
+# Author: Alexander Tsepkov
+# Copyright 2013 Pyjeon Software LLC
+# License: Apache License	2.0
+# This library is covered under Apache license, so that
+# you can distribute it with your RapydScript applications.
+###########################################################
+
+# This class implements a lightweight YQL API for RapydScript
+# this query class is based on the logic from the following website:
+# http://james.padolsey.com/javascript/using-yql-with-jsonp/
+# YQL serves JSONP (with a callback) so all we have to do
+# is create a script element with the right 'src':
+class YQLError(Error):
+	def __init__(self, message):
+		self.name = 'YQLError'
+		self.message = message
+
+class YQL:
+	"""
+	This class asynchronously performs passed in YQL query, and triggers a callback function
+	upon completion. It's designed to handle multiple simultaneous queries without breaking.
+
+	Usage Example:
+		query = YQL('select * from geo.places where text="san francisco, ca"', showMePlaces)
+		query.fetch()
+
+	If you only need the query result once, you can retrieve it immediatelly:
+		result = YQL('select * from weather.forecast where location=90210').fetch()
+
+	If you're trying to debug your query, you can turn diagnostics on to retrieve more info:
+		query = YQL(statement, callback, True)
+
+	You may also set all 3 of these qttributes manually after YQL() constructor fires:
+		query = YQL()
+		query.query = statement
+		query.callback = callback
+		query.diagnostics = True
+
+	"""
+	def __init__(self, query, callback, diagnostics=False):
+		self.query = query
+		doNothing = def():
+			pass
+		self.callback = callback or doNothing
+		self.diagnostics = diagnostics
+
+	def fetch(self):
+		if not self.query:
+			raise YQLError('YQL.query attribute must be defined before invoking YQL.fetch()')
+		elif not self.callback:
+			raise YQLError('YQL.callback attribute must be defined before invoking YQL.fetch()')
+
+		scriptEl =		document.createElement('script')
+
+		# uid needs to be unique, to ensure that collision doesn't happen, we convert
+		# the timestamp to milliseconds and append a random integer at the end, zero-padding
+		# it to avoid two unrelated times from possibility of clashing
+		uid =			'yql' + Date().getTime() + str(Math.floor(Math.random()*1000)).zfill(3)
+		encodedQuery =	encodeURIComponent(self.query.toLowerCase())
+		main =			self
+
+		YQL[uid] = def(json):
+			main.callback(json['query'])
+			del YQL[uid]
+			document.body.removeChild(scriptEl)
+
+		url = 'http://query.yahooapis.com/v1/public/yql?q=' + encodedQuery
+		if self.diagnostics:
+			url += '&diagnostics=true'
+		scriptEl.src = url + '&format=json&callback=YQL.' + uid
+		document.body.appendChild(scriptEl)

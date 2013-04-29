@@ -1,0 +1,422 @@
+######################################################
+# Copyright 2012 Pyjeon Software LLC
+# Author:	Alexander Tsepkov
+# License:	License: Creative Commons: Attribution + Noncommerial + ShareAlike
+######################################################
+
+# modes we will be using for drawing
+BRUSH	= 0
+ERASER	= 1
+LINE	= 2
+SELECT	= 3
+COLORSELECT = 4
+LASSO	= 5
+RECT	= 6
+ELLIPSE	= 7
+SAMPLER	= 8
+BUCKET	= 9
+TEXT	= 10
+
+# misc
+X		= 0
+Y		= 1
+CLICK	= 1
+RCLICK	= 3
+
+class Drawing:
+	"""
+	Controls the currently displayed image, and handles undo/redo logic
+	"""
+	def __init__(self):
+
+		# these are meant to be private
+		self._canvas = $('#perm-dwg').get(0)		# get actual DOM element
+		self._ctx = ctx = self._canvas.getContext('2d')
+		self._undoStack = []
+		self._redoStack = []
+		self._fillColor = None
+		self._strokeColor = None
+
+		# and these are not exposed at all
+		$tmpCanvas = $('#temp-dwg')
+		tmpCanvas = $tmpCanvas.get(0)
+		tmpCtx = tmpCanvas.getContext('2d')
+		canvasWidth = tmpCanvas.width
+		canvasHeight = tmpCanvas.height
+
+		dragging = False
+		points = []
+		selection = None
+		lastPt = [0, 0]
+		transparent_bg = True
+		main = self
+
+		#################
+		# utility functions
+		#################
+		getXY = def(obj, event):
+			# +0.5 allows us to snap to the center of the pixel, preventing interpolation and
+			# making our images more crisp
+			absolute = $(obj).offset()
+			return event.pageX - absolute.left, event.pageY - absolute.top
+		normalize = def(x, y, width, height):
+			if width < 0:
+				width = -width
+				x = x-width
+			if height < 0:
+				height = -height
+				y = y-height
+			return x, y, width, height
+		ellipse = def(context, x, y, width, height):
+			x, y, width, height = normalize(x, y, width, height)
+			ctrX = (x+x+width)/2
+			ctrY = (y+y+height)/2
+			circ = Math.max(width, height)
+			scaleX = width/circ
+			scaleY = height/circ
+			context.save()
+			context.translate(ctrX, ctrY)
+			context.scale(scaleX, scaleY)
+			context.arc(0, 0, circ/2, 0, 2*Math.PI)
+			context.restore()
+		drawSpline = def(context, lastPoint):
+			if lastPoint is undefined:
+				lastPoint = points[len(points)-1]
+			context.beginPath()
+			context.moveTo(points[0][X], points[0][Y])
+			if len(points) == 1:
+				context.lineTo(lastPoint[X], lastPoint[Y])
+			elif len(points) == 2:
+				context.quadraticCurveTo(points[1][X], points[1][Y], lastPoint[X], lastPoint[Y])
+			else:
+				context.bezierCurveTo(\
+					points[1][X], points[1][Y], \
+					points[2][X], points[2][Y], \
+					lastPoint[X], lastPoint[Y])
+			context.stroke()
+		sample = def(x, y, click):
+			data = ctx.getImageData(x, y, 1, 1).data
+			if data[3]:
+				color = 'rgb('+data[0]+','+data[1]+','+data[2]+')'
+			else:
+				color = 'transparent'
+			if click == CLICK:
+				tag = '#stroke'
+			else:
+				tag = '#fill'
+
+			if color == 'transparent':
+				color = None
+				$(tag).css('background', '')
+			else:
+				$(tag).css('background', color)
+			if click == CLICK:
+				main._brushColor = color
+			else:
+				main._fillColor = color
+		matchStartColor = def(colorLayer, pixelPos, startPixel):
+			r = colorLayer[pixelPos]
+			g = colorLayer[pixelPos+1]
+			b = colorLayer[pixelPos+2]
+			a = colorLayer[pixelPos+3]
+			return r == startPixel[0] and g == startPixel[1] and \
+					b == startPixel[2] and bool(a) == bool(startPixel[3])
+		eachPixel = def(imageData, callback):
+			offset = 0
+			length = imageData.height * imageData.width * 4
+			while offset < length:
+				callback(offset)
+				offset += 4
+		self._clear = clear = def(context):
+			context.clearRect(0, 0, canvasWidth, canvasHeight)
+
+		#################
+		# user input
+		#################
+		onMouseDown = def(event):
+			nonlocal dragging, points, lastPt, selection
+
+			event.preventDefault()	# prevents change to mouse cursor
+			dragging = True
+			x, y = getXY(self, event)
+			main._undoStack.append(ctx.getImageData(0, 0, canvasWidth, canvasHeight))
+			main._redoStack = []
+			ctx.save()
+			tmpCtx.save()
+			if main._mode in [BRUSH, ERASER]:
+				ctx.lineWidth = main._lineWidth
+				if main._mode == BRUSH:
+					ctx.strokeStyle = main._brushColor
+				else:
+					ctx.globalCompositeOperation = 'destination-out'
+				ctx.beginPath()
+				ctx.moveTo(x, y)
+			elif main._mode-RECT in [RECT, ELLIPSE]:
+				tmpCtx.lineWidth = main._lineWidth
+				tmpCtx.strokeStyle = main._brushColor
+				tmpCtx.fillStyle = main._fillColor
+				points.append([x, y])
+			elif main._mode == LINE:
+				tmpCtx.lineWidth = main._lineWidth
+				tmpCtx.strokeStyle = main._brushColor
+				points.append([x, y])
+			elif main._mode == SAMPLER:
+				sample(x, y, event.which)
+			elif main._mode == BUCKET and main._fillColor:
+				# paint-bucket algorithm based on one from this website:
+				# http://www.williammalone.com/articles/html5-canvas-javascript-paint-bucket-tool/
+				pixelStack = [(x, y)]
+				colorLayer = ctx.getImageData(0, 0, canvasWidth, canvasHeight)
+				data = colorLayer.data
+				startPixel = ctx.getImageData(x, y, 1, 1).data
+
+				# convert swatch color to imageData (we're using canvas to avoid dealing with literal
+				# color names like 'aquamarine')
+				tmpCtx.save()
+				tmpCtx.fillStyle = main._fillColor
+				locX, locY = 50, 50	# pick point far enough from the corner so it's not affected by border style
+				tmpCtx.fillRect(locX, locY, 1, 1)
+				swatchPixel = tmpCtx.getImageData(locX, locY, 1, 1).data
+				tmpCtx.clearRect(locX, locY, 1, 1)
+				tmpCtx.restore()
+				if not matchStartColor(swatchPixel, 0, startPixel):
+					while len(pixelStack):
+						newPos = pixelStack.pop()
+						x = newPos[X]
+						y = newPos[Y]
+						pixelPos = (y*canvasWidth + x)*4
+						while y >= 0 and matchStartColor(data, pixelPos, startPixel):
+							y -= 1
+							pixelPos -= canvasWidth*4
+						pixelPos += canvasWidth*4
+						y += 1
+						reachLeft = False
+						reachRight = False
+						while y < canvasHeight-1 and matchStartColor(data, pixelPos, startPixel):
+							y += 1
+							data[pixelPos] = swatchPixel[0]
+							data[pixelPos+1] = swatchPixel[1]
+							data[pixelPos+2] = swatchPixel[2]
+							data[pixelPos+3] = swatchPixel[3]
+							if x > 0:
+								if matchStartColor(data, pixelPos-4, startPixel):
+									if not reachLeft:
+										pixelStack.append((x-1, y))
+										reachLeft = True
+								elif reachLeft:
+									reachLeft = False
+							if x < canvasWidth-1:
+								if matchStartColor(data, pixelPos+4, startPixel):
+									if not reachRight:
+										pixelStack.append((x+1, y))
+								elif reachRight:
+									reachRight = False
+							pixelPos += canvasWidth*4
+					ctx.putImageData(colorLayer, 0, 0)
+			elif main._mode == SELECT:
+				lastPt = [x, y]
+				if selection is None:
+					tmpCtx.lineWidth = 1
+					tmpCtx.strokeStyle = 'rgb(0,255,0)'
+					points.append([x, y])
+				elif not (points[0][X] < x and x < points[1][X] \
+				and points[0][Y] < y and y < points[1][Y]):
+					# we just deselected our selection, dump it back to main canvas
+					if transparent_bg:
+						# background is transparent, merge two images together
+						tmp = ctx.getImageData(points[0][X], points[0][Y], \
+							points[1][X]-points[0][X], points[1][Y]-points[0][Y]).data
+						data = selection.data
+						merge = def(offset):
+							if not data[offset+3]:
+								data[offset] = tmp[offset]
+								data[offset+1] = tmp[offset+1]
+								data[offset+2] = tmp[offset+2]
+								data[offset+3] = tmp[offset+3]
+						eachPixel(selection, merge)
+					ctx.putImageData(selection, points[0][X], points[0][Y])
+					clear(tmpCtx)
+					selection = None
+					points = [[x, y]]
+
+		onMouseMove = def(event):
+			nonlocal lastPt
+
+			if main._mode == LINE and len(points):
+				x, y = getXY(self, event)
+				clear(tmpCtx)
+				drawSpline(tmpCtx, (x, y))
+			elif dragging:
+				x, y = getXY(self, event)
+				if main._mode in [BRUSH, ERASER]:
+					ctx.lineTo(x, y)
+					ctx.stroke()
+				elif main._mode-RECT in [RECT, ELLIPSE]:
+					clear(tmpCtx)
+					tmpCtx.beginPath()
+					if main._mode == RECT:
+						tmpCtx.rect(points[0][X], points[0][Y], x-points[0][X], y-points[0][Y])
+					else:
+						ellipse(tmpCtx, points[0][X], points[0][Y], x-points[0][X], y-points[0][Y])
+
+					if main._fillColor is not None:
+						tmpCtx.fill()
+					if main._brushColor is not None:
+						tmpCtx.stroke()
+				elif main._mode == SAMPLER:
+					sample(x, y, event.which)
+				elif main._mode == SELECT:
+					clear(tmpCtx)
+					if selection is not None:
+						for point in points:
+							point[0] += x-lastPt[X]
+							point[1] += y-lastPt[Y]
+						lastPt = [x, y]
+						x = points[1][X]
+						y = points[1][Y]
+						tmpCtx.putImageData(selection, points[0][X], points[0][Y])
+					tmpCtx.strokeRect(points[0][X], points[0][Y], x-points[0][X], y-points[0][Y])
+
+		onMouseUp = def(event):
+			nonlocal dragging, points, selection
+
+			if main._mode-RECT in [RECT, ELLIPSE]:
+				x, y = getXY(self, event)
+				ctx.beginPath()
+				ctx.lineWidth = main._lineWidth
+				ctx.strokeStyle = main._brushColor
+				ctx.fillStyle = main._fillColor
+				if main._mode == RECT:
+					ctx.rect(points[0][X], points[0][Y], x-points[0][X], y-points[0][Y])
+				else:
+					ellipse(ctx, points[0][X], points[0][Y], x-points[0][X], y-points[0][Y])
+
+				if main._fillColor is not None:
+					ctx.fill()
+				if main._brushColor is not None:
+					ctx.stroke()
+			elif main._mode == LINE and event.which == CLICK and len(points) > 1:
+				ctx.lineWidth = main._lineWidth
+				ctx.strokeStyle = main._brushColor
+				drawSpline(ctx)
+			elif main._mode == SELECT:
+				x, y = getXY(self, event)
+				if selection is None and x != points[0][X] and y != points[0][Y]:
+					# we just selected something
+					sx = points[0][X]
+					sy = points[0][Y]
+					width = x-sx
+					height = y-sy
+					sx, sy, width, height = normalize(sx, sy, width, height)
+					points = [[sx, sy]]
+					x = sx+width
+					y = sy+height
+					selection = ctx.getImageData(sx, sy, width, height)
+					ctx.clearRect(sx, sy, width, height)
+					tmpCtx.putImageData(selection, points[0][X], points[0][Y])
+					tmpCtx.strokeRect(points[0][X], points[0][Y], x-points[0][X], y-points[0][Y])
+					points.append([x, y])
+
+			dragging = False
+			ctx.restore()
+			if (not selection or (x == points[0][X] and y == points[0][Y])) \
+			and (not main._mode == LINE or (event.which == CLICK and len(points) > 1)):
+				points = []
+				clear(tmpCtx)
+				tmpCtx.restore()
+
+		# to be used by selection manipulation filters
+		self._filter = def(callback):
+			nonlocal selection
+			if selection:
+				pixels = selection
+			else:
+				pixels = ctx.getImageData(0, 0, canvasWidth, canvasHeight)
+			data = pixels.data
+			invoke = def(offset):
+				callback(data, offset)
+			eachPixel(pixels, invoke)
+			if selection:
+				clear(tmpCtx)
+				tmpCtx.putImageData(pixels, points[0][X], points[0][Y])
+				tmpCtx.strokeRect(points[0][X], points[0][Y], points[1][X]-points[0][X], points[1][Y]-points[0][Y])
+			else:
+				ctx.putImageData(pixels, 0, 0)
+
+		$tmpCanvas.mousedown(onMouseDown)
+		$tmpCanvas.mousemove(onMouseMove)
+		$tmpCanvas.mouseup(onMouseUp)
+		onMouseLeave = def(event):
+			if dragging:
+				onMouseUp(event)
+		$tmpCanvas.mouseleave(onMouseLeave)
+
+		self._ctx.lineJoin = tmpCtx.lineJoin = self._ctx.lineCap = tmpCtx.lineCap = 'round'
+
+	def undo(self):
+		state = self._undoStack.pop()
+		if state:
+			self._redoStack.append(state)
+			self._ctx.putImageData(state, 0, 0)
+
+	def redo(self):
+		state = self._redoStack.pop()
+		if state:
+			self._undoStack.append(state)
+			self._ctx.putImageData(state, 0, 0)
+
+	# invert declared inside __init__() since it needs access to hidden 'selection' variable
+
+	def setMode(self, mode):
+		self._mode = mode
+
+	def setStroke(self, style):
+		self._brushColor = style
+
+	def setFill(self, style):
+		self._fillColor = style
+
+	def setWidth(self, value):
+		self._lineWidth = value
+
+	def clear(self):
+		self._clear(self._ctx)
+
+	def exportDwg(self):
+		return self._canvas.toDataURL()
+
+	def invert(self):
+		invert = def(data, offset):
+			data[offset] = 255-data[offset]
+			data[offset+1] = 255-data[offset+1]
+			data[offset+2] = 255-data[offset+2]
+		self._filter(invert)
+
+	def redFilter(self):
+		remove = def(data, offset):
+			data[offset] = 0
+		self._filter(remove)
+
+	def greenFilter(self):
+		remove = def(data, offset):
+			data[offset+1] = 0
+		self._filter(remove)
+
+	def blueFilter(self):
+		remove = def(data, offset):
+			data[offset+2] = 0
+		self._filter(remove)
+
+	def darken(self):
+		darken = def(data, offset):
+			data[offset] /= 2
+			data[offset+1] /= 2
+			data[offset+2] /= 2
+		self._filter(darken)
+
+	def lighten(self):
+		lighten = def(data, offset):
+			data[offset] = Math.min(data[offset] * 2, 255)
+			data[offset+1] = Math.min(data[offset+1] * 2, 255)
+			data[offset+2] = Math.min(data[offset+2] * 2, 255)
+		self._filter(lighten)

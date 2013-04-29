@@ -1,0 +1,103 @@
+import stdlib
+
+def deepEqual(a, b):
+	"""
+	Equality comparison that works with all data types, returns true if structure and
+	contents of first object equal to those of second object
+
+	Arguments:
+		a: first object
+		b: second object
+	"""
+	if a is b:
+		# simple object
+		return True
+
+	if (isinstance(a, Array) and isinstance(b, Array)) or (isinstance(a, Object) and isinstance(b, Object)):
+		# if length ot type doesn't match, they can't be equal
+		if a.constructor is not b.constructor or a.length is not b.length:
+			return False
+
+		# compare individual properties (order doesn't matter if it's a hash)
+		for i in dict.keys(a):
+			if b.hasOwnProperty(i):
+				# recursively test equality of object children
+				if not deepEqual(a[i], b[i]):
+					return False
+			else:
+				return False
+		return True
+	return False
+
+class AssertionError(Error):
+	def __init__(self, message=""):
+		self.name = "AssertionError"
+		self.message = message
+
+assert = def(result):
+	if not result:
+		raise AssertionError()
+
+class _$rapyd$_TestCase:
+	def __init__(self):
+		pass
+	def assertEqual(self, a, b):
+		# this function is smart enough to correctly test equality even for arrays
+		assert(deepEqual(a, b))
+	def assertNotEqual(self, a, b):
+		# this function is smart enough to correctly test equality even for arrays
+		assert(not deepEqual(a, b))
+	def assertTrue(self, a):
+		assert(a)
+	def assertFalse(self, a):
+		assert(not a)
+	def assertAlmostEqual(self, a, b, precision):
+		epsilon = 1/Math.pow(10, precision)
+		assert(Math.abs(a-b) < epsilon)
+	def assertNotAlmostEqual(self, a, b, precision):
+		try:
+			self.assertAlmostEqual(a, b, precision)
+		except AssertionError:
+			return
+		raise AssertionError()
+
+def output(string):
+	console.log(string)
+
+unittest = {
+	main: def():
+		num_tests = 0
+		bad_tests = 0
+		overall = 'OK'
+		# NOTE: the timing mechanism is currently naive, this might change in the future if higher accuracy is needed
+		start_time = Date()
+		for object in global:
+			if isinstance(global[object].prototype, _$rapyd$_TestCase):
+				obj = new global[object]()
+				for prop in obj:
+					if prop[:4] == 'test':
+						num_tests += 1
+						# create a new instance of the test object for each case to ensure independence
+						# TODO: make this case not require 'new' keyword in the future, it needs it because
+						# compiler isn't smart enough to realize that global[object] == object
+						new_obj = new global[object]()
+						if type(new_obj.setUp) is 'function':
+							new_obj.setUp()
+						try:
+							new_obj[prop]()
+							result = 'ok'
+						except AssertionError as e:
+							result = 'FAIL'
+							bad_tests += 1
+						output(prop + ' (' + object + ') ... ' + result)
+						if type(new_obj.tearDown) is 'function':
+							new_obj.tearDown()
+		elapsed = (Date() - start_time)/1000
+		output('--------------------------------------------------------------')
+		output('Ran ' + str(num_tests) + ' in ' + elapsed + 's\n')
+		if bad_tests:
+			overall = 'FAILED (failures=' + str(bad_tests) + ')'
+		output(overall)
+	,
+	TestCase: _$rapyd$_TestCase
+}

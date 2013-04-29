@@ -1,0 +1,74 @@
+def nothing():
+	pass
+assert.equal(nothing(), undefined)
+
+add = def(a, b):
+	return a+b
+def sub(a, b):
+	return a-b
+
+(def():
+	nonlocal mul
+	mul = def(a, b):
+		return a*b
+
+	div = def(a, b):
+		return a/b
+)()
+
+assert.equal(add(1,2), 3)
+assert.equal(sub(1,2), -1)
+assert.equal(mul(2,2), 4)
+# for some reason input to throws must be of type block, hence the 'def' wrapper
+assert.throws(
+	def():
+		div(6,3)
+	,
+	/div is not defined/
+)
+
+arr = [8,4]
+assert.equal(add(*arr), 12)
+assert.ok(isinstance(arr, Array))
+
+def sum(*args):
+	ttl = 0
+	for i in args:
+		ttl += i
+	return ttl
+assert.equal(sum(1,2,3), 6)
+assert.equal(sum(1,*[2,3]), 6)
+
+num = 4
+def():
+	nonlocal num
+	num = 5
+.call(this)
+
+assert.equal(num, 5)
+
+x = "foo"
+y = 5
+def swap(x, y):
+	return y, x
+x, y = swap(x, y)
+assert.equal(x, 5)
+assert.equal(y, "foo")
+
+count = 0
+f, r = (def():
+	def fake_increment():
+		count += 1
+	def real_increment():
+		nonlocal count
+		count += 1
+	return fake_increment, real_increment
+).call(this)
+
+f()
+assert.equal(count, 0)
+r()
+assert.equal(count, 1)
+
+st = "this is a string"
+assert.equal(type(st), JS("typeof st"))

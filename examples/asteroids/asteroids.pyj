@@ -1,0 +1,110 @@
+"""
+View
+
+The view contains the canvas and has all the logic for drawing the game state
+on the screen. The original Pyjs code used multiple libraries here. Of the 3
+files, this one required the most changes to port to RapydScript.
+"""
+
+import stdlib
+import game_model
+import game_controller
+
+SHOT_COLOR = '#fff'
+
+ASTEROID_SIZE = 180.0
+CANVAS_DIM_X = 800
+CANVAS_DIM_Y = 600
+
+class View:
+	def __init__(self, w, h, canvas):
+		self.width = w
+		self.height = h
+		self.canvas = canvas
+
+		self.model = Model(w, h)
+		self.controller = Controller(self.model)
+
+		self.number_images_loaded = 0
+		self.view_loaded = False
+
+		main = self
+		document.addEventListener('keydown', def (event):
+			event.preventDefault()
+			main.setKey(event.keyCode, True)
+		)
+		document.addEventListener('keyup', def (event):
+			event.preventDefault()
+			main.setKey(event.keyCode, False)
+		)
+
+		#Load images
+		imgsrcs = ['./images/ship1.png',
+					'./images/ship2.png',
+					'./images/asteroid.png']
+
+		self.img = [None, None, None]
+		for i in range(3):
+			main.img[i] = Image()
+			main.img[i].src = imgsrcs[i]
+			main.img[i].onload = def():
+				main.number_images_loaded += 1
+				if main.number_images_loaded >= 3:
+					main.view_loaded = True
+					main.controller.start_game(main)
+
+	def setKey(self, k, set):
+		if k == 38:
+			self.controller.key_up = set
+		elif k == 40:
+			self.controller.key_down = set
+		elif k == 37:
+			self.controller.key_left = set
+		elif k == 39:
+			self.controller.key_right = set
+		elif k == 32:
+			self.controller.key_fire = set
+
+	def draw_asteroid(self, ctx, asteroid):
+		ctx.save()
+		ctx.translate(asteroid.x, asteroid.y)
+		ctx.rotate(asteroid.rot)
+		ctx.scale(asteroid.scale,asteroid.scale)
+		ctx.drawImage(self.img[2], -(ASTEROID_SIZE/2), -(ASTEROID_SIZE/2))
+		ctx.restore()
+
+	def draw_shot(self, ctx, shot):
+		ctx.fillStyle = SHOT_COLOR
+		ctx.fillRect(Math.ceil(shot.x - 1), Math.ceil(shot.y - 1), 3, 3)
+
+	def draw_ship(self, ctx, ship):
+		ctx.save()
+		ctx.translate(ship.x, ship.y)
+		ctx.rotate(ship.rot)
+		if self.controller.key_up:
+			img = self.img[1]
+		else:
+			img = self.img[0]
+		ctx.drawImage(img, -15, -12)
+		ctx.restore()
+
+	def draw(self):
+		ctx = self.canvas.getContext('2d')
+
+		#fill the background
+		ctx.fillStyle = '#000'
+		ctx.fillRect(0, 0, self.width, self.height)
+
+		for i in range(len(self.model.asteroids)):
+			self.draw_asteroid(ctx, self.model.asteroids[i])
+		for i in range(len(self.model.shots)):
+			self.draw_shot(ctx, self.model.shots[i])
+
+		self.draw_ship(ctx, self.model.ship)
+
+def runGame():
+	# The view tells when the controller to start and passes in a reference
+	# to itself
+	canvas = document.getElementById('myCanvas')
+	view = View(CANVAS_DIM_X, CANVAS_DIM_Y, canvas)
+

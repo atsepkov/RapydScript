@@ -1,0 +1,350 @@
+#! /usr/bin/env node
+// -*- js -*-
+
+"use strict";
+
+var RapydScript = require("../tools/node");
+var sys = require("util");
+var optimist = require("optimist");
+var fs = require("fs");
+var async = require("async");
+var path = require("path");
+var ARGS = optimist
+    .usage("$0 input1.js [input2.js ...] [options]\n\
+Use a single dash to read input from the standard input.\
+\n\n\
+")
+    .describe("screw-ie8", "Pass this flag if you don't care about full compliance with Internet Explorer 6-8 quirks (by default RapydScript will try to be IE-proof).")
+    .describe("p", "Skip prefix for original filenames that appear in source maps. \
+For example -p 3 will drop 3 directories from file names and ensure they are relative paths.")
+    .describe("o", "Output file (default STDOUT).")
+    .describe("w", "Remove the module wrapper that prevents RapydScript \
+scope from bleeding into other JavaScript logic.")
+    .describe("n", "Import modules into separate namespaces like Python \
+instead of concatenating them [experimental].")
+    .describe("b", "Beautify output/specify output options.")
+    .describe("d", "Global definitions")
+    .describe("e", "Embed everything in a big function, with a configurable parameter/argument list.")
+    .describe("t", "Run RapydScript tests")
+
+    .describe("comments", "Preserve copyright comments in the output. \
+By default this works like Google Closure, keeping JSDoc-style comments that contain \"@license\" or \"@preserve\". \
+You can optionally pass one of the following arguments to this flag:\n\
+- \"all\" to keep all comments\n\
+- a valid JS regexp (needs to start with a slash) to keep only comments that match.\n\
+\
+Note that currently not *all* comments can be kept when compression is on, \
+because of dead code removal or cascading statements into sequences.")
+
+    .describe("stats", "Display operations run time on STDERR.")
+    .describe("self", "Build itself (RapydScript2) as a library (implies --wrap=RapydScript --export-all)")
+    .describe("wrap", "Embed everything in a big function, making the “exports” and “global” variables available. \
+You need to pass an argument to this option to specify the name that your module will take when included in, say, a browser.")
+    .describe("export-all", "Only used when --wrap, this tells RapydScript to add code to automatically export all globals.")
+    .describe("v", "Verbose")
+    .describe("V", "Print version number and exit.")
+
+    .alias("p", "prefix")
+    .alias("o", "output")
+    .alias("w", "no-module-wrapper")
+    .alias("v", "verbose")
+    .alias("n", "namespace-imports")
+    .alias("b", "beautify")
+    .alias("d", "define")
+    .alias("r", "reserved")
+    .alias("V", "version")
+    .alias("e", "enclose")
+    .alias("t", "test")
+
+    .string("b")
+    .string("d")
+    .string("e")
+    .string("comments")
+    .string("wrap")
+    .boolean("screw-ie8")
+    .boolean("export-all")
+    .boolean("self")
+    .boolean("v")
+    .boolean("stats")
+    .boolean("V")
+
+    .wrap(80)
+
+    .argv
+;
+
+normalize(ARGS);
+
+if (ARGS.version || ARGS.V) {
+    var json = require("../package.json");
+    sys.puts(json.name + ' ' + json.version);
+    process.exit(0);
+}
+
+if (ARGS.ast_help) {
+    var desc = RapydScript.describe_ast();
+    sys.puts(typeof desc == "string" ? desc : JSON.stringify(desc, null, 2));
+    process.exit(0);
+}
+
+if (ARGS.h || ARGS.help) {
+    sys.puts(optimist.help());
+    process.exit(0);
+}
+
+if (ARGS.t || ARGS.test) {
+    // run all tests and exit
+    var assert = require("assert");
+    var test_dir = path.normalize(
+        path.join(
+            path.dirname(module.filename),
+            "../test"
+        )
+    );
+    var files = fs.readdirSync(test_dir).filter(function(name){
+        return /\.pyj$/.test(name);
+    });
+    files.forEach(function(file){
+        var ast;
+        var filepath = path.join(test_dir, file);
+        try {
+            ast = RapydScript.parse(fs.readFileSync(filepath, "utf-8"), {
+                filename: file,
+                toplevel: ast,
+                readfile: fs.readFileSync,
+                libdir: path.normalize(
+                    path.join(
+                        path.dirname(module.filename),
+                        "../src"
+                    )
+                )
+            });
+        } catch(ex) {
+//            if (ex instanceof RapydScript.JS_Parse_Error) {
+//                sys.print("Error parsing test file: " + file);
+//            }
+            sys.print(file + ":\t" + ex + "\n");
+            return;
+        }
+        // generate output
+        var output = RapydScript.OutputStream({beautify: true});
+        ast.print(output);
+
+        // test that output performs correct JS operations
+//        sys.print(output);
+//            eval(output.toString());
+        var testcontent = "exports.run = function(){assert = require('assert');" + output.toString() + "};";
+        fs.writeFileSync(filepath + ".js", testcontent);
+        var testcase = require(filepath + ".js");
+        try {
+            testcase.run();
+        } catch (e) {
+            sys.print(file + ":\t" + e.stack + "\n\n");
+            fs.unlinkSync(filepath + ".js");
+            return;
+        }
+        sys.print(file + ":\ttest completed successfully\n");
+        fs.unlinkSync(filepath + ".js");
+    });
+    process.exit(0);
+}
+
+var BEAUTIFY = getOptions("b", true);
+var NO_MODULE_WRAPPER = getOptions("w", false);
+var NAMESPACE_IMPORTS = getOptions("n", false);
+
+var OUTPUT_OPTIONS = {
+    beautify: BEAUTIFY ? true : false,
+    private_scope: NO_MODULE_WRAPPER ? false : true,
+    namespace_imports: NAMESPACE_IMPORTS ? true : false
+};
+
+if (BEAUTIFY)
+    RapydScript.merge(OUTPUT_OPTIONS, BEAUTIFY);
+
+if (ARGS.comments) {
+    if (/^\//.test(ARGS.comments)) {
+        OUTPUT_OPTIONS.comments = new Function("return(" + ARGS.comments + ")")();
+    } else if (ARGS.comments == "all") {
+        OUTPUT_OPTIONS.comments = true;
+    } else {
+        OUTPUT_OPTIONS.comments = function(node, comment) {
+            var text = comment.value;
+            var type = comment.type;
+            if (type == "comment2") {
+                // multiline comment
+                return /@preserve|@license|@cc_on/i.test(text);
+            }
+        }
+    }
+}
+
+var files = ARGS._.slice();
+
+if (ARGS.self) {
+    if (files.length > 0) {
+        sys.error("WARN: Ignoring input files since --self was passed");
+    }
+    files = RapydScript.FILES;
+    if (!ARGS.wrap) ARGS.wrap = "RapydScript";
+    ARGS.export_all = true;
+}
+
+if (files.length == 0) {
+    files = [ "-" ];
+}
+
+if (files.filter(function(el){ return el == "-" }).length > 1) {
+    sys.error("ERROR: Can read a single file from STDIN (two or more dashes specified)");
+    process.exit(1);
+}
+
+var STATS = {};
+var OUTPUT_FILE = ARGS.o;
+var TOPLEVEL = null;
+
+try {
+    var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
+} catch(ex) {
+    if (ex instanceof RapydScript.DefaultsError) {
+        sys.error(ex.msg);
+        sys.error("Supported options:");
+        sys.error(sys.inspect(ex.defs));
+        process.exit(1);
+    }
+}
+
+async.eachLimit(files, 1, function (file, cb) {
+    read_whole_file(file, function (err, code) {
+        if (err) {
+            sys.error("ERROR: can't read file: " + filename);
+            process.exit(1);
+        }
+        if (ARGS.p != null) {
+            file = file.replace(/^\/+/, "").split(/\/+/).slice(ARGS.p).join("/");
+        }
+        time_it("parse", function(){
+            TOPLEVEL = RapydScript.parse(code, {
+                filename: file,
+                toplevel: TOPLEVEL,
+                readfile: fs.readFileSync,
+                basedir: path.dirname(file),
+                libdir: path.normalize(
+                    path.join(
+                        path.dirname(module.filename),
+                        "../src"
+                    )
+                )
+            });
+        });
+        cb();
+    });
+}, function () {
+    if (ARGS.wrap) {
+        TOPLEVEL = TOPLEVEL.wrap_commonjs(ARGS.wrap, ARGS.export_all);
+    }
+
+    if (ARGS.enclose) {
+        var arg_parameter_list = ARGS.enclose;
+
+        if (!(arg_parameter_list instanceof Array)) {
+            arg_parameter_list = [arg_parameter_list];
+        }
+
+        TOPLEVEL = TOPLEVEL.wrap_enclose(arg_parameter_list);
+    }
+
+    time_it("generate", function(){
+        TOPLEVEL.print(output);
+    });
+
+    output = output.get();
+
+    if (OUTPUT_FILE) {
+        fs.writeFileSync(OUTPUT_FILE, output, "utf8");
+    } else {
+        sys.print(output);
+        sys.error("\n");
+    }
+
+    if (ARGS.stats) {
+        sys.error(RapydScript.string_template("Timing information (compressed {count} files):", {
+            count: files.length
+        }));
+        for (var i in STATS) if (STATS.hasOwnProperty(i)) {
+            sys.error(RapydScript.string_template("- {name}: {time}s", {
+                name: i,
+                time: (STATS[i] / 1000).toFixed(3)
+            }));
+        }
+    }
+});
+
+/* -----[ functions ]----- */
+
+function normalize(o) {
+    for (var i in o) if (o.hasOwnProperty(i) && /-/.test(i)) {
+        o[i.replace(/-/g, "_")] = o[i];
+        delete o[i];
+    }
+}
+
+function getOptions(x, constants) {
+    x = ARGS[x];
+    if (!x) return null;
+    var ret = {};
+    if (x !== true) {
+        var ast;
+        try {
+            ast = RapydScript.parse(x);
+        } catch(ex) {
+            if (ex instanceof RapydScript.JS_Parse_Error) {
+                sys.error("Error parsing arguments in: " + x);
+                process.exit(1);
+            }
+        }
+        ast.walk(new RapydScript.TreeWalker(function(node){
+            if (node instanceof RapydScript.AST_Toplevel) return; // descend
+            if (node instanceof RapydScript.AST_SimpleStatement) return; // descend
+            if (node instanceof RapydScript.AST_Seq) return; // descend
+            if (node instanceof RapydScript.AST_Assign) {
+                var name = node.left.print_to_string({ beautify: false }).replace(/-/g, "_");
+                var value = node.right;
+                if (constants)
+                    value = new Function("return (" + value.print_to_string() + ")")();
+                ret[name] = value;
+                return true;    // no descend
+            }
+            sys.error(node.TYPE)
+            sys.error("Error parsing arguments in: " + x);
+            process.exit(1);
+        }));
+    }
+    return ret;
+}
+
+function read_whole_file(filename, cb) {
+    if (filename == "-") {
+        var chunks = [];
+        process.stdin.setEncoding('utf-8');
+        process.stdin.on('data', function (chunk) {
+            chunks.push(chunk);
+        }).on('end', function () {
+            cb(null, chunks.join(""));
+        });
+        process.openStdin();
+    } else {
+        fs.readFile(filename, "utf-8", cb);
+    }
+}
+
+function time_it(name, cont) {
+    var t1 = new Date().getTime();
+    var ret = cont();
+    if (ARGS.stats) {
+        var spent = new Date().getTime() - t1;
+        if (STATS[name]) STATS[name] += spent;
+        else STATS[name] = spent;
+    }
+    return ret;
+}

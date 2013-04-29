@@ -1,0 +1,301 @@
+###########################################################
+# RapydScript Standard Library
+# Author: Alexander Tsepkov
+# Copyright 2013 Pyjeon Software LLC
+# License: Apache License	2.0
+# This library is covered under Apache license, so that
+# you can distribute it with your RapydScript applications.
+###########################################################
+
+
+###########################################################
+# Basic Functionality
+###########################################################
+
+JSON = JSON or {}
+
+# implement JSON.stringify in older browsers, if doesn't already exist
+if not JSON.stringify:
+	JS("""
+	JSON.stringify = function(obj) {
+		var t = typeof (obj);
+		if (t != "object" || obj === null) {
+			// simple data type
+			if (t == "string")
+				obj = '"' + obj + '"';
+			if (t == "function")
+				return; // return undefined
+			else
+				return String(obj);
+		} else {
+			// recurse array or object
+			var n, v, json = []
+			var arr = (obj && obj.constructor == Array);
+			for (n in obj) {
+				v = obj[n];
+				t = typeof (v);
+				if (t != "function" && t != "undefined") {
+					if (t == "string")
+						v = '"' + v + '"';
+					else if ((t == "object" || t == "function") && v !== null)
+						v = JSON.stringify(v);
+					json.push((arr ? "" : '"' + n + '":') + String(v));
+				}
+			}
+			return (arr ? "[" : "{") + String(json) + (arr ? "]" : "}");
+		}
+	};
+	""")
+
+# Python's range() function
+def range(a, b, step):
+	A = []
+	if typeof(b) is "undefined":
+		b = a
+		a = 0
+	A[0] = a
+	step = step or 1
+	if step > 0:
+		while a+step < b:
+			a += step
+			A[A.length] = a
+	else:
+		while a+step > b:
+			a += step
+			A[A.length] = a
+	return A
+
+# Python's enumareate() function
+def enumerate(item):
+	A = []
+	JS("for (var i = 0; i < item.length; i++){A[A.length] = [i, item[i]];}")
+	return A
+
+# Python's reversed() function
+def reversed(arr):
+	temp = []
+	JS("for (var i = arr.length - 1; i >= 0; i--) {temp.push(arr[i]);}")
+	return temp
+
+
+###########################################################
+# Errors
+###########################################################
+class ValueError(Error):
+	def __init__(self, message):
+		self.name = "ValueError"
+		self.message = message
+
+
+###########################################################
+# Python str object
+###########################################################
+class str(String):
+	"""
+	This emulates Python str in JavaScript. The extra hackery here with
+	toString() and valueOf() is needed because of poorly supported
+	inheritance with native JavaScript objects
+	"""
+	def __init__(self, elem=""):
+		elem = String(elem)
+		String.__init__(self, elem)
+		this._str = elem
+
+	def strip(self):
+		return str(self._str.trim())
+
+	def lstrip(self):
+		return str(self._str.trimLeft())
+
+	def rstrip(self):
+		return str(self._str.trimRight())
+
+	def join(self, iterable):
+		return str(iterable.join(self._str))
+
+	def zfill(self, size):
+		s = self._str # create a copy
+		while s.length < size:
+			s = '0' + s
+		return str(s)
+
+	def replace(self, orig, sub, n):
+		s = self._str
+		if n:
+			for n in range(len(n)):
+				s = String.replace(s, orig, sub)
+		else:
+			s = String.replace(s, RegExp(orig, 'g'), sub)
+		return str(s)
+
+	def toString(self):
+		return self._str
+
+	def toSource(self):
+		# this method is only needed by Firefox
+		return '"' + self._str + '"'
+
+	def valueOf(self):
+		return self._str
+
+
+###########################################################
+# Python list object
+###########################################################
+class list(Array):
+	"""
+	This class emulates a Python list in JavaScript
+	"""
+	def __init__(self, iterable):
+		for elem in iterable:
+			Array.push(self, elem)
+
+	def append(self, elem):
+		self.push(elem)
+
+	def find(self, elem):
+		return self.indexOf(elem)
+
+	def index(self, elem):
+		val = self.find(elem)
+		if val == -1:
+			raise ValueError(str(elem) + " is not in list")
+		return val
+
+	def insert(self, index, elem):
+		self.splice(index, 0, elem)
+
+	def pop(self, index=len(self)-1):
+		return self.splice(index, 1)[0]
+
+	def extend(self, list2):
+		self.push(*list2)
+
+	def remove(self, elem):
+		index = self.find(elem)
+		self.pop(index)
+
+	def copy(self):
+		return list(self)
+
+	def toSource(self):
+		# a method needed only for Firefox, otherwise it craps out
+		# this is a bit of a hack now, stringify doesn't return correct array representation
+		return '[' + self + ']'
+
+if not Array.prototype.map:
+	# declare map() method for older browsers
+	JS("""
+	Array.prototype.map = function(callback, thisArg) {
+		var T, A, k;
+		if (this == null) {
+			throw new TypeError(" this is null or not defined");
+		}
+		var O = Object(this);
+		var len = O.length >>> 0;
+		if ({}.toString.call(callback) != "[object Function]") {
+			throw new TypeError(callback + " is not a function");
+		}
+		if (thisArg) {
+			T = thisArg;
+		}
+		A = new Array(len);
+		for (var k = 0; k < len; k++) {
+			var kValue, mappedValue;
+			if (k in O) {
+				kValue = O[k];
+				mappedValue = callback.call(T, kValue);
+				A[k] = mappedValue;
+			}
+		}
+		return A;
+	};
+	""")
+def map(oper, arr):
+	return list(arr.map(oper))
+
+if not Array.prototype.filter:
+	# declare filter() method for older browsers
+	JS("""
+	Array.prototype.filter = function(filterfun, thisArg) {
+		"use strict";
+		if (this == null) {
+			throw new TypeError(" this is null or not defined");
+		}
+		var O = Object(this);
+		var len = O.length >>> 0;
+		if ({}.toString.call(filterfun) != "[object Function]") {
+			throw new TypeError(filterfun + " is not a function");
+		}
+		if (thisArg) {
+			T = thisArg;
+		}
+		var A = [];
+		var thisp = arguments[1];
+		for (var k = 0; k < len; k++) {
+			if (k in O) {
+				var val = O[k]; // in case fun mutates this
+				if (filterfun.call(T, val))
+					A.push(val);
+			}
+		}
+		return A;
+	};
+	""")
+def filter(oper, arr):
+	return list(arr.filter(oper))
+
+
+###########################################################
+# Python dict object
+###########################################################
+# getOwnPropertyNames is not on Object's prototype chain for some reason, so we have to use
+# this hack because of poor/inconsistent ECMAScript 'standard'
+_$rapyd$_getOwnProps = JS('Object.getOwnPropertyNames')
+class dict(Object):
+	"""
+	This class emulates a Python dict in JavaScript
+	"""
+	def __init__(self, hashlike):
+		for key in hashlike:
+			self[key] = hashlike[key]
+
+	def keys(self):
+		if type(_$rapyd$_getOwnProps) is 'function':
+			# normal browsers
+			return _$rapyd$_getOwnProps(self)
+		else:
+			# IE and older browsers
+			keys = []
+
+			# Use a standard for in loop
+			JS("""
+			for (var x in hash) {
+				if (this.hasOwnProperty(x)) {
+					keys.push(x);
+				}
+			}
+			""")
+			return keys
+
+	def values(self):
+		vals = []
+		# using class' method instead of object's allows us to use these methods on other hashable types
+		for key in dict.keys(self):
+			vals.push(self[key])
+		return vals
+
+	def items(self):
+		items = []
+		# using class' method instead of object's allows us to use these methods on other hashable types
+		for key in dict.keys(self):
+			items.push((key, self[key]))
+		return items
+
+	def copy(self):
+		return dict(self)
+
+	def clear(self):
+		# using class' method instead of object's allows us to use these methods on other hashable types
+		for key in dict.keys(self):
+			del self[key]
