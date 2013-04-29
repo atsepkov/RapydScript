@@ -123,8 +123,7 @@ def main():
 	# attach actual functionality to menu items
 	$('#menubar-menu-item-new').click(
 		# start new drawing
-		def():
-			dwg.clear()
+		def(): dwg.clear()
 	)
 
 	$('#menubar-menu-item-export-to-image').click(
@@ -136,64 +135,54 @@ def main():
 
 	$('#menubar-menu-item-undo').click(
 		# undo last action
-		def():
-			dwg.undo()
+		def(): dwg.undo()
 	)
 
 	$('#menubar-menu-item-redo').click(
 		# redo last action
-		def():
-			dwg.redo()
+		def(): dwg.redo()
 	)
 
 	$('#menubar-menu-item-invert-colors').click(
 		# invert colors
-		def():
-			dwg.invert()
+		def(): dwg.invert()
 	)
 
 	$('#menubar-menu-item-red-filter').click(
 		# filter out red channel
-		def():
-			dwg.redFilter()
+		def(): dwg.redFilter()
 	)
 
 	$('#menubar-menu-item-green-filter').click(
 		# filter out green channel
-		def():
-			dwg.greenFilter()
+		def(): dwg.greenFilter()
 	)
 
 	$('#menubar-menu-item-blue-filter').click(
 		# filter out blue channel
-		def():
-			dwg.blueFilter()
+		def(): dwg.blueFilter()
 	)
 
 	$('#menubar-menu-item-darken').click(
 		# make image half as bright
-		def():
-			dwg.darken()
+		def(): dwg.darken()
 	)
 
 	$('#menubar-menu-item-lighten').click(
 		# make image twice as bright
-		def():
-			dwg.lighten()
+		def(): dwg.lighten()
 	)
 
 	# pre-cache the element, so we don't have to 'select' it repeatedly
 	$about = $('#about').dialog({'modal': True})
 	$('#menubar-menu-item-about').click(
 		# show info about this app
-		def():
-			$about.dialog('open')
+		def(): $about.dialog('open')
 	)
 
 
 	# disable right-click menu
-	window.oncontextmenu = def():
-		return False
+	window.oncontextmenu = def(): return False
 
 
 $(document).ready(main)
