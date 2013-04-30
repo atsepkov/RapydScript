@@ -40,16 +40,16 @@ First make sure you have installed the latest version of [node.js](http://nodejs
 
 From NPM for use as a command line app:
 
-    npm install uglify-js -g
+    npm install rapydscript -g
 
 From NPM for programmatic use:
 
-    npm install uglify-js
+    npm install rapydscript
 
 From Git:
 
-    git clone git://github.com/atsepkov/RapydScript2.git
-    cd RapydScript2
+    git clone git://github.com/atsepkov/RapydScript.git
+    cd RapydScript
     npm link .
 
 If you're using OSX, you can probably use the same commands (let me know if that's not the case). If you're using Windows, you should be able to follow similar commands after installing node.js and git on your system.

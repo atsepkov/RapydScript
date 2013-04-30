@@ -12,7 +12,7 @@
     }],
     "repositories": [{
         "type": "git",
-        "url": "https://github.com/atsepkov/RapydScript2.git"
+        "url": "https://github.com/atsepkov/RapydScript.git"
     }],
     "dependencies": {
         "async"      : "~0.2.6",
