@@ -6,7 +6,6 @@ Differences from Original RapydScript
 RapydScript II is a rewrite of RapydScript using UglifyJS2 as a base. The compiler is now written in JavaScript rather than Python and has numerous advantages over the original. You can read <http://blog.pyjeon.com> for the details. There are also several features that have not yet been implemented from the original compiler:
 
 - List Comprehensions
-- Function inlining
 - r'string', instead RapydScript II uses JavaScript's /string/ notation
 - `new` keyword is again required in front of native JavaScript objects (until I decide how to handle static methods in these objects)
 

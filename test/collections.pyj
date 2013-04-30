@@ -46,3 +46,10 @@ assert.equal(len(d0), 3)
 # assignment
 d1["bar"] += "!"
 assert.equal(d1.bar, "baz!")
+
+# nested comparisons
+x = 3
+assert.ok(1 < x <= 3)
+assert.ok(1 < x*x > 3)
+assert.ok(1 < (x+=1) < 5) # check that only one increment occurs
+assert.equal(x, 4)
