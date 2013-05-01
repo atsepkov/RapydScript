@@ -203,11 +203,7 @@ class Model:
 	def reset(self):
 		self.shots = []
 		# list comprehensions are temporarily not supported
-		# self.asteroids = [Asteroid(self) for i in range(self.num_asteroids)]
-		self.asteroids = []
-		for i in range(self.num_asteroids):
-			self.asteroids.append(Asteroid(self))
-
+		self.asteroids = [Asteroid(self) for i in range(self.num_asteroids)]
 		self.ship.reset()
 
 	def trigger_fire(self):
