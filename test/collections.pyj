@@ -1,3 +1,5 @@
+import stdlib
+
 # ARRAYS
 a = [4,5,6,7]
 
@@ -53,3 +55,11 @@ assert.ok(1 < x <= 3)
 assert.ok(1 < x*x > 3)
 assert.ok(1 < (x+=1) < 5) # check that only one increment occurs
 assert.equal(x, 4)
+
+# list comprehensions
+e0 = [i*i for i in [0,1,2,3]]
+e1 = [x+y for x, y in enumerate(range(5,0,-1))]
+e2 = [e0+1 for e0 in range(6) if e0%3]
+assert.deepEqual(e0, [0,1,4,9])
+assert.deepEqual(e1, [5,5,5,5,5])
+assert.deepEqual(e2, [2,3,5,6])
