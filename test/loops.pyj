@@ -1,5 +1,3 @@
-import stdlib
-
 # loop through values, not indices
 a = ['foo', 'bar', 'baz']
 for val in a:
