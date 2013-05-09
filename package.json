@@ -1,25 +1,33 @@
 {
-    "name": "rapydscript",
-    "description": "RapydScript to JavaScript compiler",
-    "homepage": "http://rapydscript.pyjeon.com",
-    "main": "tools/node.js",
-    "version": "0.1.0",
-    "engines": { "node" : ">=0.4.0" },
-    "maintainers": [{
-        "name": "Alexander Tsepkov",
-        "email": "atsepkov@pyjeon.com",
-        "web": "http://lisperator.net/"
-    }],
-    "repositories": [{
-        "type": "git",
-        "url": "https://github.com/atsepkov/RapydScript.git"
-    }],
-    "dependencies": {
-        "async"      : "~0.2.6",
-        "optimist"   : "~0.3.5"
-    },
-    "bin": {
-        "rapydscript" : "bin/rapydscript"
-    },
-    "scripts": {"test": "node test/run-tests.js"}
+  "name": "rapydscript",
+  "description": "RapydScript to JavaScript compiler",
+  "homepage": "http://rapydscript.pyjeon.com",
+  "main": "tools/node.js",
+  "version": "0.1.1",
+  "engines": {
+    "node": ">=0.4.0"
+  },
+  "maintainers": [
+    {
+      "name": "Alexander Tsepkov",
+      "email": "atsepkov@pyjeon.com",
+      "web": "http://lisperator.net/"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "git",
+      "url": "https://github.com/atsepkov/RapydScript.git"
+    }
+  ],
+  "dependencies": {
+    "async": "~0.2.6",
+    "optimist": "~0.3.5"
+  },
+  "bin": {
+    "rapydscript": "bin/rapydscript"
+  },
+  "scripts": {
+    "test": "node test/run-tests.js"
+  }
 }
