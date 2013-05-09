@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# you can uncomment rapydml and rapydcss if you have them installed
+#rapydml index.pyml && mv index.html output/
+#rapydcss treemap.sass && mv treemap.css output/
+../../bin/rapydscript treemap.pyj -o treemap.js && mv treemap.js output/
+
