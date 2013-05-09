@@ -1,0 +1,15 @@
+
+html:
+    head:
+        link(rel="stylesheet" type="text/css" href="treemap.css")
+    body:
+        form:
+            label:
+                input(type="radio", name="mode", value="size" checked)
+                "Size"
+            label:
+                input(type="radio", name="mode", value="count")
+                "Count"
+        script(src="http://d3js.org/d3.v3.min.js")
+        script(src="treemap.js")
+
