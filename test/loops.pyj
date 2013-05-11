@@ -6,7 +6,7 @@ for val in a:
 for i in range(len(a)):
 	assert.ok(a[i] in a)
 
-for i, val in enumerate(a):
+for i, val in enumerate(a): # testing that comments are allowed here
 	assert.equal(a[i], val)
 
 i = 0
