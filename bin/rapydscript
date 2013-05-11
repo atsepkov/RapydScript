@@ -15,14 +15,12 @@ Use a single dash to read input from the standard input.\
 \n\n\
 ")
     .describe("screw-ie8", "Pass this flag if you don't care about full compliance with Internet Explorer 6-8 quirks (by default RapydScript will try to be IE-proof).")
-    .describe("p", "Skip prefix for original filenames that appear in source maps. \
-For example -p 3 will drop 3 directories from file names and ensure they are relative paths.")
     .describe("o", "Output file (default STDOUT).")
-    .describe("w", "Remove the module wrapper that prevents RapydScript \
+    .describe("b", "Remove the module wrapper that prevents RapydScript \
 scope from bleeding into other JavaScript logic.")
     .describe("n", "Import modules into separate namespaces like Python \
 instead of concatenating them [experimental].")
-    .describe("b", "Beautify output/specify output options.")
+    .describe("p", "Prettify output/specify output options.")
     .describe("d", "Global definitions")
     .describe("e", "Embed everything in a big function, with a configurable parameter/argument list.")
     .describe("t", "Run RapydScript tests")
@@ -44,19 +42,18 @@ You need to pass an argument to this option to specify the name that your module
     .describe("v", "Verbose")
     .describe("V", "Print version number and exit.")
 
-    .alias("p", "prefix")
     .alias("o", "output")
-    .alias("w", "no-module-wrapper")
+    .alias("b", "bare")
     .alias("v", "verbose")
     .alias("n", "namespace-imports")
-    .alias("b", "beautify")
+    .alias("p", "prettify")
     .alias("d", "define")
     .alias("r", "reserved")
     .alias("V", "version")
     .alias("e", "enclose")
     .alias("t", "test")
 
-    .string("b")
+    .string("p")
     .string("d")
     .string("e")
     .string("comments")
@@ -149,8 +146,8 @@ if (ARGS.t || ARGS.test) {
     process.exit(0);
 }
 
-var BEAUTIFY = getOptions("b", true);
-var NO_MODULE_WRAPPER = getOptions("w", false);
+var BEAUTIFY = getOptions("p", true);
+var NO_MODULE_WRAPPER = getOptions("b", false);
 var NAMESPACE_IMPORTS = getOptions("n", false);
 
 var OUTPUT_OPTIONS = {
@@ -220,9 +217,9 @@ async.eachLimit(files, 1, function (file, cb) {
             sys.error("ERROR: can't read file: " + filename);
             process.exit(1);
         }
-        if (ARGS.p != null) {
-            file = file.replace(/^\/+/, "").split(/\/+/).slice(ARGS.p).join("/");
-        }
+//        if (ARGS.p != null) {
+//            file = file.replace(/^\/+/, "").split(/\/+/).slice(ARGS.p).join("/");
+//        }
         time_it("parse", function(){
             TOPLEVEL = RapydScript.parse(code, {
                 filename: file,
