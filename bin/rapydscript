@@ -21,6 +21,7 @@ scope from bleeding into other JavaScript logic.")
     .describe("n", "Import modules into separate namespaces like Python \
 instead of concatenating them [experimental].")
     .describe("p", "Prettify output/specify output options.")
+    .describe("m", "Omit baselib functions (use this if you have a different way of ensuring they're imported, such as including baselib.js).")
     .describe("d", "Global definitions")
     .describe("e", "Embed everything in a big function, with a configurable parameter/argument list.")
     .describe("t", "Run RapydScript tests")
@@ -47,6 +48,7 @@ You need to pass an argument to this option to specify the name that your module
     .alias("v", "verbose")
     .alias("n", "namespace-imports")
     .alias("p", "prettify")
+    .alias("m", "omit-baselib")
     .alias("d", "define")
     .alias("r", "reserved")
     .alias("V", "version")
@@ -149,11 +151,13 @@ if (ARGS.t || ARGS.test) {
 var BEAUTIFY = getOptions("p", true);
 var NO_MODULE_WRAPPER = getOptions("b", false);
 var NAMESPACE_IMPORTS = getOptions("n", false);
+var OMIT_BASELIB = getOptions("m", false);
 
 var OUTPUT_OPTIONS = {
     beautify: BEAUTIFY ? true : false,
     private_scope: NO_MODULE_WRAPPER ? false : true,
-    namespace_imports: NAMESPACE_IMPORTS ? true : false
+    namespace_imports: NAMESPACE_IMPORTS ? true : false,
+    omit_baselib: OMIT_BASELIB ? true : false
 };
 
 if (BEAUTIFY)
