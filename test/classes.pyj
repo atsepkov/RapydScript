@@ -14,12 +14,12 @@ class Human:
 
 	@staticmethod
 	def getTypicalWeight():
-		return "5.8"
+		return "150"
 
 bob = Human("Bob")
 assert.equal(bob.greet(), "Hello, I'm Bob")
 assert.equal(Human.greet(bob), "Hello, I'm Bob")
-assert.equal(Human.getTypicalWeight(), "5.8") # static method recognition
+assert.equal(Human.getTypicalWeight(), "150") # static method recognition
 
 # don't have to declare __init__, it either gets inherited or stays empty
 # isinstance correctly sees inheritance
