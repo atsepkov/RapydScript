@@ -3,10 +3,11 @@ RapydScript II
 
 Differences from Original RapydScript
 -------------------------------------
+**NOTE:** `new` keyword is once again auto-prepended to native JS objects, `String.fromCharCode` is now correctly marked as a static method and RapydScript now allows you to use `@staticmethod` decorator to specify your own static methods.
+
 RapydScript II is a rewrite of RapydScript using UglifyJS2 as a base. The compiler is now written in JavaScript rather than Python and has numerous advantages over the original. You can read <http://blog.pyjeon.com> for the details. Most of the features from the original compiler are already there, the select few that aren't you can do without:
 
 - r'string', instead RapydScript II uses JavaScript's /string/ notation
-- `new` keyword is again required in front of native JavaScript objects (until I decide how to handle static methods in these objects)
 
 
 What is RapydScript?

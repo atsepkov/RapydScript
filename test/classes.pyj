@@ -12,8 +12,14 @@ class Human:
 	def greet(self):
 		return "Hello, I'm " + self.name
 
+	@staticmethod
+	def getTypicalWeight():
+		return "5.8"
+
 bob = Human("Bob")
 assert.equal(bob.greet(), "Hello, I'm Bob")
+assert.equal(Human.greet(bob), "Hello, I'm Bob")
+assert.equal(Human.getTypicalWeight(), "5.8") # static method recognition
 
 # don't have to declare __init__, it either gets inherited or stays empty
 # isinstance correctly sees inheritance
@@ -48,6 +54,13 @@ assert.equal(angela.how_long(), "I've known you for 8 years")
 	dude = Stranger("some guy")
 )()
 assert.equal(dude.greet(), "Yo, it's me, some guy")
+
+# native methods
+st = String("test")
+assert.equal(st, "test")
+assert.equal(st.toUpperCase(), "TEST")
+assert.equal(String.toUpperCase(st), "TEST")
+assert.equal(String.fromCharCode(65), "A") # static method recognition
 
 # nested classes
 # not yet fully implemented
