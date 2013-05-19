@@ -217,6 +217,28 @@ Additionally, as you already noticed in the previous section, anonymous function
 I'm sure you will agree that the above code is cleaner than declaring 5 temporary variables first and assigning them to the object literal keys after. Note that the example puts the function header (def()) and content on the same line. I'll refer to it as function inlining. This is meant as a feature of RapydScript to make the code cleaner in cases like the example above. While you can use it in longer functions by chaining statements together using `;`, a good rule of thumb (to keep your code clean) is if your function needs semi-colons ask yourself whether you should be inlining, and if it needs more than 2 semi-colons, the answer is probably no (note that you can also use semi-colons as newline separators within functions that aren't inlined, as in the example in the previous section).
 
 
+Decorators
+----------
+Like Python, RapydScript supports function decorators. While decorator arguments are not supported, the basic decorators work exactly the same way as in Python:
+
+	def makebold(fn):
+		def wrapped():
+			return "<b>" + fn() + "</b>"
+		return wrapped
+
+	def makeitalic(fn):
+		def wrapped():
+			return "<i>" + fn() + "</i>"
+		return wrapped
+
+	@makebold
+	@makeitalic
+	def hello():
+		return "hello world"
+
+	hello() # returns "<b><i>hello world</i></b>"
+
+
 Chaining Blocks
 ---------------
 RapydScript wouldn't be useful if it required work-arounds for things that JavaScript handled easily. If you've worked with JavaScript or jQuery before, you've probably seen the following syntax:
@@ -576,6 +598,18 @@ Note that when binding the method to another object, `self` inside the bound fun
 		
 		def doSomething(self):
 			...
+
+Like Python, RapydScript allows static methods. Marking the method static with `@staticmethod` decorator will compile that method such that it's not bound to the object instance, and ensure all calls to this method compile into static method calls:
+
+	class Test:
+		def normalMethod(self):
+			return 1
+
+		@staticmethod
+		def staticMethod(a):
+			return a+1
+
+Some methods in the native JavaScript classes, such as `String.fromCharCode()` have also been marked as static to make things easier for the developer.
 
 
 Exception Handling
