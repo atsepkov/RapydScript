@@ -156,11 +156,11 @@ Another feature of RapydScript is ability to have functions as part of your obje
 		onclick:	def(event):
 			alert("you clicked me"),
 		onmouseover:	def(event):
-			$(self).css('background', 'red')
+			$(this).css('background', 'red')
 		,
 		onmouseout:	def(event):
 			# reset the background
-			$(self).css('background', '')
+			$(this).css('background', '')
 	}
 
 Note the comma on a new line following a function declaration, it needs to be there to let the compiler know there are more attributes in this object literal, yet it can't go on the same line as the function since it would get parsed as part of the function block. Like Python, however, RapydScript supports new-line shorthand using a `;`, which you could use to place the comma on the same line:
@@ -403,11 +403,11 @@ There is a subtle difference between the last 2 lines above, arr.pop(2) will ret
 
 	RapydScript		JavaScript
 	
-	self			this
-	None			null
-	False			false
-	True			true
-					undefined
+	None/null		null
+	False/false		false
+	True/true		true
+	undefined		undefined
+	this			this
 
 The JavaScript operators, however, are not supported. You will have to use Python versions of those. If you're unfamiliar with them, here is the mapping RapydScript uses:
 
@@ -587,16 +587,27 @@ Notice that `Something` class has no `__init__` method. Like in Python, this met
 			self.method = def():
 				doSomething(self)
 
-Note that when binding the method to another object, `self` inside the bound function will no longer correspond to the original object. To remedy this, you can create another variable storing `self` from original class:
+The variable `self` in the above example is not a keyword. Like in Python, it can be replaced with any other variable name. Also, like in Python, this variable will be tied to the class, unlike `this` keyword of JavaScript. RapydScript still treats `this` keyword the same way JavaScript does:
 
 	class Main:
-		def __init__(self):
-			main = self
+		def __init__(s):
+			main = this
 			method = def():
 				main.doSomething()
 			$('#element').click(method)
 		
-		def doSomething(self):
+		def doSomething(s):
+			...
+
+Or, leveraging Pythonic binding to first argument, the same can be shortened to:
+
+	class Main:
+		def __init__(s):
+			method = def():
+				s.doSomething()
+			$('#element').click(method)
+		
+		def doSomething(s):
 			...
 
 Like Python, RapydScript allows static methods. Marking the method static with `@staticmethod` decorator will compile that method such that it's not bound to the object instance, and ensure all calls to this method compile into static method calls:
