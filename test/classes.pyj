@@ -62,6 +62,18 @@ assert.equal(st.toUpperCase(), "TEST")
 assert.equal(String.toUpperCase(st), "TEST")
 assert.equal(String.fromCharCode(65), "A") # static method recognition
 
+# self consistency
+class Counter:
+	def __init__(s, n=0):
+		s.count = n # first arg becomes 'self'
+	def getIncrementer(self):
+		return def():
+			self.count += 1
+c = Counter(5)
+inc = c.getIncrementer()
+inc()
+assert.equal(c.count, 6)
+
 # nested classes
 # not yet fully implemented
 #class Molecule:
