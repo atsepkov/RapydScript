@@ -69,7 +69,7 @@ class str(String):
 	def __init__(self, elem=""):
 		elem = String(elem)
 		String.__init__(self, elem)
-		this._str = elem
+		self._str = elem
 
 	def strip(self):
 		return str(self._str.trim())
@@ -221,7 +221,6 @@ def filter(oper, arr):
 ###########################################################
 # getOwnPropertyNames is not on Object's prototype chain for some reason, so we have to use
 # this hack because of poor/inconsistent ECMAScript 'standard'
-_$rapyd$_getOwnProps = JS('Object.getOwnPropertyNames')
 class dict(Object):
 	"""
 	This class emulates a Python dict in JavaScript
@@ -231,19 +230,17 @@ class dict(Object):
 			self[key] = hashlike[key]
 
 	def keys(self):
-		if type(_$rapyd$_getOwnProps) is 'function':
+		if type(Object.getOwnPropertyNames) is 'function':
 			# normal browsers
-			return _$rapyd$_getOwnProps(self)
+			return Object.getOwnPropertyNames(self)
 		else:
 			# IE and older browsers
 			keys = []
 
 			# Use a standard for in loop
 			JS("""
-			for (var x in hash) {
-				if (this.hasOwnProperty(x)) {
-					keys.push(x);
-				}
+			for (var x in self) {
+				if (self.hasOwnProperty(x)) keys.push(x);
 			}
 			""")
 			return keys

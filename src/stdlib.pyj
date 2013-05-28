@@ -67,9 +67,9 @@ String.prototype.strip = String.prototype.trim
 String.prototype.lstrip = String.prototype.trimLeft
 String.prototype.rstrip = String.prototype.trimRight
 String.prototype.join = def(iterable):
-	return iterable.join(self)
+	return iterable.join(this)
 String.prototype.zfill = def(size):
-	s = self
+	s = this
 	while s.length < size:
 		s = "0" + s
 	return s
@@ -86,23 +86,23 @@ def list(iterable=[]):
 Array.prototype.append = Array.prototype.push
 Array.prototype.find = Array.prototype.indexOf
 Array.prototype.index = def(index):
-	val = self.find(index)
+	val = this.find(index)
 	if val == -1:
 		raise ValueError(str(index) + " is not in list")
 	return val
 Array.prototype.insert = def(index, item):
-	self.splice(index, 0, item)
+	this.splice(index, 0, item)
 Array.prototype.pop = def(index):
 	if not arguments.length:
-		index = self.length-1
-	return self.splice(index, 1)[0]
+		index = this.length-1
+	return this.splice(index, 1)[0]
 Array.prototype.extend = def(array2):
-	self.push.apply(self, array2)
+	this.push.apply(this, array2)
 Array.prototype.remove = def(item):
-	index = self.find(item)
-	self.splice(index, 1)
+	index = this.find(item)
+	this.splice(index, 1)
 Array.prototype.copy = def():
-	return self.slice(0)
+	return this.slice(0)
 if not Array.prototype.map:
 	# declare map() method for older browsers
 	JS("""
