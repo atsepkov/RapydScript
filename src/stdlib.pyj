@@ -92,9 +92,7 @@ Array.prototype.index = def(index):
 	return val
 Array.prototype.insert = def(index, item):
 	this.splice(index, 0, item)
-Array.prototype.pop = def(index):
-	if not arguments.length:
-		index = this.length-1
+Array.prototype.pop = def(index=this.length-1):
 	return this.splice(index, 1)[0]
 Array.prototype.extend = def(array2):
 	this.push.apply(this, array2)
