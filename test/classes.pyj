@@ -55,6 +55,13 @@ assert.equal(angela.how_long(), "I've known you for 8 years")
 )()
 assert.equal(dude.greet(), "Yo, it's me, some guy")
 
+# attributes
+assert.ok(hasattr(dude, "greet"))
+assert.equal(getattr(dude, "greet")(), "Yo, it's me, undefined") # function gets unbound but still works
+assert.equal(hasattr(dude, "stuff"), False)
+setattr(dude, "stuff", True)
+assert.ok(hasattr(dude, "stuff"))
+
 # native methods
 st = String("test")
 assert.equal(st, "test")
