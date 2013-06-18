@@ -98,3 +98,18 @@ assert.equal(c.count, 6)
 #assert.equal(water.structure[0].element, 'H')
 #for atom in water.structure:
 #	assert.ok(isinstance(atom, Molecule.Atom))
+
+# starargs
+class Math:
+	def sum(s, *args):
+		# fakearg simply tests that offsets work correctly
+		ttl = 0
+		for i in args:
+			ttl += i
+		return ttl
+	def concatSum(s, string, *nums):
+		return string + s.sum(*nums)
+m = Math()
+assert.equal(m.sum(1,2,3), 6)
+assert.equal(m.sum(1,*[2,3]), 6)
+assert.equal(m.concatSum("foo", 1, 2, 5), "foo8")
