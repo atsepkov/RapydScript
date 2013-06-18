@@ -77,7 +77,9 @@ files.
 The available options are:
 
     -o, --output       Output file (default STDOUT).
-    -b, --beautify     Beautify output/specify output options.            [string]
+    -b, --bare         Omit scope-protection wrapper around generated code
+    -p, --prettify     Beautify output/specify output options.            [string]
+    -n, --namespace-imports  Pythonic imports (experimental)
     -v, --verbose      Verbose                                           [boolean]
     -V, --version      Print version number and exit.                    [boolean]
 
