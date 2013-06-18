@@ -71,6 +71,9 @@ class str(String):
 		String.__init__(self, elem)
 		self._str = elem
 
+	def find(self, elem):
+		return self._str.indexOf(elem)
+
 	def strip(self):
 		return str(self._str.trim())
 
