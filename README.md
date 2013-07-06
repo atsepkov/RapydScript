@@ -49,7 +49,7 @@ From NPM for programmatic use:
 From Mercurial:
 
     hg clone https://bitbucket.org/pyjeon/rapydscript
-    cd RapydScript
+    cd rapydScript
     npm link .
 
 From Git:
