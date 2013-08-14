@@ -21,7 +21,7 @@
         }
         return arr;
     }
-    var WIDTH, HEIGHT, lightDir, lightColor;
+    var WIDTH, HEIGHT, lightDir, lightColor, CHECKER_PATTERN, toggle;
     WIDTH = 440;
 
     HEIGHT = 240;
@@ -315,6 +315,8 @@
         return new Color(0, 0, 0);
     }
 
+    CHECKER_PATTERN = true;
+
     function main() {
         var canvas, ctx, w, h, aspectratio, camera, sphere, sphere2, sphere3, plane, scene, maxDepth, imgdata, sy, sx, index, ray, result, col, x, y;
         canvas = document.getElementById("canvas");
@@ -335,7 +337,11 @@
         sphere3 = new Sphere(new Vector(0, 0, -2), 1);
         sphere3.material = new PhongMaterial(Color.blue, Color.white, 500, .25);
         plane = new Plane(new Vector(0, 1, 0), -1);
-        plane.material = new PhongMaterial(Color.cyan, Color.white, 500, 1);
+        if (CHECKER_PATTERN) {
+            plane.material = new CheckerMaterial(.1, .9);
+        } else {
+            plane.material = new PhongMaterial(Color.cyan, Color.white, 500, 1);
+        }
         scene = new Union([ plane, sphere, sphere2, sphere3 ]);
         scene.initialize();
         maxDepth = 20;
@@ -363,6 +369,13 @@
         }
         ctx.putImageData(imgdata, 1, 0);
     }
+
+    toggle = document.getElementById("toggle");
+
+    toggle.onclick = function() {
+        CHECKER_PATTERN = !CHECKER_PATTERN;
+        main();
+    };
 
     main();
 })();

@@ -19,4 +19,6 @@ html:
 		div(id='main'):
 			# canvas
 			canvas(id='canvas', $dwg_dim)
+			button(id='toggle'):
+				'Toggle Plane Type'
 		script(src='rapydray.js')

@@ -242,6 +242,7 @@ def rayTraceRecursive(scene, ray, maxReflect):
         return color
     return Color(0,0,0)
 
+CHECKER_PATTERN = True
 def main():
     canvas = document.getElementById("canvas")
     ctx = canvas.getContext("2d")
@@ -266,8 +267,10 @@ def main():
     sphere3.material = PhongMaterial(Color.blue, Color.white, 500,0.25)
     
     plane = Plane(Vector(0,1,0),-1)
-    #plane.material = new CheckerMaterial(0.1,0.9);
-    plane.material = PhongMaterial(Color.cyan, Color.white, 500,1.0)
+    if CHECKER_PATTERN:
+        plane.material = CheckerMaterial(0.1,0.9);
+    else:
+        plane.material = PhongMaterial(Color.cyan, Color.white, 500,1.0)
     
     scene = Union([plane,sphere,sphere2,sphere3])
     scene.initialize()
@@ -297,4 +300,9 @@ def main():
 
     ctx.putImageData(imgdata,1,0)
 
+toggle = document.getElementById('toggle')
+toggle.onclick = def():
+    nonlocal CHECKER_PATTERN
+    CHECKER_PATTERN = not CHECKER_PATTERN
+    main()
 main()
