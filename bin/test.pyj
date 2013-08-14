@@ -1,7 +1,0 @@
-class Test:
-    def normalMethod(self,a,b,c):
-        return 1+b
-
-    @staticmethod
-    def staticMethod(a,b,c):
-        return a+1
