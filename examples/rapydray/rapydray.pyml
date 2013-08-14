@@ -1,0 +1,22 @@
+######################################################
+# Copyright 2013 Pyjeon Software LLC
+# Author:	Salvatore DI DIO
+# License:	License: Creative Commons: Attribution + Noncommerial + ShareAlike
+######################################################
+
+
+$dwg_dim := width='440', height='240'
+
+!doctype(html)
+html:
+	head:
+		title:
+			'RapydScript Ray-Tracing'
+	body:
+		# menubar
+		h1:
+			'RapydRay Ray-Tracing Demo'
+		div(id='main'):
+			# canvas
+			canvas(id='canvas', $dwg_dim)
+		script(src='rapydray.js')
