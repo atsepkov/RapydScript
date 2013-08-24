@@ -1,10 +1,55 @@
-/* This file was auto-generated using RapydScript */
 (function(){
-JSON = (JSON || {
-  
-});
-if ((!JSON.stringify)) {
-  
+    function _$rapyd$_bind(fn, thisArg) {
+        if (fn.bound) return fn;
+        fn.bound = true;
+        return function() {
+            return fn.apply(thisArg, arguments);
+        };
+    }
+    function len(obj) {
+        if (obj instanceof Array || typeof obj === "string") return obj.length;
+        else {
+            var count = 0;
+            for (var i in obj) {
+                if (obj.hasOwnProperty(i)) count++;
+            }
+            return count;
+        }
+    }
+    function enumerate(item) {
+        var arr = [];
+        for (var i = 0; i < item.length; i++) {
+            arr[arr.length] = [i, item[i]];
+        }
+        return arr;
+    }
+    function reversed(arr) {
+        var tmp = [];
+        for (var i = arr.length - 1; i >= 0; i--) {
+            tmp.push(arr[i]);
+        }
+        return tmp;
+    }
+    function range(start, stop, step) {
+        if (arguments.length <= 1) {
+            stop = start || 0;
+            start = 0;
+        }
+        step = arguments[2] || 1;
+        var length = Math.max (Math.ceil ((stop - start) / step) , 0);
+        var idx = 0;
+        var range = new Array(length);
+        while (idx < length) {
+            range[idx++] = start;
+            start += step;
+        }
+        return range;
+    }
+    var JSON, str;
+        JSON = JSON || {};
+
+    if (!JSON.stringify) {
+        
 	JSON.stringify = function(obj) {
 		var t = typeof (obj);
 		if (t != "object" || obj === null) {
@@ -33,184 +78,90 @@ if ((!JSON.stringify)) {
 			return (arr ? "[" : "{") + String(json) + (arr ? "]" : "}");
 		}
 	};
-	
-}
-
-str = JSON.stringify;
-len = function(item) {
-  return item.length;
-};
-
-range = function(a, b, step) {
-  var A;
-  A = [];
-  if ((typeof(b) === "undefined")) {
-    b = a;
-    a = 0;
-  }
-
-  A[0] = a;
-  step = (step || 1);
-  if ((step > 0)) {
-    while (((a + step) < b)) {
-      a += step;
-      A[A.length] = a;
+	;
     }
 
-  } else {
-    while (((a + step) > b)) {
-      a += step;
-      A[A.length] = a;
+    str = JSON.stringify;
+
+    function ValueError(message){
+        var self = this;
+        self.name = "ValueError";
+        self.message = message;
+    };
+    ValueError.prototype = new Error();
+    ValueError.prototype.constructor = ValueError;
+
+    String.prototype.find = Array.prototype.indexOf;
+
+    String.prototype.strip = String.prototype.trim;
+
+    String.prototype.lstrip = String.prototype.trimLeft;
+
+    String.prototype.rstrip = String.prototype.trimRight;
+
+    String.prototype.join = function(iterable) {
+        return iterable.join(this);
+    };
+
+    String.prototype.zfill = function(size) {
+        var s, s;
+        s = this;
+        while (s.length < size) {
+            s = "0" + s;
+        }
+        return s;
+    };
+
+    function list(iterable) {
+        if (typeof iterable === "undefined") iterable = [];
+        var result, i;
+        result = [];
+        var _$rapyd$_Iter0 = iterable;
+        for (var _$rapyd$_Index0 = 0; _$rapyd$_Index0 < _$rapyd$_Iter0.length; _$rapyd$_Index0++) {
+            i = _$rapyd$_Iter0[_$rapyd$_Index0];
+            result.append(i);
+        }
+        return result;
     }
 
-  }
+    Array.prototype.append = Array.prototype.push;
 
-  return A;
-};
+    Array.prototype.find = Array.prototype.indexOf;
 
-enumerate = function(item) {
-  var A;
-  A = [];
-  for (var i = 0; i < item.length; i++){A[A.length] = [i, item[i]];}
-  return A;
-};
+    Array.prototype.index = function(index) {
+        var val;
+        val = this.find(index);
+        if (val == -1) {
+            throw new ValueError(str(index) + " is not in list");
+        }
+        return val;
+    };
 
-reversed = function(arr) {
-  var temp;
-  temp = [];
-  for (var i = arr.length - 1; i >= 0; i--) {temp.push(arr[i]);}
-  return temp;
-};
+    Array.prototype.insert = function(index, item) {
+        this.splice(index, 0, item);
+    };
 
-_$rapyd$_print = function() {
-  var args, output;
-  args = [].slice.call(arguments, 0);
-  output = str(args);
-  console.log(output.substr(1, (output.length - 2)));
-};
+    Array.prototype.pop = function(index) {
+        if (typeof index === "undefined") index = this.length - 1;
+        return this.splice(index, 1)[0];
+    };
 
+    Array.prototype.extend = function(array2) {
+        this.push.apply(this, array2);
+    };
 
-isinstance = function(item, cls) {
-	var cls_item, isnumber;
-	if (cls instanceof Array) {
-		var _$tmp13_data = _$rapyd$_iter(cls);
-		var _$tmp14_len = _$tmp13_data.length;
-		for (var _$tmp15_index = 0; _$tmp15_index < _$tmp14_len; _$tmp15_index++) {
-			cls_item = _$tmp13_data[_$tmp15_index];
+    Array.prototype.remove = function(item) {
+        var index;
+        index = this.find(item);
+        this.splice(index, 1);
+    };
 
-			if (isinstance(item, cls_item)) {
-				return true;
-			}
+    Array.prototype.copy = function() {
+        return this.slice(0);
+    };
 
-		}
-
-		return false;
-	}
-
-	if ((cls === list)) {
-		cls = Array;
-	} else if ((cls === dict)) {
-		cls = Object;
-	} else if ((cls === str)) {
-		cls = String;
-	} else {
-		return item instanceof cls;
-	}
-
-	return (item.constructor === cls.prototype.constructor);
-};
-_$rapyd$_iter = function(iter_object) {
-	var key_list;
-	if (((iter_object.callee && (typeof iter_object['length'] != "undefined")) || isinstance(iter_object, list))) {
-		return iter_object;
-	}
-
-	key_list = [];
-	for (var key in iter_object)
-	key_list.append(key);
-	return key_list;
-};
-Function.prototype.bind = (function(owner) {
-	var bound, func;
-	func = this;
-	bound = function() {
-		return func.apply(owner, arguments);
-	};
-
-	return bound;
-});
-
-ValueError = function(message) {
-  this.name = "ValueError";
-  this.message = message;
-};
-
-ValueError.prototype = new Error();
-ValueError.prototype.constructor = ValueError;
-String.prototype.strip = String.prototype.trim;
-String.prototype.lstrip = String.prototype.trimLeft;
-String.prototype.rstrip = String.prototype.trimRight;
-String.prototype.join = (function(iterable) {
-  return iterable.join(this);
-});
-String.prototype.zfill = (function(size) {
-  var s;
-  s = this;
-  while ((s.length < size)) {
-    s = ("0" + s);
-  }
-
-  return s;
-});
-list = function(iterable) {
-  var i, result;
-  if (typeof iterable === "undefined") {iterable = []};
-  result = [];
-  var _$tmp1_data = _$rapyd$_iter(iterable);
-  var _$tmp2_len = _$tmp1_data.length;
-  for (var _$tmp3_index = 0; _$tmp3_index < _$tmp2_len; _$tmp3_index++) {
-    i = _$tmp1_data[_$tmp3_index];
-
-    result.append(i);
-  }
-
-  return result;
-};
-
-Array.prototype.append = Array.prototype.push;
-Array.prototype.find = Array.prototype.indexOf;
-Array.prototype.index = (function(index) {
-  var val;
-  val = this.find(index);
-  if ((val == (-1))) {
-    throw new ValueError((str(index) + " is not in list"));
-  }
-
-  return val;
-});
-Array.prototype.insert = (function(index, item) {
-  this.splice(index, 0, item);
-});
-Array.prototype.pop = (function(index) {
-  if ((!arguments.length)) {
-    index = (this.length - 1);
-  }
-
-  return this.splice(index, 1)[0];
-});
-Array.prototype.extend = (function(array2) {
-  this.push.apply(this, array2);
-});
-Array.prototype.remove = (function(item) {
-  var index;
-  index = this.find(item);
-  this.splice(index, 1);
-});
-Array.prototype.copy = (function() {
-  return this.slice(0);
-});
-if ((!Array.prototype.map)) {
-  
+    if (!Array.prototype.map) {
+        
 	Array.prototype.map = function(callback, thisArg) {
 		var T, A, k;
 		if (this == null) {
@@ -235,15 +186,15 @@ if ((!Array.prototype.map)) {
 		}
 		return A;
 	};
-	
-}
+	;
+    }
 
-map = function(oper, arr) {
-  return arr.map(oper);
-};
+    function map(oper, arr) {
+        return arr.map(oper);
+    }
 
-if ((!Array.prototype.filter)) {
-  
+    if (!Array.prototype.filter) {
+        
 	Array.prototype.filter = function(filterfun, thisArg) {
 		"use strict";
 		if (this == null) {
@@ -268,560 +219,480 @@ if ((!Array.prototype.filter)) {
 		}
 		return A;
 	};
-	
-}
+	;
+    }
 
-filter = function(oper, arr) {
-  return arr.filter(oper);
-};
+    function filter(oper, arr) {
+        return arr.filter(oper);
+    }
 
-dict = function(iterable) {
-  var key, result;
-  result = {
-    
-  };
-  var _$tmp4_data = _$rapyd$_iter(iterable);
-  var _$tmp5_len = _$tmp4_data.length;
-  for (var _$tmp6_index = 0; _$tmp6_index < _$tmp5_len; _$tmp6_index++) {
-    key = _$tmp4_data[_$tmp6_index];
+    function dict(iterable) {
+        var result, key;
+        result = {};
+        var _$rapyd$_Iter1 = iterable;
+        for (var _$rapyd$_Index1 = 0; _$rapyd$_Index1 < _$rapyd$_Iter1.length; _$rapyd$_Index1++) {
+            key = _$rapyd$_Iter1[_$rapyd$_Index1];
+            result[key] = iterable[key];
+        }
+        return result;
+    }
 
-    result[key] = iterable[key];
-  }
-
-  return result;
-};
-
-if ((typeof(Object.getOwnPropertyNames) !== "function")) {
-  dict.keys = (function(hash) {
-    var keys;
-    keys = [];
-    
+    if (typeof Object.getOwnPropertyNames !== "function") {
+        dict.keys = function(hash) {
+            var keys;
+            keys = [];
+            
 		for (var x in hash) {
-			// A for in will iterate over members on the prototype
-			// chain as well, but Object.getOwnPropertyNames returns
-			// only those directly on the object, so use hasOwnProperty.
 			if (hash.hasOwnProperty(x)) {
 				keys.push(x);
 			}
 		}
-		
-    return keys;
-  });
-} else {
-  dict.keys = (function(hash) {
-    return Object.getOwnPropertyNames(hash);
-  });
-}
-
-dict.values = (function(hash) {
-  var key, vals;
-  vals = [];
-  var _$tmp7_data = _$rapyd$_iter(dict.keys(hash));
-  var _$tmp8_len = _$tmp7_data.length;
-  for (var _$tmp9_index = 0; _$tmp9_index < _$tmp8_len; _$tmp9_index++) {
-    key = _$tmp7_data[_$tmp9_index];
-
-    vals.append(hash[key]);
-  }
-
-  return vals;
-});
-dict.items = (function(hash) {
-  var items, key;
-  items = [];
-  var _$tmp10_data = _$rapyd$_iter(dict.keys(hash));
-  var _$tmp11_len = _$tmp10_data.length;
-  for (var _$tmp12_index = 0; _$tmp12_index < _$tmp11_len; _$tmp12_index++) {
-    key = _$tmp10_data[_$tmp12_index];
-
-    items.append([key, hash[key]]);
-  }
-
-  return items;
-});
-dict.copy = dict;
-dict.clear = (function(hash) {
-  var key;
-  var _$tmp13_data = _$rapyd$_iter(dict.keys(hash));
-  var _$tmp14_len = _$tmp13_data.length;
-  for (var _$tmp15_index = 0; _$tmp15_index < _$tmp14_len; _$tmp15_index++) {
-    key = _$tmp13_data[_$tmp15_index];
-
-    delete hash[key];
-  }
-
-});
-YQLError = function(message) {
-  this.name = "YQLError";
-  this.message = message;
-};
-
-YQLError.prototype = new Error();
-YQLError.prototype.constructor = YQLError;
-YQL = function(query, callback, diagnostics) {
-  var doNothing;
-  if (typeof diagnostics === "undefined") {diagnostics = false};
-  this.query = query;
-  doNothing = (function() {
-    
-  });
-  this.callback = (callback || doNothing);
-  this.diagnostics = diagnostics;
-};
-
-YQL.prototype.fetch = (function() {
-  var encodedQuery, main, scriptEl, uid, url;
-  if ((!this.query)) {
-    throw new YQLError("YQL.query attribute must be defined before invoking YQL.fetch()");
-  } else if ((!this.callback)) {
-    throw new YQLError("YQL.callback attribute must be defined before invoking YQL.fetch()");
-  }
-
-  scriptEl = document.createElement("script");
-  uid = (("yql" + new Date().getTime()) + str(Math.floor((Math.random() * 1000))).zfill(3));
-  encodedQuery = encodeURIComponent(this.query.toLowerCase());
-  main = this;
-  YQL[uid] = (function(json) {
-    main.callback(json["query"]);
-    delete YQL[uid];
-    document.body.removeChild(scriptEl);
-  });
-  url = ("http://query.yahooapis.com/v1/public/yql?q=" + encodedQuery);
-  if (this.diagnostics) {
-    url += "&diagnostics=true";
-  }
-
-  scriptEl.src = ((url + "&format=json&callback=YQL.") + uid);
-  document.body.appendChild(scriptEl);
-});
-Stock = function(symbols, callback) {
-  var $end, $start, ENTER, main, onKeypress, onUpdate;
-  if (typeof callback === "undefined") {callback = null};
-  this.callback = callback;
-  $start = $("#start-date");
-  $end = $("#end-date");
-  main = this;
-  onUpdate = (function($event, ui) {
-    var enddate, startdate;
-    if (($event.type == "autocompleteselect")) {
-      main.$widget.val(ui.item.value);
-    }
-
-    startdate = $start.val();
-    enddate = $end.val();
-    main.get(startdate, enddate);
-  });
-  this.$widget = $("<input></input>").autocomplete({
-    "minLength": 2,
-    "source": symbols,
-    "select": onUpdate
-  });
-  this.data = null;
-  this.$widget.blur(onUpdate);
-  ENTER = 13;
-  onKeypress = (function($event) {
-    var code;
-    code = ($event.keyCode || $event.which);
-    if ((code == ENTER)) {
-      onUpdate($event);
-    }
-
-  });
-  this.$widget.keypress(onKeypress);
-};
-
-Stock.prototype.get = (function(startDate, endDate) {
-  var format, main, name, onUpdate, url;
-  name = this.$widget.val();
-  if ((((this.symbol == name) && (this.startDate == startDate)) && (this.endDate == endDate))) {
-    return;
-  }
-
-  this.symbol = name;
-  this.startDate = startDate;
-  this.endDate = endDate;
-  format = (function(date) {
-    var mmddyyyy;
-    mmddyyyy = date.split("/");
-    return "-".join([mmddyyyy[2], mmddyyyy[0], mmddyyyy[1]]);
-  });
-  main = this;
-  onUpdate = (function(query) {
-    if ((query["results"] === null)) {
-      main.data = null;
-      main.$widget.css("background", "#fdd");
+		;
+            return keys;
+        };
     } else {
-      main.data = query["results"]["row"];
-      main.$widget.css("background", "");
+        dict.keys = function(hash) {
+            return Object.getOwnPropertyNames(hash);
+        };
     }
 
-    if ((main.callback !== null)) {
-      main.callback(name, main.data);
-    }
+    dict.values = function(hash) {
+        var vals, key;
+        vals = [];
+        var _$rapyd$_Iter2 = dict.keys(hash);
+        for (var _$rapyd$_Index2 = 0; _$rapyd$_Index2 < _$rapyd$_Iter2.length; _$rapyd$_Index2++) {
+            key = _$rapyd$_Iter2[_$rapyd$_Index2];
+            vals.append(hash[key]);
+        }
+        return vals;
+    };
 
-  });
-  if ((this.symbol != "")) {
-    url = (((((("http://www.google.com/finance/historical?q=" + name) + "&startdate=") + format(startDate)) + "&enddate=") + format(endDate)) + "&output=csv");
-    new YQL((("select * from csv where url=\"" + url) + "\""), onUpdate).fetch();
-  } else {
-    this.data = null;
-    this.$widget.css("background", "");
-    this.callback(name, main.data);
-  }
+    dict.items = function(hash) {
+        var items, key;
+        items = [];
+        var _$rapyd$_Iter3 = dict.keys(hash);
+        for (var _$rapyd$_Index3 = 0; _$rapyd$_Index3 < _$rapyd$_Iter3.length; _$rapyd$_Index3++) {
+            key = _$rapyd$_Iter3[_$rapyd$_Index3];
+            items.append([key, hash[key]]);
+        }
+        return items;
+    };
 
-});
-StockChart = function() {
-  var $options, _$rapyd_tuple$_, addFilter, fun, main, makeMovingAvg, name, normalize, rsi;
-  $options = $("#chart-options");
-  main = this;
-  this._filters = {
-    
-  };
-  this._filterLogic = {
-    
-  };
-  addFilter = (function(name, callback) {
-    var $button, setFilter;
-    $button = $((((("<input type=\"checkbox\" value=\"" + name.replace(" ", "-")) + "\">") + name) + "</input>"));
-    $options.append($button);
-    main._filterLogic[name] = callback;
-    setFilter = (function() {
-      main._filters[name] = $(this).is(":checked");
-      main.redraw();
-    });
-    $button.click(setFilter);
-  });
-  normalize = (function(cols, rows) {
-    var _$rapyd_tuple$_, day, normalized, num, orig, row, stock;
-    normalized = [];
-    orig = rows[(rows.length - 1)];
-    var _$tmp4_data = _$rapyd$_iter(enumerate(rows));
-    var _$tmp5_len = _$tmp4_data.length;
-    for (var _$tmp6_index = 0; _$tmp6_index < _$tmp5_len; _$tmp6_index++) {
-      _$rapyd$_tuple = _$tmp4_data[_$tmp6_index];
-      day = _$rapyd$_tuple[0];
-      row = _$rapyd$_tuple[1];
+    dict.copy = dict;
 
-      normalized.append([row[0]]);
-      var _$tmp1_data = _$rapyd$_iter(enumerate(row.slice(1)));
-      var _$tmp2_len = _$tmp1_data.length;
-      for (var _$tmp3_index = 0; _$tmp3_index < _$tmp2_len; _$tmp3_index++) {
-        _$rapyd$_tuple = _$tmp1_data[_$tmp3_index];
-        num = _$rapyd$_tuple[0];
-        stock = _$rapyd$_tuple[1];
+    dict.clear = function(hash) {
+        var key;
+        var _$rapyd$_Iter4 = dict.keys(hash);
+        for (var _$rapyd$_Index4 = 0; _$rapyd$_Index4 < _$rapyd$_Iter4.length; _$rapyd$_Index4++) {
+            key = _$rapyd$_Iter4[_$rapyd$_Index4];
+            delete hash[key];
+        }
+    };
 
-        normalized[day].append((stock / orig[(num + 1)]));
-      }
+        function YQLError(message){
+        var self = this;
+        self.name = "YQLError";
+        self.message = message;
+    };
+    YQLError.prototype = new Error();
+    YQLError.prototype.constructor = YQLError;
 
-    }
+    function YQL(query, callback, diagnostics){
+        var self = this;
+        if (typeof diagnostics === "undefined") diagnostics = false;
+        this.fetch = _$rapyd$_bind(this.fetch, this);
+        var doNothing;
+        self.query = query;
+        doNothing = function() {
+        };
+        self.callback = callback || doNothing;
+        self.diagnostics = diagnostics;
+    };
+    YQL.prototype.fetch = function(){
+        var self = this;
+        var scriptEl, uid, encodedQuery, url, url;
+        if (!self.query) {
+            throw new YQLError("YQL.query attribute must be defined before invoking YQL.fetch()");
+        } else if (!self.callback) {
+            throw new YQLError("YQL.callback attribute must be defined before invoking YQL.fetch()");
+        }
+        scriptEl = document.createElement("script");
+        uid = "yql" + new Date().getTime() + str(Math.floor(Math.random() * 1e3)).zfill(3);
+        encodedQuery = encodeURIComponent(self.query.toLowerCase());
+        window[uid] = function(json) {
+            self.callback(json["query"]);
+            delete window[uid];
+            document.body.removeChild(scriptEl);
+        };
+        url = "http://query.yahooapis.com/v1/public/yql?q=" + encodedQuery;
+        if (self.diagnostics) {
+            url += "&diagnostics=true";
+        }
+        scriptEl.src = url + "&format=json&callback=" + uid;
+        document.body.appendChild(scriptEl);
+    };
 
-    return [cols, normalized];
-  });
-  makeMovingAvg = (function(name, days, ema) {
-    var sum;
-    sum = (function(a, b) {
-      return (a + b);
-    });
-    return [name, (function(cols, rows) {
-        var _$rapyd_tuple$_, alpha, avgs, col, idx, moving, row;
-        var _$tmp10_data = _$rapyd$_iter(enumerate(cols));
-        var _$tmp11_len = _$tmp10_data.length;
-        for (var _$tmp12_index = 0; _$tmp12_index < _$tmp11_len; _$tmp12_index++) {
-          _$rapyd$_tuple = _$tmp10_data[_$tmp12_index];
-          idx = _$rapyd$_tuple[0];
-          col = _$rapyd$_tuple[1];
-
-          if ((col[(col.length - 1)] != ")")) {
-            avgs = [{
-                
-              }];
-            moving = [];
-            if (ema) {
-              alpha = (2 / (days + 1));
-              moving = rows[(rows.length - 1)][(idx + 1)];
+    function Stock(symbols, callback){
+        var self = this;
+        if (typeof callback === "undefined") callback = null;
+        this.get = _$rapyd$_bind(this.get, this);
+        var $start, $end, onUpdate, ENTER, onKeypress;
+        self.callback = callback;
+        $start = $("#start-date");
+        $end = $("#end-date");
+        onUpdate = function($event, ui) {
+            var startdate, enddate;
+            if ($event.type == "autocompleteselect") {
+                self.$widget.val(ui.item.value);
             }
+            startdate = $start.val();
+            enddate = $end.val();
+            self.get(startdate, enddate);
+        };
+        self.$widget = $("<input></input>").autocomplete({
+            "minLength": 2,
+            "source": symbols,
+            "select": onUpdate
+        });
+        self.data = null;
+        self.$widget.blur(onUpdate);
+        ENTER = 13;
+        onKeypress = function($event) {
+            var code;
+            code = $event.keyCode || $event.which;
+            if (code == ENTER) {
+                onUpdate($event);
+            }
+        };
+        self.$widget.keypress(onKeypress);
+    };
+    Stock.prototype.get = function(startDate, endDate){
+        var self = this;
+        var name, format, onUpdate, url;
+        "\n\t\tget method for this stock, which retrieves info from google finance\n\t\t";
+        name = self.$widget.val();
+        if (self.symbol == name && self.startDate == startDate && self.endDate == endDate) {
+            return;
+        }
+        self.symbol = name;
+        self.startDate = startDate;
+        self.endDate = endDate;
+        format = function(date) {
+            var mmddyyyy;
+            mmddyyyy = date.split("/");
+            return "-".join([ mmddyyyy[2], mmddyyyy[0], mmddyyyy[1] ]);
+        };
+        onUpdate = function(query) {
+            if (query["results"] === null) {
+                self.data = null;
+                self.$widget.css("background", "#fdd");
+            } else {
+                self.data = query["results"]["row"];
+                self.$widget.css("background", "");
+            }
+            if (self.callback !== null) {
+                self.callback(name, self.data);
+            }
+        };
+        if (self.symbol != "") {
+            url = "http://www.google.com/finance/historical?q=" + name + "&startdate=" + format(startDate) + "&enddate=" + format(endDate) + "&output=csv";
+            new YQL('select * from csv where url="' + url + '"', onUpdate).fetch();
+        } else {
+            self.data = null;
+            self.$widget.css("background", "");
+            self.callback(name, self.data);
+        }
+    };
 
-            var _$tmp7_data = _$rapyd$_iter(reversed(rows));
-            var _$tmp8_len = _$tmp7_data.length;
-            for (var _$tmp9_index = 0; _$tmp9_index < _$tmp8_len; _$tmp9_index++) {
-              row = _$tmp7_data[_$tmp9_index];
-
-              if (ema) {
-                moving = ((alpha * row[(idx + 1)]) + ((1 - alpha) * moving));
-                avgs.unshift({
-                  "col4": moving
-                });
-              } else {
-                moving.append(row[(idx + 1)]);
-                avgs.unshift({
-                  "col4": (moving.reduce(sum) / moving.length)
-                });
-                if ((moving.length >= days)) {
-                  moving.shift();
+    function StockChart(){
+        var self = this;
+        this.clear = _$rapyd$_bind(this.clear, this);
+        this.add = _$rapyd$_bind(this.add, this);
+        this.redraw = _$rapyd$_bind(this.redraw, this);
+        var $options, addFilter, normalize, makeMovingAvg, rsi, name, fun;
+        $options = $("#chart-options");
+        self._filters = {};
+        self._filterLogic = {};
+        addFilter = function(name, callback) {
+            var $button, setFilter;
+            $button = $('<input type="checkbox" value="' + name.replace(" ", "-") + '">' + name + "</input>");
+            $options.append($button);
+            self._filterLogic[name] = callback;
+            setFilter = function() {
+                self._filters[name] = $(this).is(":checked");
+                self.redraw();
+            };
+            $button.click(setFilter);
+        };
+        normalize = function(cols, rows) {
+            var normalized, orig, num, stock, day, row;
+            normalized = [];
+            orig = rows[len(rows) - 1];
+            var _$rapyd$_Iter5 = enumerate(rows);
+            for (var _$rapyd$_Index5 = 0; _$rapyd$_Index5 < _$rapyd$_Iter5.length; _$rapyd$_Index5++) {
+                _$rapyd$_Unpack = _$rapyd$_Iter5[_$rapyd$_Index5];
+                day = _$rapyd$_Unpack[0];
+                row = _$rapyd$_Unpack[1];
+                normalized.append([ row[0] ]);
+                var _$rapyd$_Iter6 = enumerate(row.slice(1));
+                for (var _$rapyd$_Index6 = 0; _$rapyd$_Index6 < _$rapyd$_Iter6.length; _$rapyd$_Index6++) {
+                    _$rapyd$_Unpack = _$rapyd$_Iter6[_$rapyd$_Index6];
+                    num = _$rapyd$_Unpack[0];
+                    stock = _$rapyd$_Unpack[1];
+                    normalized[day].append(stock / orig[num + 1]);
                 }
-
-              }
-
             }
-
-            main.add((((col + " (") + name) + ")"), avgs, cols, rows);
-          }
-
+            return [cols, normalized];
+        };
+        makeMovingAvg = function(name, days, ema) {
+            var sum;
+            sum = function(a, b) {
+                return a + b;
+            };
+            return [name, function(cols, rows) {
+                var avgs, moving, alpha, moving, moving, row, idx, col;
+                var _$rapyd$_Iter7 = enumerate(cols);
+                for (var _$rapyd$_Index7 = 0; _$rapyd$_Index7 < _$rapyd$_Iter7.length; _$rapyd$_Index7++) {
+                    _$rapyd$_Unpack = _$rapyd$_Iter7[_$rapyd$_Index7];
+                    idx = _$rapyd$_Unpack[0];
+                    col = _$rapyd$_Unpack[1];
+                    if (col[len(col) - 1] != ")") {
+                        avgs = [ {} ];
+                        moving = [];
+                        if (ema) {
+                            alpha = 2 / (days + 1);
+                            moving = rows[len(rows) - 1][idx + 1];
+                        }
+                        var _$rapyd$_Iter8 = reversed(rows);
+                        for (var _$rapyd$_Index8 = 0; _$rapyd$_Index8 < _$rapyd$_Iter8.length; _$rapyd$_Index8++) {
+                            row = _$rapyd$_Iter8[_$rapyd$_Index8];
+                            if (ema) {
+                                moving = alpha * row[idx + 1] + (1 - alpha) * moving;
+                                avgs.unshift({
+                                    "col4": moving
+                                });
+                            } else {
+                                moving.append(row[idx + 1]);
+                                avgs.unshift({
+                                    "col4": moving.reduce(sum) / len(moving)
+                                });
+                                if (len(moving) >= days) {
+                                    moving.shift();
+                                }
+                            }
+                        }
+                        self.add(col + " (" + name + ")", avgs, cols, rows);
+                    }
+                }
+                return [cols, rows];
+            }];
+        };
+        rsi = function(cols, rows) {
+            var tmp, ema15, rsis, ups, downs, prev, current, DATE, prev, row, tmp, ups, tmp, downs, rs, rs, index, idx, col;
+            _$rapyd$_Unpack = makeMovingAvg("", 15, true);
+            tmp = _$rapyd$_Unpack[0];
+            ema15 = _$rapyd$_Unpack[1];
+            var _$rapyd$_Iter9 = enumerate(cols);
+            for (var _$rapyd$_Index9 = 0; _$rapyd$_Index9 < _$rapyd$_Iter9.length; _$rapyd$_Index9++) {
+                _$rapyd$_Unpack = _$rapyd$_Iter9[_$rapyd$_Index9];
+                idx = _$rapyd$_Unpack[0];
+                col = _$rapyd$_Unpack[1];
+                if (col[len(col) - 1] != ")") {
+                    rsis = [ {} ];
+                    ups = [];
+                    downs = [];
+                    prev = rows[len(rows) - 1][idx + 1];
+                    var _$rapyd$_Iter10 = reversed(rows);
+                    for (var _$rapyd$_Index10 = 0; _$rapyd$_Index10 < _$rapyd$_Iter10.length; _$rapyd$_Index10++) {
+                        row = _$rapyd$_Iter10[_$rapyd$_Index10];
+                        current = row[idx + 1];
+                        DATE = 0;
+                        if (current > prev) {
+                            ups.unshift([ DATE, current - prev ]);
+                            downs.unshift([ DATE, 0 ]);
+                        } else {
+                            ups.unshift([ DATE, 0 ]);
+                            downs.unshift([ DATE, prev - current ]);
+                        }
+                        prev = current;
+                    }
+                    _$rapyd$_Unpack = ema15([ "up" ], ups);
+                    tmp = _$rapyd$_Unpack[0];
+                    ups = _$rapyd$_Unpack[1];
+                    _$rapyd$_Unpack = ema15([ "down" ], downs);
+                    tmp = _$rapyd$_Unpack[0];
+                    downs = _$rapyd$_Unpack[1];
+                    for (index = 0; index < len(ups); index++) {
+                        if (downs[index][2]) {
+                            rs = ups[index][2] / downs[index][2];
+                        } else {
+                            rs = 100;
+                        }
+                        rsis.append({
+                            "col4": 100 - 100 / (1 + rs)
+                        });
+                    }
+                    self.add(col + " (RSI)", rsis, cols, rows);
+                }
+            }
+            return [cols, rows];
+        };
+        var _$rapyd$_Iter11 = [ ["Normalize", normalize], makeMovingAvg("15-Day SMA", 15, false), makeMovingAvg("50-Day SMA", 50, false), makeMovingAvg("15-Day EMA", 15, true), makeMovingAvg("50-Day EMA", 50, true), ["15-Day RSI", 
+        rsi] ];
+        for (var _$rapyd$_Index11 = 0; _$rapyd$_Index11 < _$rapyd$_Iter11.length; _$rapyd$_Index11++) {
+            _$rapyd$_Unpack = _$rapyd$_Iter11[_$rapyd$_Index11];
+            name = _$rapyd$_Unpack[0];
+            fun = _$rapyd$_Unpack[1];
+            addFilter(name, fun);
         }
-
-        return [cols, rows];
-      })];
-  });
-  rsi = (function(cols, rows) {
-    var DATE, _$rapyd_tuple$_, col, current, downs, ema15, idx, index, prev, row, rs, rsis, tmp, ups;
-    _$rapyd_tuple$_ = makeMovingAvg("", 15, true);
-    tmp = _$rapyd_tuple$_[0];
-    ema15 = _$rapyd_tuple$_[1];
-    var _$tmp17_data = _$rapyd$_iter(enumerate(cols));
-    var _$tmp18_len = _$tmp17_data.length;
-    for (var _$tmp19_index = 0; _$tmp19_index < _$tmp18_len; _$tmp19_index++) {
-      _$rapyd$_tuple = _$tmp17_data[_$tmp19_index];
-      idx = _$rapyd$_tuple[0];
-      col = _$rapyd$_tuple[1];
-
-      if ((col[(col.length - 1)] != ")")) {
-        rsis = [{
-            
-          }];
-        ups = [];
-        downs = [];
-        prev = rows[(rows.length - 1)][(idx + 1)];
-        var _$tmp13_data = _$rapyd$_iter(reversed(rows));
-        var _$tmp14_len = _$tmp13_data.length;
-        for (var _$tmp15_index = 0; _$tmp15_index < _$tmp14_len; _$tmp15_index++) {
-          row = _$tmp13_data[_$tmp15_index];
-
-          current = row[(idx + 1)];
-          DATE = 0;
-          if ((current > prev)) {
-            ups.unshift([DATE, (current - prev)]);
-            downs.unshift([DATE, 0]);
-          } else {
-            ups.unshift([DATE, 0]);
-            downs.unshift([DATE, (prev - current)]);
-          }
-
-          prev = current;
+        self.annotatedTimeline = new google.visualization.AnnotatedTimeLine($("#chart").get(0));
+        self.clear();
+    };
+    StockChart.prototype.clear = function(){
+        var self = this;
+        self._cols = [];
+        self._rows = [];
+    };
+    StockChart.prototype.add = function(symbol, data, cols, rows){
+        var self = this;
+        if (typeof cols === "undefined") cols = self._cols;
+        if (typeof rows === "undefined") rows = self._rows;
+        var item, index, item;
+        if (data !== null) {
+            if (!len(cols)) {
+                var _$rapyd$_Iter12 = data.slice(1);
+                for (var _$rapyd$_Index12 = 0; _$rapyd$_Index12 < _$rapyd$_Iter12.length; _$rapyd$_Index12++) {
+                    item = _$rapyd$_Iter12[_$rapyd$_Index12];
+                    rows.append([ new Date(item["col0"]), parseFloat(item["col4"]) ]);
+                }
+            } else {
+                var _$rapyd$_Iter13 = enumerate(data.slice(1));
+                for (var _$rapyd$_Index13 = 0; _$rapyd$_Index13 < _$rapyd$_Iter13.length; _$rapyd$_Index13++) {
+                    _$rapyd$_Unpack = _$rapyd$_Iter13[_$rapyd$_Index13];
+                    index = _$rapyd$_Unpack[0];
+                    item = _$rapyd$_Unpack[1];
+                    rows[index].append(parseFloat(item["col4"]));
+                }
+            }
+            cols.append(symbol);
         }
-
-        _$rapyd_tuple$_ = ema15(["up"], ups);
-        tmp = _$rapyd_tuple$_[0];
-        ups = _$rapyd_tuple$_[1];
-        _$rapyd_tuple$_ = ema15(["down"], downs);
-        tmp = _$rapyd_tuple$_[0];
-        downs = _$rapyd_tuple$_[1];
-        var _$tmp16_end = ups.length;
-        for (index = 0; index < _$tmp16_end; index++) {
-          if (downs[index][2]) {
-            rs = (ups[index][2] / downs[index][2]);
-          } else {
-            rs = 100;
-          }
-
-          rsis.append({
-            "col4": (100 - (100 / (1 + rs)))
-          });
+    };
+    StockChart.prototype.redraw = function(){
+        var self = this;
+        var cols, rows, cols, rows, key, val, data, col;
+        cols = $.extend(true, [], self._cols);
+        rows = $.extend(true, [], self._rows);
+        var _$rapyd$_Iter14 = dict.items(self._filters);
+        for (var _$rapyd$_Index14 = 0; _$rapyd$_Index14 < _$rapyd$_Iter14.length; _$rapyd$_Index14++) {
+            _$rapyd$_Unpack = _$rapyd$_Iter14[_$rapyd$_Index14];
+            key = _$rapyd$_Unpack[0];
+            val = _$rapyd$_Unpack[1];
+            if (val) {
+                _$rapyd$_Unpack = self._filterLogic[key](cols, rows);
+                cols = _$rapyd$_Unpack[0];
+                rows = _$rapyd$_Unpack[1];
+            }
         }
+        data = new google.visualization.DataTable();
+        data.addColumn("date", "Date");
+        var _$rapyd$_Iter15 = cols;
+        for (var _$rapyd$_Index15 = 0; _$rapyd$_Index15 < _$rapyd$_Iter15.length; _$rapyd$_Index15++) {
+            col = _$rapyd$_Iter15[_$rapyd$_Index15];
+            data.addColumn("number", col);
+        }
+        data.addRows(rows);
+        self.annotatedTimeline.draw(data, {});
+    };
 
-        main.add((col + " (RSI)"), rsis, cols, rows);
-      }
-
+    function main() {
+        var stockFields, updateChart, onChartLoad, triggerChange, $start, $end, symbols, $stocks, newStock, sync, exchanges, onUpdate, exchange;
+        stockFields = [];
+        updateChart = function() {
+        };
+        onChartLoad = function() {
+            var chart;
+            chart = new StockChart();
+            updateChart = function(symbol, data) {
+                var stock;
+                chart.clear();
+                var _$rapyd$_Iter16 = stockFields;
+                for (var _$rapyd$_Index16 = 0; _$rapyd$_Index16 < _$rapyd$_Iter16.length; _$rapyd$_Index16++) {
+                    stock = _$rapyd$_Iter16[_$rapyd$_Index16];
+                    chart.add(stock.symbol, stock.data);
+                }
+                chart.redraw();
+            };
+        };
+        google.load("visualization", "1", {
+            "packages": [ "annotatedtimeline" ],
+            "callback": onChartLoad
+        });
+        triggerChange = function() {
+            $(this).change();
+        };
+        $start = $("#start-date").datepicker({
+            "onSelect": triggerChange
+        });
+        $end = $("#end-date").datepicker({
+            "onSelect": triggerChange
+        });
+        $start.datepicker("setDate", -90);
+        $end.datepicker("setDate", new Date());
+        symbols = [];
+        $stocks = $("#stock-input");
+        newStock = function() {
+            var symbol, get, onWidgetUpdate;
+            symbol = new Stock(symbols);
+            $stocks.append(symbol.$widget);
+            get = function() {
+                var startdate, enddate;
+                startdate = $start.val();
+                enddate = $end.val();
+                symbol.get(startdate, enddate);
+            };
+            $start.change(get);
+            $end.change(get);
+            stockFields.append(symbol);
+            onWidgetUpdate = function(label, data) {
+                var value, isLast;
+                value = symbol.symbol;
+                isLast = symbol.$widget.is(":last-child");
+                if (isLast && value != "") {
+                    newStock();
+                } else if (value == "" && !isLast) {
+                    stockFields.remove(symbol);
+                    symbol.$widget.remove();
+                }
+                updateChart(label, data);
+            };
+            symbol.callback = onWidgetUpdate;
+        };
+        sync = 0;
+        exchanges = [ "nyse", "nasdaq", "lon" ];
+        onUpdate = function(query) {
+            var symbol, unique;
+            var _$rapyd$_Iter17 = query["results"]["row"];
+            for (var _$rapyd$_Index17 = 0; _$rapyd$_Index17 < _$rapyd$_Iter17.length; _$rapyd$_Index17++) {
+                symbol = _$rapyd$_Iter17[_$rapyd$_Index17];
+                symbols.append(symbol["col0"]);
+            }
+            sync += 1;
+            if (sync == len(exchanges)) {
+                $stocks.text("Stocks:");
+                unique = function(element, index) {
+                    return this.index(element) == index;
+                };
+                symbols = symbols.filter(unique, symbols);
+                newStock();
+            }
+        };
+        $stocks.text("Loading Symbols from Stock Exchanges");
+        var _$rapyd$_Iter18 = exchanges;
+        for (var _$rapyd$_Index18 = 0; _$rapyd$_Index18 < _$rapyd$_Iter18.length; _$rapyd$_Index18++) {
+            exchange = _$rapyd$_Iter18[_$rapyd$_Index18];
+            new YQL('select col0 from csv where url="http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=' + exchange + '&render=download"', onUpdate).fetch();
+        }
     }
 
-    return [cols, rows];
-  });
-  var _$tmp20_data = _$rapyd$_iter([["Normalize", normalize], makeMovingAvg("15-Day SMA", 15, false), makeMovingAvg("50-Day SMA", 50, false), makeMovingAvg("15-Day EMA", 15, true), makeMovingAvg("50-Day EMA", 50, true), ["15-Day RSI", rsi]]);
-  var _$tmp21_len = _$tmp20_data.length;
-  for (var _$tmp22_index = 0; _$tmp22_index < _$tmp21_len; _$tmp22_index++) {
-    _$rapyd$_tuple = _$tmp20_data[_$tmp22_index];
-    name = _$rapyd$_tuple[0];
-    fun = _$rapyd$_tuple[1];
-
-    addFilter(name, fun);
-  }
-
-  this.annotatedTimeline = new google.visualization.AnnotatedTimeLine($("#chart").get(0));
-  this.clear();
-};
-
-StockChart.prototype.clear = (function() {
-  this._cols = [];
-  this._rows = [];
-});
-StockChart.prototype.add = (function(symbol, data, cols, rows) {
-  var _$rapyd_tuple$_, index, item;
-  if (typeof cols === "undefined") {cols = this._cols};
-  if (typeof rows === "undefined") {rows = this._rows};
-  if ((data !== null)) {
-    if ((!cols.length)) {
-      var _$tmp23_data = _$rapyd$_iter(data.slice(1));
-      var _$tmp24_len = _$tmp23_data.length;
-      for (var _$tmp25_index = 0; _$tmp25_index < _$tmp24_len; _$tmp25_index++) {
-        item = _$tmp23_data[_$tmp25_index];
-
-        rows.append([new Date(item["col0"]), parseFloat(item["col4"])]);
-      }
-
-    } else {
-      var _$tmp26_data = _$rapyd$_iter(enumerate(data.slice(1)));
-      var _$tmp27_len = _$tmp26_data.length;
-      for (var _$tmp28_index = 0; _$tmp28_index < _$tmp27_len; _$tmp28_index++) {
-        _$rapyd$_tuple = _$tmp26_data[_$tmp28_index];
-        index = _$rapyd$_tuple[0];
-        item = _$rapyd$_tuple[1];
-
-        rows[index].append(parseFloat(item["col4"]));
-      }
-
-    }
-
-    cols.append(symbol);
-  }
-
-});
-StockChart.prototype.redraw = (function() {
-  var _$rapyd_tuple$_, col, cols, data, key, rows, val;
-  cols = $.extend(true, [], this._cols);
-  rows = $.extend(true, [], this._rows);
-  var _$tmp29_data = _$rapyd$_iter(dict.items(this._filters));
-  var _$tmp30_len = _$tmp29_data.length;
-  for (var _$tmp31_index = 0; _$tmp31_index < _$tmp30_len; _$tmp31_index++) {
-    _$rapyd$_tuple = _$tmp29_data[_$tmp31_index];
-    key = _$rapyd$_tuple[0];
-    val = _$rapyd$_tuple[1];
-
-    if (val) {
-      _$rapyd_tuple$_ = this._filterLogic[key](cols, rows);
-      cols = _$rapyd_tuple$_[0];
-      rows = _$rapyd_tuple$_[1];
-    }
-
-  }
-
-  data = new google.visualization.DataTable();
-  data.addColumn("date", "Date");
-  var _$tmp32_data = _$rapyd$_iter(cols);
-  var _$tmp33_len = _$tmp32_data.length;
-  for (var _$tmp34_index = 0; _$tmp34_index < _$tmp33_len; _$tmp34_index++) {
-    col = _$tmp32_data[_$tmp34_index];
-
-    data.addColumn("number", col);
-  }
-
-  data.addRows(rows);
-  this.annotatedTimeline.draw(data, {
-    
-  });
-});
-main = function() {
-  var $end, $start, $stocks, exchange, exchanges, newStock, onChartLoad, onUpdate, stockFields, symbols, sync, triggerChange, updateChart;
-  stockFields = [];
-  updateChart = (function() {
-    
-  });
-  onChartLoad = (function() {
-    var chart;
-    
-    chart = new StockChart();
-    updateChart = (function(symbol, data) {
-      var stock;
-      chart.clear();
-      var _$tmp35_data = _$rapyd$_iter(stockFields);
-      var _$tmp36_len = _$tmp35_data.length;
-      for (var _$tmp37_index = 0; _$tmp37_index < _$tmp36_len; _$tmp37_index++) {
-        stock = _$tmp35_data[_$tmp37_index];
-
-        chart.add(stock.symbol, stock.data);
-      }
-
-      chart.redraw();
-    });
-  });
-  google.load("visualization", "1", {
-    "packages": ["annotatedtimeline"],
-    "callback": onChartLoad
-  });
-  triggerChange = (function() {
-    $(this).change();
-  });
-  $start = $("#start-date").datepicker({
-    "onSelect": triggerChange
-  });
-  $end = $("#end-date").datepicker({
-    "onSelect": triggerChange
-  });
-  $start.datepicker("setDate", (-90));
-  $end.datepicker("setDate", new Date());
-  symbols = [];
-  $stocks = $("#stock-input");
-  newStock = (function() {
-    var get, onWidgetUpdate, symbol;
-    symbol = new Stock(symbols);
-    $stocks.append(symbol.$widget);
-    get = (function() {
-      var enddate, startdate;
-      startdate = $start.val();
-      enddate = $end.val();
-      symbol.get(startdate, enddate);
-    });
-    $start.change(get);
-    $end.change(get);
-    stockFields.append(symbol);
-    onWidgetUpdate = (function(label, data) {
-      var isLast, value;
-      value = symbol.symbol;
-      isLast = symbol.$widget.is(":last-child");
-      if ((isLast && (value != ""))) {
-        newStock();
-      } else if (((value == "") && (!isLast))) {
-        stockFields.remove(symbol);
-        symbol.$widget.remove();
-      }
-
-      updateChart(label, data);
-    });
-    symbol.callback = onWidgetUpdate;
-  });
-  sync = 0;
-  exchanges = ["nyse", "nasdaq", "lon"];
-  onUpdate = (function(query) {
-    var symbol, unique;
-    
-    var _$tmp38_data = _$rapyd$_iter(query["results"]["row"]);
-    var _$tmp39_len = _$tmp38_data.length;
-    for (var _$tmp40_index = 0; _$tmp40_index < _$tmp39_len; _$tmp40_index++) {
-      symbol = _$tmp38_data[_$tmp40_index];
-
-      symbols.append(symbol["col0"]);
-    }
-
-    sync += 1;
-    if ((sync == exchanges.length)) {
-      $stocks.text("Stocks:");
-      unique = (function(element, index) {
-        return (this.index(element) == index);
-      });
-      symbols = symbols.filter(unique, symbols);
-      newStock();
-    }
-
-  });
-  $stocks.text("Loading Symbols from Stock Exchanges");
-  var _$tmp41_data = _$rapyd$_iter(exchanges);
-  var _$tmp42_len = _$tmp41_data.length;
-  for (var _$tmp43_index = 0; _$tmp43_index < _$tmp42_len; _$tmp43_index++) {
-    exchange = _$tmp41_data[_$tmp43_index];
-
-    new YQL((("select col0 from csv where url=\"http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=" + exchange) + "&render=download\""), onUpdate).fetch();
-  }
-
-};
-
-$(document).ready(main);
-
-}());
+    $(document).ready(main);
+})();

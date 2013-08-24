@@ -37,9 +37,8 @@ class Controller:
 		self.model.reset()
 
 		#setup a timer
-		main = self
 		setInterval(def():
-			main.update()
+			self.update()
 		, 1000/FPS)
 
 	def update(self):

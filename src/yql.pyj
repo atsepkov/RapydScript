@@ -41,8 +41,7 @@ class YQL:
 	"""
 	def __init__(self, query, callback, diagnostics=False):
 		self.query = query
-		doNothing = def():
-			pass
+		doNothing = def(): pass
 		self.callback = callback or doNothing
 		self.diagnostics = diagnostics
 
@@ -52,22 +51,21 @@ class YQL:
 		elif not self.callback:
 			raise YQLError('YQL.callback attribute must be defined before invoking YQL.fetch()')
 
-		scriptEl =		document.createElement('script')
+		scriptEl = document.createElement('script')
 
 		# uid needs to be unique, to ensure that collision doesn't happen, we convert
 		# the timestamp to milliseconds and append a random integer at the end, zero-padding
 		# it to avoid two unrelated times from possibility of clashing
-		uid =			'yql' + Date().getTime() + str(Math.floor(Math.random()*1000)).zfill(3)
+		uid = 'yql' + Date().getTime() + str(Math.floor(Math.random()*1000)).zfill(3)
 		encodedQuery =	encodeURIComponent(self.query.toLowerCase())
-		main =			self
 
-		YQL[uid] = def(json):
-			main.callback(json['query'])
-			del YQL[uid]
+		window[uid] = def(json):
+			self.callback(json['query'])
+			del window[uid]
 			document.body.removeChild(scriptEl)
 
 		url = 'http://query.yahooapis.com/v1/public/yql?q=' + encodedQuery
 		if self.diagnostics:
 			url += '&diagnostics=true'
-		scriptEl.src = url + '&format=json&callback=YQL.' + uid
+		scriptEl.src = url + '&format=json&callback=' + uid
 		document.body.appendChild(scriptEl)

@@ -31,11 +31,11 @@ def main():
 	# .value() method doesn't exist (.val() does), and .change() doesn't trigger when using the
 	# arrows to update the value, instead I had to add my own manual trigger for it
 	onChange = def():
-		dwg.setWidth($(self).val())
+		dwg.setWidth($(this).val())
 	$brushWidget = $('#brush-size').spinner({'min': 1, 'max': 40})
 	$brushWidget.change(onChange)
 	triggerChange = def():
-		$(self).siblings('input').change()
+		$(this).siblings('input').change()
 	$('.ui-spinner-button').click(triggerChange)
 	$brushWidget.val(1)
 
@@ -104,7 +104,7 @@ def main():
 		$popup.css({'left': absolute.left, 'top': absolute.top+$element.outerHeight()}).show()
 	$menus = $('.menubar-menu')
 	makeMenu = def():
-		$this = $(self)
+		$this = $(this)
 		idtag = $this.attr('id').split('-')[2]
 		showMenu = def(event):
 			$menus.hide()
