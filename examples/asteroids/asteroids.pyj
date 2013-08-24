@@ -28,14 +28,13 @@ class View:
 		self.number_images_loaded = 0
 		self.view_loaded = False
 
-		main = self
 		document.addEventListener('keydown', def (event):
 			event.preventDefault()
-			main.setKey(event.keyCode, True)
+			self.setKey(event.keyCode, True)
 		)
 		document.addEventListener('keyup', def (event):
 			event.preventDefault()
-			main.setKey(event.keyCode, False)
+			self.setKey(event.keyCode, False)
 		)
 
 		#Load images
@@ -45,13 +44,13 @@ class View:
 
 		self.img = [None, None, None]
 		for i in range(3):
-			main.img[i] = Image()
-			main.img[i].src = imgsrcs[i]
-			main.img[i].onload = def():
-				main.number_images_loaded += 1
-				if main.number_images_loaded >= 3:
-					main.view_loaded = True
-					main.controller.start_game(main)
+			self.img[i] = Image()
+			self.img[i].src = imgsrcs[i]
+			self.img[i].onload = def():
+				self.number_images_loaded += 1
+				if self.number_images_loaded >= 3:
+					self.view_loaded = True
+					self.controller.start_game(self)
 
 	def setKey(self, k, set):
 		if k == 38:
@@ -102,7 +101,7 @@ class View:
 
 		self.draw_ship(ctx, self.model.ship)
 
-def runGame():
+window.runGame = def():
 	# The view tells when the controller to start and passes in a reference
 	# to itself
 	canvas = document.getElementById('myCanvas')

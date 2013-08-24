@@ -1,10 +1,50 @@
-/* This file was auto-generated using RapydScript */
 (function(){
-JSON = (JSON || {
-  
-});
-if ((!JSON.stringify)) {
-  
+    function _$rapyd$_bind(fn, thisArg) {
+        if (fn.bound) return fn;
+        fn.bound = true;
+        return function() {
+            return fn.apply(thisArg, arguments);
+        };
+    }
+    function range(start, stop, step) {
+        if (arguments.length <= 1) {
+            stop = start || 0;
+            start = 0;
+        }
+        step = arguments[2] || 1;
+        var length = Math.max (Math.ceil ((stop - start) / step) , 0);
+        var idx = 0;
+        var range = new Array(length);
+        while (idx < length) {
+            range[idx++] = start;
+            start += step;
+        }
+        return range;
+    }
+    function len(obj) {
+        if (obj instanceof Array || typeof obj === "string") return obj.length;
+        else {
+            var count = 0;
+            for (var i in obj) {
+                if (obj.hasOwnProperty(i)) count++;
+            }
+            return count;
+        }
+    }
+    function reversed(arr) {
+        var tmp = [];
+        for (var i = arr.length - 1; i >= 0; i--) {
+            tmp.push(arr[i]);
+        }
+        return tmp;
+    }
+    var JSON, str, NUM_ASTEROIDS, FPS, FRICTION, THRUST, ROTATE_SPEED_PER_SEC, ROTATE_SPEED, MAX_ASTEROID_SPEED, SHOT_LIFESPAN, SHOT_SPEED, SHOT_DELAY, ASTEROID_SIZE, ASTEROID_SIZES, NUM_ASTEROIDS, FPS, FRICTION, THRUST, ROTATE_SPEED_PER_SEC, ROTATE_SPEED, MAX_ASTEROID_SPEED, SHOT_LIFESPAN, SHOT_SPEED, SHOT_DELAY, ASTEROID_SIZE, ASTEROID_SIZES, SHOT_COLOR, ASTEROID_SIZE, CANVAS_DIM_X, CANVAS_DIM_Y;
+    "\nView\n\nThe view contains the canvas and has all the logic for drawing the game state\non the screen. The original Pyjs code used multiple libraries here. Of the 3\nfiles, this one required the most changes to port to RapydScript.\n";
+
+        JSON = JSON || {};
+
+    if (!JSON.stringify) {
+        
 	JSON.stringify = function(obj) {
 		var t = typeof (obj);
 		if (t != "object" || obj === null) {
@@ -33,184 +73,90 @@ if ((!JSON.stringify)) {
 			return (arr ? "[" : "{") + String(json) + (arr ? "]" : "}");
 		}
 	};
-	
-}
-
-str = JSON.stringify;
-len = function(item) {
-  return item.length;
-};
-
-range = function(a, b, step) {
-  var A;
-  A = [];
-  if ((typeof(b) === "undefined")) {
-    b = a;
-    a = 0;
-  }
-
-  A[0] = a;
-  step = (step || 1);
-  if ((step > 0)) {
-    while (((a + step) < b)) {
-      a += step;
-      A[A.length] = a;
+	;
     }
 
-  } else {
-    while (((a + step) > b)) {
-      a += step;
-      A[A.length] = a;
+    str = JSON.stringify;
+
+    function ValueError(message){
+        var self = this;
+        self.name = "ValueError";
+        self.message = message;
+    };
+    ValueError.prototype = new Error();
+    ValueError.prototype.constructor = ValueError;
+
+    String.prototype.find = Array.prototype.indexOf;
+
+    String.prototype.strip = String.prototype.trim;
+
+    String.prototype.lstrip = String.prototype.trimLeft;
+
+    String.prototype.rstrip = String.prototype.trimRight;
+
+    String.prototype.join = function(iterable) {
+        return iterable.join(this);
+    };
+
+    String.prototype.zfill = function(size) {
+        var s, s;
+        s = this;
+        while (s.length < size) {
+            s = "0" + s;
+        }
+        return s;
+    };
+
+    function list(iterable) {
+        if (typeof iterable === "undefined") iterable = [];
+        var result, i;
+        result = [];
+        var _$rapyd$_Iter0 = iterable;
+        for (var _$rapyd$_Index0 = 0; _$rapyd$_Index0 < _$rapyd$_Iter0.length; _$rapyd$_Index0++) {
+            i = _$rapyd$_Iter0[_$rapyd$_Index0];
+            result.append(i);
+        }
+        return result;
     }
 
-  }
+    Array.prototype.append = Array.prototype.push;
 
-  return A;
-};
+    Array.prototype.find = Array.prototype.indexOf;
 
-enumerate = function(item) {
-  var A;
-  A = [];
-  for (var i = 0; i < item.length; i++){A[A.length] = [i, item[i]];}
-  return A;
-};
+    Array.prototype.index = function(index) {
+        var val;
+        val = this.find(index);
+        if (val == -1) {
+            throw new ValueError(str(index) + " is not in list");
+        }
+        return val;
+    };
 
-reversed = function(arr) {
-  var temp;
-  temp = [];
-  for (var i = arr.length - 1; i >= 0; i--) {temp.push(arr[i]);}
-  return temp;
-};
+    Array.prototype.insert = function(index, item) {
+        this.splice(index, 0, item);
+    };
 
-_$rapyd$_print = function() {
-  var args, output;
-  args = [].slice.call(arguments, 0);
-  output = str(args);
-  console.log(output.substr(1, (output.length - 2)));
-};
+    Array.prototype.pop = function(index) {
+        if (typeof index === "undefined") index = this.length - 1;
+        return this.splice(index, 1)[0];
+    };
 
+    Array.prototype.extend = function(array2) {
+        this.push.apply(this, array2);
+    };
 
-isinstance = function(item, cls) {
-	var cls_item, isnumber;
-	if (cls instanceof Array) {
-		var _$tmp13_data = _$rapyd$_iter(cls);
-		var _$tmp14_len = _$tmp13_data.length;
-		for (var _$tmp15_index = 0; _$tmp15_index < _$tmp14_len; _$tmp15_index++) {
-			cls_item = _$tmp13_data[_$tmp15_index];
+    Array.prototype.remove = function(item) {
+        var index;
+        index = this.find(item);
+        this.splice(index, 1);
+    };
 
-			if (isinstance(item, cls_item)) {
-				return true;
-			}
+    Array.prototype.copy = function() {
+        return this.slice(0);
+    };
 
-		}
-
-		return false;
-	}
-
-	if ((cls === list)) {
-		cls = Array;
-	} else if ((cls === dict)) {
-		cls = Object;
-	} else if ((cls === str)) {
-		cls = String;
-	} else {
-		return item instanceof cls;
-	}
-
-	return (item.constructor === cls.prototype.constructor);
-};
-_$rapyd$_iter = function(iter_object) {
-	var key_list;
-	if (((iter_object.callee && (typeof iter_object['length'] != "undefined")) || isinstance(iter_object, list))) {
-		return iter_object;
-	}
-
-	key_list = [];
-	for (var key in iter_object)
-	key_list.append(key);
-	return key_list;
-};
-Function.prototype.bind = (function(owner) {
-	var bound, func;
-	func = this;
-	bound = function() {
-		return func.apply(owner, arguments);
-	};
-
-	return bound;
-});
-
-ValueError = function(message) {
-  this.name = "ValueError";
-  this.message = message;
-};
-
-ValueError.prototype = new Error();
-ValueError.prototype.constructor = ValueError;
-String.prototype.strip = String.prototype.trim;
-String.prototype.lstrip = String.prototype.trimLeft;
-String.prototype.rstrip = String.prototype.trimRight;
-String.prototype.join = (function(iterable) {
-  return iterable.join(this);
-});
-String.prototype.zfill = (function(size) {
-  var s;
-  s = this;
-  while ((s.length < size)) {
-    s = ("0" + s);
-  }
-
-  return s;
-});
-list = function(iterable) {
-  var i, result;
-  if (typeof iterable === "undefined") {iterable = []};
-  result = [];
-  var _$tmp1_data = _$rapyd$_iter(iterable);
-  var _$tmp2_len = _$tmp1_data.length;
-  for (var _$tmp3_index = 0; _$tmp3_index < _$tmp2_len; _$tmp3_index++) {
-    i = _$tmp1_data[_$tmp3_index];
-
-    result.append(i);
-  }
-
-  return result;
-};
-
-Array.prototype.append = Array.prototype.push;
-Array.prototype.find = Array.prototype.indexOf;
-Array.prototype.index = (function(index) {
-  var val;
-  val = this.find(index);
-  if ((val == (-1))) {
-    throw new ValueError((str(index) + " is not in list"));
-  }
-
-  return val;
-});
-Array.prototype.insert = (function(index, item) {
-  this.splice(index, 0, item);
-});
-Array.prototype.pop = (function(index) {
-  if ((!arguments.length)) {
-    index = (this.length - 1);
-  }
-
-  return this.splice(index, 1)[0];
-});
-Array.prototype.extend = (function(array2) {
-  this.push.apply(this, array2);
-});
-Array.prototype.remove = (function(item) {
-  var index;
-  index = this.find(item);
-  this.splice(index, 1);
-});
-Array.prototype.copy = (function() {
-  return this.slice(0);
-});
-if ((!Array.prototype.map)) {
-  
+    if (!Array.prototype.map) {
+        
 	Array.prototype.map = function(callback, thisArg) {
 		var T, A, k;
 		if (this == null) {
@@ -235,15 +181,15 @@ if ((!Array.prototype.map)) {
 		}
 		return A;
 	};
-	
-}
+	;
+    }
 
-map = function(oper, arr) {
-  return arr.map(oper);
-};
+    function map(oper, arr) {
+        return arr.map(oper);
+    }
 
-if ((!Array.prototype.filter)) {
-  
+    if (!Array.prototype.filter) {
+        
 	Array.prototype.filter = function(filterfun, thisArg) {
 		"use strict";
 		if (this == null) {
@@ -268,480 +214,510 @@ if ((!Array.prototype.filter)) {
 		}
 		return A;
 	};
-	
-}
+	;
+    }
 
-filter = function(oper, arr) {
-  return arr.filter(oper);
-};
+    function filter(oper, arr) {
+        return arr.filter(oper);
+    }
 
-dict = function(iterable) {
-  var key, result;
-  result = {
-    
-  };
-  var _$tmp4_data = _$rapyd$_iter(iterable);
-  var _$tmp5_len = _$tmp4_data.length;
-  for (var _$tmp6_index = 0; _$tmp6_index < _$tmp5_len; _$tmp6_index++) {
-    key = _$tmp4_data[_$tmp6_index];
+    function dict(iterable) {
+        var result, key;
+        result = {};
+        var _$rapyd$_Iter1 = iterable;
+        for (var _$rapyd$_Index1 = 0; _$rapyd$_Index1 < _$rapyd$_Iter1.length; _$rapyd$_Index1++) {
+            key = _$rapyd$_Iter1[_$rapyd$_Index1];
+            result[key] = iterable[key];
+        }
+        return result;
+    }
 
-    result[key] = iterable[key];
-  }
-
-  return result;
-};
-
-if ((typeof(Object.getOwnPropertyNames) !== "function")) {
-  dict.keys = (function(hash) {
-    var keys;
-    keys = [];
-    
+    if (typeof Object.getOwnPropertyNames !== "function") {
+        dict.keys = function(hash) {
+            var keys;
+            keys = [];
+            
 		for (var x in hash) {
-			// A for in will iterate over members on the prototype
-			// chain as well, but Object.getOwnPropertyNames returns
-			// only those directly on the object, so use hasOwnProperty.
 			if (hash.hasOwnProperty(x)) {
 				keys.push(x);
 			}
 		}
-		
-    return keys;
-  });
-} else {
-  dict.keys = (function(hash) {
-    return Object.getOwnPropertyNames(hash);
-  });
-}
-
-dict.values = (function(hash) {
-  var key, vals;
-  vals = [];
-  var _$tmp7_data = _$rapyd$_iter(dict.keys(hash));
-  var _$tmp8_len = _$tmp7_data.length;
-  for (var _$tmp9_index = 0; _$tmp9_index < _$tmp8_len; _$tmp9_index++) {
-    key = _$tmp7_data[_$tmp9_index];
-
-    vals.append(hash[key]);
-  }
-
-  return vals;
-});
-dict.items = (function(hash) {
-  var items, key;
-  items = [];
-  var _$tmp10_data = _$rapyd$_iter(dict.keys(hash));
-  var _$tmp11_len = _$tmp10_data.length;
-  for (var _$tmp12_index = 0; _$tmp12_index < _$tmp11_len; _$tmp12_index++) {
-    key = _$tmp10_data[_$tmp12_index];
-
-    items.append([key, hash[key]]);
-  }
-
-  return items;
-});
-dict.copy = dict;
-dict.clear = (function(hash) {
-  var key;
-  var _$tmp13_data = _$rapyd$_iter(dict.keys(hash));
-  var _$tmp14_len = _$tmp13_data.length;
-  for (var _$tmp15_index = 0; _$tmp15_index < _$tmp14_len; _$tmp15_index++) {
-    key = _$tmp13_data[_$tmp15_index];
-
-    delete hash[key];
-  }
-
-});
-NUM_ASTEROIDS = 2;
-FPS = 30;
-FRICTION = 0.05;
-THRUST = 0.2;
-ROTATE_SPEED_PER_SEC = Math.PI;
-ROTATE_SPEED = (ROTATE_SPEED_PER_SEC / FPS);
-MAX_ASTEROID_SPEED = 2.0;
-SHOT_LIFESPAN = 60;
-SHOT_SPEED = 8.0;
-SHOT_DELAY = 10;
-ASTEROID_SIZE = 180.0;
-ASTEROID_SIZES = [90.0, 45.0, 22.0, 11.0];
-randfloat = function(min, max) {
-  return ((Math.random() * (max - min)) + min);
-};
-
-randint = function(min, max) {
-  return (Math.floor((Math.random() * ((max - min) + 1))) + min);
-};
-
-distsq = function(x1, y1, x2, y2) {
-  return (((x1 - x2) * (x1 - x2)) + ((y1 - y2) * (y1 - y2)));
-};
-
-Asteroid = function(model, x, y, size) {
-  if (typeof x === "undefined") {x = null};
-  if (typeof y === "undefined") {y = null};
-  if (typeof size === "undefined") {size = 0};
-  this.model = model;
-  if (((x === null) || (y === null))) {
-    this.x = (model.x / 2);
-    this.y = (model.y / 2);
-    while ((distsq(this.x, this.y, (model.x / 2), (model.y / 2)) < (180 * 180))) {
-      this.x = randint(0, model.x);
-      this.y = randint(0, model.y);
+		;
+            return keys;
+        };
+    } else {
+        dict.keys = function(hash) {
+            return Object.getOwnPropertyNames(hash);
+        };
     }
 
-  } else {
-    this.x = x;
-    this.y = y;
-  }
+    dict.values = function(hash) {
+        var vals, key;
+        vals = [];
+        var _$rapyd$_Iter2 = dict.keys(hash);
+        for (var _$rapyd$_Index2 = 0; _$rapyd$_Index2 < _$rapyd$_Iter2.length; _$rapyd$_Index2++) {
+            key = _$rapyd$_Iter2[_$rapyd$_Index2];
+            vals.append(hash[key]);
+        }
+        return vals;
+    };
 
-  this.dx = randfloat(0, MAX_ASTEROID_SPEED);
-  this.dy = randfloat(0, MAX_ASTEROID_SPEED);
-  this.rot = (randfloat(0, (2 * Math.PI)) - Math.PI);
-  this.rotspeed = (randfloat(0, 0.1) - 0.05);
-  this.size = size;
-  this.radius = ASTEROID_SIZES[this.size];
-  this.radius2 = (this.radius * this.radius);
-  this.scale = ((this.radius / ASTEROID_SIZE) * 2);
-};
+    dict.items = function(hash) {
+        var items, key;
+        items = [];
+        var _$rapyd$_Iter3 = dict.keys(hash);
+        for (var _$rapyd$_Index3 = 0; _$rapyd$_Index3 < _$rapyd$_Iter3.length; _$rapyd$_Index3++) {
+            key = _$rapyd$_Iter3[_$rapyd$_Index3];
+            items.append([key, hash[key]]);
+        }
+        return items;
+    };
 
-Asteroid.prototype.update_dim = (function(pos, d_dim, max_dim) {
-  pos += d_dim;
-  if ((d_dim < 0)) {
-    if ((pos <= 0)) {
-      pos = (-pos);
-      d_dim = (-d_dim);
+    dict.copy = dict;
+
+    dict.clear = function(hash) {
+        var key;
+        var _$rapyd$_Iter4 = dict.keys(hash);
+        for (var _$rapyd$_Index4 = 0; _$rapyd$_Index4 < _$rapyd$_Iter4.length; _$rapyd$_Index4++) {
+            key = _$rapyd$_Iter4[_$rapyd$_Index4];
+            delete hash[key];
+        }
+    };
+
+        "\nModel\n\nThe model contains the classes representing the various game objects - the asteroid, ship\nand shots. These are used to store all the state information on these different objects\nas well as helping modify them. The original Pyjs code did not use any libraries so\nporting over this code required almost no changes to the code.\n";
+
+    NUM_ASTEROIDS = 2;
+
+    FPS = 30;
+
+    FRICTION = .05;
+
+    THRUST = .2;
+
+    ROTATE_SPEED_PER_SEC = Math.PI;
+
+    ROTATE_SPEED = ROTATE_SPEED_PER_SEC / FPS;
+
+    MAX_ASTEROID_SPEED = 2;
+
+    SHOT_LIFESPAN = 60;
+
+    SHOT_SPEED = 8;
+
+    SHOT_DELAY = 10;
+
+    ASTEROID_SIZE = 180;
+
+    ASTEROID_SIZES = [ 90, 45, 22, 11 ];
+
+    function randfloat(min, max) {
+        return Math.random() * (max - min) + min;
     }
 
-  } else {
-    if ((pos >= max_dim)) {
-      d_dim = (-d_dim);
-      pos = ((2 * max_dim) - pos);
+    function randint(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-  }
-
-  return [pos, d_dim];
-});
-Asteroid.prototype.move = (function() {
-  var _$rapyd_tuple$_;
-  _$rapyd_tuple$_ = this.update_dim(this.x, this.dx, this.model.x);
-  this.x = _$rapyd_tuple$_[0];
-  this.dx = _$rapyd_tuple$_[1];
-  _$rapyd_tuple$_ = this.update_dim(this.y, this.dy, this.model.y);
-  this.y = _$rapyd_tuple$_[0];
-  this.dy = _$rapyd_tuple$_[1];
-  this.rot += this.rotspeed;
-});
-Shot = function(model, ship) {
-  this.model = model;
-  this.x = ship.x;
-  this.y = ship.y;
-  this.dx = ship.dx;
-  this.dy = ship.dy;
-  this.dir = ship.rot;
-  this.lifespan = SHOT_LIFESPAN;
-};
-
-Shot.prototype.move = (function() {
-  var a, i;
-  this.lifespan -= 1;
-  if ((this.lifespan <= 0)) {
-    return false;
-  }
-
-  this.x = ((this.x + this.dx) + (SHOT_SPEED * Math.sin(this.dir)));
-  this.y = ((this.y + this.dy) - (SHOT_SPEED * Math.cos(this.dir)));
-  var _$tmp1_end = this.model.asteroids.length;
-  for (i = 0; i < _$tmp1_end; i++) {
-    a = this.model.asteroids[i];
-    if ((distsq(this.x, this.y, a.x, a.y) < a.radius2)) {
-      this.model.split_asteroid(i);
-      return false;
+    function distsq(x1, y1, x2, y2) {
+        return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2);
     }
 
-  }
+    function Asteroid(model, x, y, size){
+        var self = this;
+        if (typeof x === "undefined") x = null;
+        if (typeof y === "undefined") y = null;
+        if (typeof size === "undefined") size = 0;
+        this.update_dim = _$rapyd$_bind(this.update_dim, this);
+        this.move = _$rapyd$_bind(this.move, this);
+        self.model = model;
+        if (x === null || y === null) {
+            self.x = model.x / 2;
+            self.y = model.y / 2;
+            while (distsq(self.x, self.y, model.x / 2, model.y / 2) < 180 * 180) {
+                self.x = randint(0, model.x);
+                self.y = randint(0, model.y);
+            }
+        } else {
+            self.x = x;
+            self.y = y;
+        }
+        self.dx = randfloat(0, MAX_ASTEROID_SPEED);
+        self.dy = randfloat(0, MAX_ASTEROID_SPEED);
+        self.rot = randfloat(0, 2 * Math.PI) - Math.PI;
+        self.rotspeed = randfloat(0, .1) - .05;
+        self.size = size;
+        self.radius = ASTEROID_SIZES[self.size];
+        self.radius2 = self.radius * self.radius;
+        self.scale = self.radius / ASTEROID_SIZE * 2;
+    };
+    Asteroid.prototype.update_dim = function(pos, d_dim, max_dim){
+        var self = this;
+        pos += d_dim;
+        if (d_dim < 0) {
+            if (pos <= 0) {
+                pos = -pos;
+                d_dim = -d_dim;
+            }
+        } else {
+            if (pos >= max_dim) {
+                d_dim = -d_dim;
+                pos = 2 * max_dim - pos;
+            }
+        }
+        return [pos, d_dim];
+    };
+    Asteroid.prototype.move = function(){
+        var self = this;
+        var undefined, undefined;
+        _$rapyd$_Unpack = self.update_dim(self.x, self.dx, self.model.x);
+        self.x = _$rapyd$_Unpack[0];
+        self.dx = _$rapyd$_Unpack[1];
+        _$rapyd$_Unpack = self.update_dim(self.y, self.dy, self.model.y);
+        self.y = _$rapyd$_Unpack[0];
+        self.dy = _$rapyd$_Unpack[1];
+        self.rot += self.rotspeed;
+    };
 
-  return true;
-});
-Ship = function(cx, cy) {
-  this.cx = cx;
-  this.cy = cy;
-  this.reset();
-};
+    function Shot(model, ship){
+        var self = this;
+        this.move = _$rapyd$_bind(this.move, this);
+        self.model = model;
+        self.x = ship.x;
+        self.y = ship.y;
+        self.dx = ship.dx;
+        self.dy = ship.dy;
+        self.dir = ship.rot;
+        self.lifespan = SHOT_LIFESPAN;
+    };
+    Shot.prototype.move = function(){
+        var self = this;
+        var a, i;
+        self.lifespan -= 1;
+        if (self.lifespan <= 0) {
+            return false;
+        }
+        self.x = self.x + self.dx + SHOT_SPEED * Math.sin(self.dir);
+        self.y = self.y + self.dy - SHOT_SPEED * Math.cos(self.dir);
+        for (i = 0; i < len(self.model.asteroids); i++) {
+            a = self.model.asteroids[i];
+            if (distsq(self.x, self.y, a.x, a.y) < a.radius2) {
+                self.model.split_asteroid(i);
+                return false;
+            }
+        }
+        return true;
+    };
 
-Ship.prototype.rotate_ship = (function(drot) {
-  this.rot += drot;
-  if ((drot < (0 - Math.PI))) {
-    drot += (2 * Math.PI);
-  } else if ((drot > Math.PI)) {
-    drot -= (2 * Math.PI);
-  }
+    function Ship(cx, cy){
+        var self = this;
+        this.rotate_ship = _$rapyd$_bind(this.rotate_ship, this);
+        this.thrust = _$rapyd$_bind(this.thrust, this);
+        this.friction = _$rapyd$_bind(this.friction, this);
+        this.move = _$rapyd$_bind(this.move, this);
+        this.reset = _$rapyd$_bind(this.reset, this);
+        self.cx = cx;
+        self.cy = cy;
+        self.reset();
+    };
+    Ship.prototype.rotate_ship = function(drot){
+        var self = this;
+        self.rot += drot;
+        if (drot < 0 - Math.PI) {
+            drot += 2 * Math.PI;
+        } else if (drot > Math.PI) {
+            drot -= 2 * Math.PI;
+        }
+    };
+    Ship.prototype.thrust = function(){
+        var self = this;
+        self.dx += THRUST * Math.sin(self.rot);
+        self.dy -= THRUST * Math.cos(self.rot);
+    };
+    Ship.prototype.friction = function(){
+        var self = this;
+        var direction;
+        if (Math.abs(self.dx) < .001 && Math.abs(self.dy) < .001) {
+            self.dx = 0;
+            self.dy = 0;
+        } else {
+            direction = Math.atan2(self.dx, self.dy);
+            self.dx -= FRICTION * Math.sin(direction);
+            self.dy -= FRICTION * Math.cos(direction);
+        }
+    };
+    Ship.prototype.move = function(){
+        var self = this;
+        self.shot_delay -= 1;
+        self.x += self.dx;
+        self.y += self.dy;
+        if (self.dx > 0 && self.x >= self.cx) {
+            self.x -= self.cx;
+        } else if (self.dx < 0 && self.x < 0) {
+            self.x += self.cx;
+        }
+        if (self.y > 0 && self.y >= self.cy) {
+            self.y -= self.cy;
+        } else if (self.dy < 0 && self.y < 0) {
+            self.y += self.cy;
+        }
+    };
+    Ship.prototype.reset = function(){
+        var self = this;
+        self.x = self.cx / 2;
+        self.y = self.cy / 2;
+        self.dx = 0;
+        self.dy = 0;
+        self.rot = 0;
+        self.shot_delay = 0;
+    };
 
-});
-Ship.prototype.thrust = (function() {
-  this.dx += (THRUST * Math.sin(this.rot));
-  this.dy -= (THRUST * Math.cos(this.rot));
-});
-Ship.prototype.friction = (function() {
-  var dir;
-  if (((Math.abs(this.dx) < 0.001) && (Math.abs(this.dy) < 0.001))) {
-    this.dx = 0;
-    this.dy = 0;
-  } else {
-    dir = Math.atan2(this.dx, this.dy);
-    this.dx -= (FRICTION * Math.sin(dir));
-    this.dy -= (FRICTION * Math.cos(dir));
-  }
+    function Model(x, y){
+        var self = this;
+        this.start_game = _$rapyd$_bind(this.start_game, this);
+        this.update = _$rapyd$_bind(this.update, this);
+        this.start_next_level = _$rapyd$_bind(this.start_next_level, this);
+        this.destroyShip = _$rapyd$_bind(this.destroyShip, this);
+        this.reset = _$rapyd$_bind(this.reset, this);
+        this.trigger_fire = _$rapyd$_bind(this.trigger_fire, this);
+        this.split_asteroid = _$rapyd$_bind(this.split_asteroid, this);
+        self.x = x;
+        self.y = y;
+        self.num_asteroids = NUM_ASTEROIDS;
+        self.ship = new Ship(x, y);
+    };
+    Model.prototype.start_game = function(view){
+        var self = this;
+        self.view = view;
+    };
+    Model.prototype.update = function(){
+        var self = this;
+        var a, i;
+        var _$rapyd$_Iter5 = self.asteroids;
+        for (var _$rapyd$_Index5 = 0; _$rapyd$_Index5 < _$rapyd$_Iter5.length; _$rapyd$_Index5++) {
+            a = _$rapyd$_Iter5[_$rapyd$_Index5];
+            a.move();
+            if (distsq(self.ship.x, self.ship.y, a.x, a.y) < a.radius2) {
+                self.destroyShip();
+                return;
+            }
+        }
+        var _$rapyd$_Iter6 = reversed(range(len(self.shots)));
+        for (var _$rapyd$_Index6 = 0; _$rapyd$_Index6 < _$rapyd$_Iter6.length; _$rapyd$_Index6++) {
+            i = _$rapyd$_Iter6[_$rapyd$_Index6];
+            if (!self.shots[i].move()) {
+                self.shots.pop(i);
+                if (len(self.asteroids) == 0) {
+                    self.start_next_level();
+                    return;
+                }
+            }
+        }
+        self.ship.move();
+        self.view.draw();
+    };
+    Model.prototype.start_next_level = function(){
+        var self = this;
+        self.num_asteroids += 1;
+        self.reset();
+    };
+    Model.prototype.destroyShip = function(){
+        var self = this;
+        self.num_asteroids = NUM_ASTEROIDS;
+        self.reset();
+    };
+    Model.prototype.reset = function(){
+        var self = this;
+        self.shots = [];
+        self.asteroids = (function() {
+            var _$rapyd$_Iter = range(self.num_asteroids), _$rapyd$_Result = [], i;
+            for (var _$rapyd$_Index = 0; _$rapyd$_Index < _$rapyd$_Iter.length; _$rapyd$_Index++) {
+                i = _$rapyd$_Iter[_$rapyd$_Index];
+                _$rapyd$_Result.push(new Asteroid(self));
+            }
+            return _$rapyd$_Result;
+        })();
+        self.ship.reset();
+    };
+    Model.prototype.trigger_fire = function(){
+        var self = this;
+        if (self.ship.shot_delay > 0) {
+            return;
+        } else {
+            self.shots.append(new Shot(self, self.ship));
+            self.ship.shot_delay = SHOT_DELAY;
+        }
+    };
+    Model.prototype.split_asteroid = function(i){
+        var self = this;
+        var a, j;
+        a = self.asteroids[i];
+        if (a.size < len(ASTEROID_SIZES) - 1) {
+            for (j = 0; j < 2; j++) {
+                self.asteroids.append(new Asteroid(self, a.x, a.y, a.size + 1));
+            }
+        }
+        self.asteroids.pop(i);
+    };
 
-});
-Ship.prototype.move = (function() {
-  this.shot_delay -= 1;
-  this.x += this.dx;
-  this.y += this.dy;
-  if (((this.dx > 0) && (this.x >= this.cx))) {
-    this.x -= this.cx;
-  } else if (((this.dx < 0) && (this.x < 0))) {
-    this.x += this.cx;
-  }
+        "\nController\n\nThe controller runs the game and modifies the Model. This required very few changes\nto port from Pyjs.\n";
 
-  if (((this.y > 0) && (this.y >= this.cy))) {
-    this.y -= this.cy;
-  } else if (((this.dy < 0) && (this.y < 0))) {
-    this.y += this.cy;
-  }
+    
 
-});
-Ship.prototype.reset = (function() {
-  this.x = (this.cx / 2);
-  this.y = (this.cy / 2);
-  this.dx = 0;
-  this.dy = 0;
-  this.rot = 0;
-  this.shot_delay = 0;
-});
-Model = function(x, y) {
-  this.x = x;
-  this.y = y;
-  this.num_asteroids = NUM_ASTEROIDS;
-  this.ship = new Ship(x, y);
-};
+    function Controller(model){
+        var self = this;
+        this.start_game = _$rapyd$_bind(this.start_game, this);
+        this.update = _$rapyd$_bind(this.update, this);
+        this.keyboard_updates = _$rapyd$_bind(this.keyboard_updates, this);
+        self.model = model;
+        self.key_up = false;
+        self.key_down = false;
+        self.key_left = false;
+        self.key_right = false;
+        self.key_fire = false;
+    };
+    Controller.prototype.start_game = function(view){
+        var self = this;
+        self.view = view;
+        self.model.start_game(view);
+        self.model.reset();
+        setInterval(function() {
+            self.update();
+        }, 1e3 / FPS);
+    };
+    Controller.prototype.update = function(){
+        var self = this;
+        self.keyboard_updates();
+        self.model.update();
+    };
+    Controller.prototype.keyboard_updates = function(){
+        var self = this;
+        var ship, drot, drot, drot;
+        ship = self.model.ship;
+        drot = 0;
+        if (self.key_left) {
+            drot -= ROTATE_SPEED;
+        }
+        if (self.key_right) {
+            drot += ROTATE_SPEED;
+        }
+        if (drot) {
+            ship.rotate_ship(drot);
+        }
+        if (self.key_up) {
+            ship.thrust();
+        } else {
+            ship.friction();
+        }
+        if (self.key_fire) {
+            self.model.trigger_fire();
+        }
+    };
 
-Model.prototype.start_game = (function(view) {
-  this.view = view;
-});
-Model.prototype.update = (function() {
-  var a, i;
-  var _$tmp2_end = this.asteroids.length;
-  for (i = 0; i < _$tmp2_end; i++) {
-    a = this.asteroids[i];
-    a.move();
-    if ((distsq(this.ship.x, this.ship.y, a.x, a.y) < a.radius2)) {
-      this.destroyShip();
-      return;
-    }
+    SHOT_COLOR = "#fff";
 
-  }
+    ASTEROID_SIZE = 180;
 
-  i = this.shots.length;
-  while (i--) {
-    if ((!this.shots[i].move())) {
-      this.shots.pop(i);
-      if ((this.asteroids.length == 0)) {
-        this.start_next_level();
-        return;
-      }
+    CANVAS_DIM_X = 800;
 
-    }
+    CANVAS_DIM_Y = 600;
 
-  }
+    function View(w, h, canvas){
+        var self = this;
+        this.setKey = _$rapyd$_bind(this.setKey, this);
+        this.draw_asteroid = _$rapyd$_bind(this.draw_asteroid, this);
+        this.draw_shot = _$rapyd$_bind(this.draw_shot, this);
+        this.draw_ship = _$rapyd$_bind(this.draw_ship, this);
+        this.draw = _$rapyd$_bind(this.draw, this);
+        var imgsrcs, i;
+        self.width = w;
+        self.height = h;
+        self.canvas = canvas;
+        self.model = new Model(w, h);
+        self.controller = new Controller(self.model);
+        self.number_images_loaded = 0;
+        self.view_loaded = false;
+        document.addEventListener("keydown", function(event) {
+            event.preventDefault();
+            self.setKey(event.keyCode, true);
+        });
+        document.addEventListener("keyup", function(event) {
+            event.preventDefault();
+            self.setKey(event.keyCode, false);
+        });
+        imgsrcs = [ "./images/ship1.png", "./images/ship2.png", "./images/asteroid.png" ];
+        self.img = [ null, null, null ];
+        for (i = 0; i < 3; i++) {
+            self.img[i] = new Image();
+            self.img[i].src = imgsrcs[i];
+            self.img[i].onload = function() {
+                self.number_images_loaded += 1;
+                if (self.number_images_loaded >= 3) {
+                    self.view_loaded = true;
+                    self.controller.start_game(self);
+                }
+            };
+        }
+    };
+    View.prototype.setKey = function(k, set){
+        var self = this;
+        if (k == 38) {
+            self.controller.key_up = set;
+        } else if (k == 40) {
+            self.controller.key_down = set;
+        } else if (k == 37) {
+            self.controller.key_left = set;
+        } else if (k == 39) {
+            self.controller.key_right = set;
+        } else if (k == 32) {
+            self.controller.key_fire = set;
+        }
+    };
+    View.prototype.draw_asteroid = function(ctx, asteroid){
+        var self = this;
+        ctx.save();
+        ctx.translate(asteroid.x, asteroid.y);
+        ctx.rotate(asteroid.rot);
+        ctx.scale(asteroid.scale, asteroid.scale);
+        ctx.drawImage(self.img[2], -(ASTEROID_SIZE / 2), -(ASTEROID_SIZE / 2));
+        ctx.restore();
+    };
+    View.prototype.draw_shot = function(ctx, shot){
+        var self = this;
+        ctx.fillStyle = SHOT_COLOR;
+        ctx.fillRect(Math.ceil(shot.x - 1), Math.ceil(shot.y - 1), 3, 3);
+    };
+    View.prototype.draw_ship = function(ctx, ship){
+        var self = this;
+        var img, img;
+        ctx.save();
+        ctx.translate(ship.x, ship.y);
+        ctx.rotate(ship.rot);
+        if (self.controller.key_up) {
+            img = self.img[1];
+        } else {
+            img = self.img[0];
+        }
+        ctx.drawImage(img, -15, -12);
+        ctx.restore();
+    };
+    View.prototype.draw = function(){
+        var self = this;
+        var ctx, i;
+        ctx = self.canvas.getContext("2d");
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, self.width, self.height);
+        for (i = 0; i < len(self.model.asteroids); i++) {
+            self.draw_asteroid(ctx, self.model.asteroids[i]);
+        }
+        for (i = 0; i < len(self.model.shots); i++) {
+            self.draw_shot(ctx, self.model.shots[i]);
+        }
+        self.draw_ship(ctx, self.model.ship);
+    };
 
-  this.ship.move();
-  this.view.draw();
-});
-Model.prototype.start_next_level = (function() {
-  this.num_asteroids += 1;
-  this.reset();
-});
-Model.prototype.destroyShip = (function() {
-  this.num_asteroids = NUM_ASTEROIDS;
-  this.reset();
-});
-Model.prototype.reset = (function() {
-  this.shots = [];
-  this.asteroids = range(this.num_asteroids).map(function(i) {return new Asteroid(this);}, this);
-  this.ship.reset();
-});
-Model.prototype.trigger_fire = (function() {
-  if ((this.ship.shot_delay > 0)) {
-    return;
-  } else {
-    this.shots.append(new Shot(this, this.ship));
-    this.ship.shot_delay = SHOT_DELAY;
-  }
-
-});
-Model.prototype.split_asteroid = (function(i) {
-  var a, j;
-  a = this.asteroids[i];
-  if ((a.size < (ASTEROID_SIZES.length - 1))) {
-    for (j = 0; j < 2; j++) {
-      this.asteroids.append(new Asteroid(this, a.x, a.y, (a.size + 1)));
-    }
-
-  }
-
-  this.asteroids.pop(i);
-});
-Controller = function(model) {
-  this.model = model;
-  this.key_up = false;
-  this.key_down = false;
-  this.key_left = false;
-  this.key_right = false;
-  this.key_fire = false;
-};
-
-Controller.prototype.start_game = (function(view) {
-  var main;
-  this.view = view;
-  this.model.start_game(view);
-  this.model.reset();
-  main = this;
-  setInterval((function() {
-    main.update();
-  }), (1000 / FPS));
-});
-Controller.prototype.update = (function() {
-  this.keyboard_updates();
-  this.model.update();
-});
-Controller.prototype.keyboard_updates = (function() {
-  var drot, ship;
-  ship = this.model.ship;
-  drot = 0;
-  if (this.key_left) {
-    drot -= ROTATE_SPEED;
-  }
-
-  if (this.key_right) {
-    drot += ROTATE_SPEED;
-  }
-
-  if (drot) {
-    ship.rotate_ship(drot);
-  }
-
-  if (this.key_up) {
-    ship.thrust();
-  } else {
-    ship.friction();
-  }
-
-  if (this.key_fire) {
-    this.model.trigger_fire();
-  }
-
-});
-SHOT_COLOR = "#fff";
-ASTEROID_SIZE = 180.0;
-CANVAS_DIM_X = 800;
-CANVAS_DIM_Y = 600;
-View = function(w, h, canvas) {
-  var i, imgsrcs, main;
-  this.width = w;
-  this.height = h;
-  this.canvas = canvas;
-  this.model = new Model(w, h);
-  this.controller = new Controller(this.model);
-  this.number_images_loaded = 0;
-  this.view_loaded = false;
-  main = this;
-  document.addEventListener("keydown", (function(event) {
-    event.preventDefault();
-    main.setKey(event.keyCode, true);
-  }));
-  document.addEventListener("keyup", (function(event) {
-    event.preventDefault();
-    main.setKey(event.keyCode, false);
-  }));
-  imgsrcs = ["./images/ship1.png", "./images/ship2.png", "./images/asteroid.png"];
-  this.img = [null, null, null];
-  for (i = 0; i < 3; i++) {
-    main.img[i] = new Image();
-    main.img[i].src = imgsrcs[i];
-    main.img[i].onload = (function() {
-      main.number_images_loaded += 1;
-      if ((main.number_images_loaded >= 3)) {
-        main.view_loaded = true;
-        main.controller.start_game(main);
-      }
-
-    });
-  }
-
-};
-
-View.prototype.setKey = (function(k, set) {
-  if ((k == 38)) {
-    this.controller.key_up = set;
-  } else if ((k == 40)) {
-    this.controller.key_down = set;
-  } else if ((k == 37)) {
-    this.controller.key_left = set;
-  } else if ((k == 39)) {
-    this.controller.key_right = set;
-  } else if ((k == 32)) {
-    this.controller.key_fire = set;
-  }
-
-});
-View.prototype.draw_asteroid = (function(ctx, asteroid) {
-  ctx.save();
-  ctx.translate(asteroid.x, asteroid.y);
-  ctx.rotate(asteroid.rot);
-  ctx.scale(asteroid.scale, asteroid.scale);
-  ctx.drawImage(this.img[2], (-(ASTEROID_SIZE / 2)), (-(ASTEROID_SIZE / 2)));
-  ctx.restore();
-});
-View.prototype.draw_shot = (function(ctx, shot) {
-  ctx.fillStyle = SHOT_COLOR;
-  ctx.fillRect(Math.ceil((shot.x - 1)), Math.ceil((shot.y - 1)), 3, 3);
-});
-View.prototype.draw_ship = (function(ctx, ship) {
-  var img;
-  ctx.save();
-  ctx.translate(ship.x, ship.y);
-  ctx.rotate(ship.rot);
-  if (this.controller.key_up) {
-    img = this.img[1];
-  } else {
-    img = this.img[0];
-  }
-
-  ctx.drawImage(img, (-15), (-12));
-  ctx.restore();
-});
-View.prototype.draw = (function() {
-  var ctx, i;
-  ctx = this.canvas.getContext("2d");
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, this.width, this.height);
-  var _$tmp1_end = this.model.asteroids.length;
-  for (i = 0; i < _$tmp1_end; i++) {
-    this.draw_asteroid(ctx, this.model.asteroids[i]);
-  }
-
-  var _$tmp2_end = this.model.shots.length;
-  for (i = 0; i < _$tmp2_end; i++) {
-    this.draw_shot(ctx, this.model.shots[i]);
-  }
-
-  this.draw_ship(ctx, this.model.ship);
-});
-runGame = function() {
-  var canvas, view;
-  canvas = document.getElementById("myCanvas");
-  view = new View(CANVAS_DIM_X, CANVAS_DIM_Y, canvas);
-};
-
-
-}());
+    window.runGame = function() {
+        var canvas, view;
+        canvas = document.getElementById("myCanvas");
+        view = new View(CANVAS_DIM_X, CANVAS_DIM_Y, canvas);
+    };
+})();

@@ -102,3 +102,9 @@ def hello():
 	return "hello world"
 
 assert.equal(hello(), "<b><i>hello world</i></b>")
+
+# just because something is a reserved keyword in RapydScript, doesn't mean other libraries won't attempt to use it
+# let's make sure we parse that correctly
+five = {}
+JS("five.is = function(n) { return 5 == n };")
+assert.ok(five.is(5))

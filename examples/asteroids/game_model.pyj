@@ -133,9 +133,9 @@ class Ship:
 			self.dx = 0
 			self.dy = 0
 		else:
-			dir = Math.atan2(self.dx, self.dy)
-			self.dx -= FRICTION * Math.sin(dir)
-			self.dy -= FRICTION * Math.cos(dir)
+			direction = Math.atan2(self.dx, self.dy)
+			self.dx -= FRICTION * Math.sin(direction)
+			self.dy -= FRICTION * Math.cos(direction)
 
 	def move(self):
 		self.shot_delay -= 1
@@ -165,7 +165,6 @@ class Model:
 		self.y = y
 
 		self.num_asteroids = NUM_ASTEROIDS
-
 		self.ship = Ship(x, y)
 
 	def start_game(self, view):
@@ -173,8 +172,7 @@ class Model:
 
 	def update(self):
 		# Make model updates
-		for i in range(len(self.asteroids)):
-			a = self.asteroids[i]
+		for a in self.asteroids:
 			a.move()
 			if (distsq(self.ship.x, self.ship.y, a.x, a.y) < (a.radius2)):
 				self.destroyShip()
@@ -202,7 +200,6 @@ class Model:
 
 	def reset(self):
 		self.shots = []
-		# list comprehensions are temporarily not supported
 		self.asteroids = [Asteroid(self) for i in range(self.num_asteroids)]
 		self.ship.reset()
 

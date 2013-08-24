@@ -37,12 +37,18 @@ assert.ok(isinstance(joe, Human))
 class OldFriend(Friend):
 	def how_long(self):
 		return "I've known you for " + self.duration + " years"
+	def get_bound_method(self):
+		return self.how_long
 	def __init__(self, name, duration):
 		self.duration = duration
 		Friend.__init__(self, name)
 angela = OldFriend("Angela", 8)
 assert.equal(angela.greet(), "Yo, it's me, Angela")
 assert.equal(angela.how_long(), "I've known you for 8 years")
+
+# test that function stays bound
+bound = angela.get_bound_method()
+assert.equal(bound(), angela.how_long())
 
 (def module():
 	# test that we can declare classes inside other blocks
@@ -54,10 +60,18 @@ assert.equal(angela.how_long(), "I've known you for 8 years")
 	dude = Stranger("some guy")
 )()
 assert.equal(dude.greet(), "Yo, it's me, some guy")
+# also test that classes declared this way are not globally scoped (while normal ones are)
+assert.throws(
+	def():
+		Friend("another friend")
+		Stranger("another guy")
+	,
+	/Stranger is not defined/
+)
 
 # attributes
 assert.ok(hasattr(dude, "greet"))
-assert.equal(getattr(dude, "greet")(), "Yo, it's me, undefined") # function gets unbound but still works
+assert.equal(getattr(dude, "greet")(), "Yo, it's me, some guy") # function stays bound
 assert.equal(hasattr(dude, "stuff"), False)
 setattr(dude, "stuff", True)
 assert.ok(hasattr(dude, "stuff"))

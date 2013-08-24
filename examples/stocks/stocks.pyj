@@ -22,14 +22,13 @@ class Stock:
 		# pre-cache these so we're not retrieving the element again on every blur/enter event
 		$start = $('#start-date')
 		$end = $('#end-date')
-		main = self
 		onUpdate = def($event, ui):
 			# select triggers before the update occurs, so we have to use 'select' name instead of .val()
 			if $event.type == 'autocompleteselect':
-				main.$widget.val(ui.item.value)
+				self.$widget.val(ui.item.value)
 			startdate = $start.val()
 			enddate = $end.val()
-			main.get(startdate, enddate)
+			self.get(startdate, enddate)
 
 		self.$widget = $('<input></input>').autocomplete({
 			'minLength':	2,
@@ -66,17 +65,16 @@ class Stock:
 		# JSON if we want to work with it in JavaScript. We will use Yahoo's YQL to
 		# convert it. We will also need to create a callback function, since the request
 		# is asynchronous
-		main = self
 		onUpdate = def(query):
 			if query['results'] is None:
 				# bad symbol
-				main.data = None
-				main.$widget.css('background', '#fdd')
+				self.data = None
+				self.$widget.css('background', '#fdd')
 			else:
-				main.data = query['results']['row']
-				main.$widget.css('background', '')
-			if main.callback is not None:
-				main.callback(name, main.data)
+				self.data = query['results']['row']
+				self.$widget.css('background', '')
+			if self.callback is not None:
+				self.callback(name, self.data)
 
 		if self.symbol != '':
 			# we will use csv version of the data to avoid dealing with unnecessary html
@@ -89,7 +87,7 @@ class Stock:
 			# box is blank, don't try to request YQL for it
 			self.data = None
 			self.$widget.css('background', '')
-			self.callback(name, main.data)
+			self.callback(name, self.data)
 
 class StockChart:
 	"""
@@ -102,7 +100,6 @@ class StockChart:
 	"""
 	def __init__(self):
 		$options = $('#chart-options')
-		main = self
 
 		# create various technical indicator filters the user can play with
 		self._filters = {}
@@ -111,10 +108,10 @@ class StockChart:
 			$button = $('<input type="checkbox" value="'
 					+ name.replace(' ', '-') + '">' + name + '</input>')
 			$options.append($button)
-			main._filterLogic[name] = callback
+			self._filterLogic[name] = callback
 			setFilter = def():
-				main._filters[name] = $(self).is(':checked')
-				main.redraw()
+				self._filters[name] = $(this).is(':checked')
+				self.redraw()
 			$button.click(setFilter)
 
 		normalize = def(cols, rows):
@@ -146,7 +143,7 @@ class StockChart:
 								avgs.unshift({'col4': moving.reduce(sum)/len(moving)})
 								if len(moving) >= days:
 									moving.shift()
-						main.add(col + ' (' + name + ')', avgs, cols, rows)
+						self.add(col + ' (' + name + ')', avgs, cols, rows)
 				return cols, rows
 		rsi = def(cols, rows):
 			# relative strength index filter
@@ -175,7 +172,7 @@ class StockChart:
 						else:
 							rs = 100
 						rsis.append({'col4': 100-100/(1+rs)})
-					main.add(col + ' (RSI)', rsis, cols, rows)
+					self.add(col + ' (RSI)', rsis, cols, rows)
 			return cols, rows
 
 		for name, fun in [\
@@ -242,7 +239,7 @@ def main():
 
 	# set up stock picker and dates
 	triggerChange = def():
-		$(self).change()
+		$(this).change()
 	$start = $('#start-date').datepicker({'onSelect': triggerChange})
 	$end = $('#end-date').datepicker({'onSelect': triggerChange})
 	$start.datepicker('setDate', -90)
@@ -292,7 +289,7 @@ def main():
 			# all exchanges loaded, remove duplicates and create stock picker
 			$stocks.text('Stocks:')
 			unique = def(element, index):
-				return self.index(element) == index
+				return this.index(element) == index
 			symbols = symbols.filter(unique, symbols)
 			newStock()
 

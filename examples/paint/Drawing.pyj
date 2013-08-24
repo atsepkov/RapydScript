@@ -49,7 +49,6 @@ class Drawing:
 		selection = None
 		lastPt = [0, 0]
 		transparent_bg = True
-		main = self
 
 		#################
 		# utility functions
@@ -111,9 +110,9 @@ class Drawing:
 			else:
 				$(tag).css('background', color)
 			if click == CLICK:
-				main._brushColor = color
+				self._brushColor = color
 			else:
-				main._fillColor = color
+				self._fillColor = color
 		matchStartColor = def(colorLayer, pixelPos, startPixel):
 			r = colorLayer[pixelPos]
 			g = colorLayer[pixelPos+1]
@@ -138,31 +137,31 @@ class Drawing:
 
 			event.preventDefault()	# prevents change to mouse cursor
 			dragging = True
-			x, y = getXY(self, event)
-			main._undoStack.append(ctx.getImageData(0, 0, canvasWidth, canvasHeight))
-			main._redoStack = []
+			x, y = getXY(this, event)
+			self._undoStack.append(ctx.getImageData(0, 0, canvasWidth, canvasHeight))
+			self._redoStack = []
 			ctx.save()
 			tmpCtx.save()
-			if main._mode in [BRUSH, ERASER]:
-				ctx.lineWidth = main._lineWidth
-				if main._mode == BRUSH:
-					ctx.strokeStyle = main._brushColor
+			if self._mode in [BRUSH, ERASER]:
+				ctx.lineWidth = self._lineWidth
+				if self._mode == BRUSH:
+					ctx.strokeStyle = self._brushColor
 				else:
 					ctx.globalCompositeOperation = 'destination-out'
 				ctx.beginPath()
 				ctx.moveTo(x, y)
-			elif main._mode-RECT in [RECT, ELLIPSE]:
-				tmpCtx.lineWidth = main._lineWidth
-				tmpCtx.strokeStyle = main._brushColor
-				tmpCtx.fillStyle = main._fillColor
+			elif self._mode in [RECT, ELLIPSE]:
+				tmpCtx.lineWidth = self._lineWidth
+				tmpCtx.strokeStyle = self._brushColor
+				tmpCtx.fillStyle = self._fillColor
 				points.append([x, y])
-			elif main._mode == LINE:
-				tmpCtx.lineWidth = main._lineWidth
-				tmpCtx.strokeStyle = main._brushColor
+			elif self._mode == LINE:
+				tmpCtx.lineWidth = self._lineWidth
+				tmpCtx.strokeStyle = self._brushColor
 				points.append([x, y])
-			elif main._mode == SAMPLER:
+			elif self._mode == SAMPLER:
 				sample(x, y, event.which)
-			elif main._mode == BUCKET and main._fillColor:
+			elif self._mode == BUCKET and self._fillColor:
 				# paint-bucket algorithm based on one from this website:
 				# http://www.williammalone.com/articles/html5-canvas-javascript-paint-bucket-tool/
 				pixelStack = [(x, y)]
@@ -173,7 +172,7 @@ class Drawing:
 				# convert swatch color to imageData (we're using canvas to avoid dealing with literal
 				# color names like 'aquamarine')
 				tmpCtx.save()
-				tmpCtx.fillStyle = main._fillColor
+				tmpCtx.fillStyle = self._fillColor
 				locX, locY = 50, 50	# pick point far enough from the corner so it's not affected by border style
 				tmpCtx.fillRect(locX, locY, 1, 1)
 				swatchPixel = tmpCtx.getImageData(locX, locY, 1, 1).data
@@ -213,7 +212,7 @@ class Drawing:
 									reachRight = False
 							pixelPos += canvasWidth*4
 					ctx.putImageData(colorLayer, 0, 0)
-			elif main._mode == SELECT:
+			elif self._mode == SELECT:
 				lastPt = [x, y]
 				if selection is None:
 					tmpCtx.lineWidth = 1
@@ -242,30 +241,30 @@ class Drawing:
 		onMouseMove = def(event):
 			nonlocal lastPt
 
-			if main._mode == LINE and len(points):
-				x, y = getXY(self, event)
+			if self._mode == LINE and len(points):
+				x, y = getXY(this, event)
 				clear(tmpCtx)
 				drawSpline(tmpCtx, (x, y))
 			elif dragging:
-				x, y = getXY(self, event)
-				if main._mode in [BRUSH, ERASER]:
+				x, y = getXY(this, event)
+				if self._mode in [BRUSH, ERASER]:
 					ctx.lineTo(x, y)
 					ctx.stroke()
-				elif main._mode-RECT in [RECT, ELLIPSE]:
+				elif self._mode in [RECT, ELLIPSE]:
 					clear(tmpCtx)
 					tmpCtx.beginPath()
-					if main._mode == RECT:
+					if self._mode == RECT:
 						tmpCtx.rect(points[0][X], points[0][Y], x-points[0][X], y-points[0][Y])
 					else:
 						ellipse(tmpCtx, points[0][X], points[0][Y], x-points[0][X], y-points[0][Y])
 
-					if main._fillColor is not None:
+					if self._fillColor is not None:
 						tmpCtx.fill()
-					if main._brushColor is not None:
+					if self._brushColor is not None:
 						tmpCtx.stroke()
-				elif main._mode == SAMPLER:
+				elif self._mode == SAMPLER:
 					sample(x, y, event.which)
-				elif main._mode == SELECT:
+				elif self._mode == SELECT:
 					clear(tmpCtx)
 					if selection is not None:
 						for point in points:
@@ -280,27 +279,27 @@ class Drawing:
 		onMouseUp = def(event):
 			nonlocal dragging, points, selection
 
-			if main._mode-RECT in [RECT, ELLIPSE]:
-				x, y = getXY(self, event)
+			if self._mode in [RECT, ELLIPSE]:
+				x, y = getXY(this, event)
 				ctx.beginPath()
-				ctx.lineWidth = main._lineWidth
-				ctx.strokeStyle = main._brushColor
-				ctx.fillStyle = main._fillColor
-				if main._mode == RECT:
+				ctx.lineWidth = self._lineWidth
+				ctx.strokeStyle = self._brushColor
+				ctx.fillStyle = self._fillColor
+				if self._mode == RECT:
 					ctx.rect(points[0][X], points[0][Y], x-points[0][X], y-points[0][Y])
 				else:
 					ellipse(ctx, points[0][X], points[0][Y], x-points[0][X], y-points[0][Y])
 
-				if main._fillColor is not None:
+				if self._fillColor is not None:
 					ctx.fill()
-				if main._brushColor is not None:
+				if self._brushColor is not None:
 					ctx.stroke()
-			elif main._mode == LINE and event.which == CLICK and len(points) > 1:
-				ctx.lineWidth = main._lineWidth
-				ctx.strokeStyle = main._brushColor
+			elif self._mode == LINE and event.which == CLICK and len(points) > 1:
+				ctx.lineWidth = self._lineWidth
+				ctx.strokeStyle = self._brushColor
 				drawSpline(ctx)
-			elif main._mode == SELECT:
-				x, y = getXY(self, event)
+			elif self._mode == SELECT:
+				x, y = getXY(this, event)
 				if selection is None and x != points[0][X] and y != points[0][Y]:
 					# we just selected something
 					sx = points[0][X]
@@ -320,7 +319,7 @@ class Drawing:
 			dragging = False
 			ctx.restore()
 			if (not selection or (x == points[0][X] and y == points[0][Y])) \
-			and (not main._mode == LINE or (event.which == CLICK and len(points) > 1)):
+			and (self._mode != LINE or (event.which == CLICK and len(points) > 1)):
 				points = []
 				clear(tmpCtx)
 				tmpCtx.restore()
