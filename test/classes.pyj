@@ -8,7 +8,6 @@ assert.ok(isinstance(blank, Blank))
 class Human:
 	def __init__(self, name):
 		self.name = name
-		self.nick = name
 
 	def greet(self):
 		return "Hello, I'm " + self.name
