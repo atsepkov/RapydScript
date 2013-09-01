@@ -1,10 +1,25 @@
 (function(){
     function _$rapyd$_bind(fn, thisArg) {
-        if (fn.bound) return fn;
-        fn.bound = true;
-        return function() {
+        if (fn.orig) fn = fn.orig;
+        var ret = function() {
             return fn.apply(thisArg, arguments);
-        };
+        }
+        ret.orig = fn;
+        return ret;
+    }
+    function enumerate(item) {
+        var arr = [];
+        for (var i = 0; i < item.length; i++) {
+            arr[arr.length] = [i, item[i]];
+        }
+        return arr;
+    }
+    function reversed(arr) {
+        var tmp = [];
+        for (var i = arr.length - 1; i >= 0; i--) {
+            tmp.push(arr[i]);
+        }
+        return tmp;
     }
     function range(start, stop, step) {
         if (arguments.length <= 1) {
@@ -30,13 +45,6 @@
             }
             return count;
         }
-    }
-    function reversed(arr) {
-        var tmp = [];
-        for (var i = arr.length - 1; i >= 0; i--) {
-            tmp.push(arr[i]);
-        }
-        return tmp;
     }
     var JSON, str, NUM_ASTEROIDS, FPS, FRICTION, THRUST, ROTATE_SPEED_PER_SEC, ROTATE_SPEED, MAX_ASTEROID_SPEED, SHOT_LIFESPAN, SHOT_SPEED, SHOT_DELAY, ASTEROID_SIZE, ASTEROID_SIZES, NUM_ASTEROIDS, FPS, FRICTION, THRUST, ROTATE_SPEED_PER_SEC, ROTATE_SPEED, MAX_ASTEROID_SPEED, SHOT_LIFESPAN, SHOT_SPEED, SHOT_DELAY, ASTEROID_SIZE, ASTEROID_SIZES, SHOT_COLOR, ASTEROID_SIZE, CANVAS_DIM_X, CANVAS_DIM_Y;
     "\nView\n\nThe view contains the canvas and has all the logic for drawing the game state\non the screen. The original Pyjs code used multiple libraries here. Of the 3\nfiles, this one required the most changes to port to RapydScript.\n";
@@ -386,20 +394,23 @@
         self.y = ship.y;
         self.dx = ship.dx;
         self.dy = ship.dy;
-        self.dir = ship.rot;
+        self.direction = ship.rot;
         self.lifespan = SHOT_LIFESPAN;
     };
     Shot.prototype.move = function(){
         var self = this;
-        var a, i;
+        var i, a;
         self.lifespan -= 1;
         if (self.lifespan <= 0) {
             return false;
         }
-        self.x = self.x + self.dx + SHOT_SPEED * Math.sin(self.dir);
-        self.y = self.y + self.dy - SHOT_SPEED * Math.cos(self.dir);
-        for (i = 0; i < len(self.model.asteroids); i++) {
-            a = self.model.asteroids[i];
+        self.x = self.x + self.dx + SHOT_SPEED * Math.sin(self.direction);
+        self.y = self.y + self.dy - SHOT_SPEED * Math.cos(self.direction);
+        var _$rapyd$_Iter5 = enumerate(self.model.asteroids);
+        for (var _$rapyd$_Index5 = 0; _$rapyd$_Index5 < _$rapyd$_Iter5.length; _$rapyd$_Index5++) {
+            _$rapyd$_Unpack = _$rapyd$_Iter5[_$rapyd$_Index5];
+            i = _$rapyd$_Unpack[0];
+            a = _$rapyd$_Unpack[1];
             if (distsq(self.x, self.y, a.x, a.y) < a.radius2) {
                 self.model.split_asteroid(i);
                 return false;
@@ -492,18 +503,18 @@
     Model.prototype.update = function(){
         var self = this;
         var a, i;
-        var _$rapyd$_Iter5 = self.asteroids;
-        for (var _$rapyd$_Index5 = 0; _$rapyd$_Index5 < _$rapyd$_Iter5.length; _$rapyd$_Index5++) {
-            a = _$rapyd$_Iter5[_$rapyd$_Index5];
+        var _$rapyd$_Iter6 = self.asteroids;
+        for (var _$rapyd$_Index6 = 0; _$rapyd$_Index6 < _$rapyd$_Iter6.length; _$rapyd$_Index6++) {
+            a = _$rapyd$_Iter6[_$rapyd$_Index6];
             a.move();
             if (distsq(self.ship.x, self.ship.y, a.x, a.y) < a.radius2) {
                 self.destroyShip();
                 return;
             }
         }
-        var _$rapyd$_Iter6 = reversed(range(len(self.shots)));
-        for (var _$rapyd$_Index6 = 0; _$rapyd$_Index6 < _$rapyd$_Iter6.length; _$rapyd$_Index6++) {
-            i = _$rapyd$_Iter6[_$rapyd$_Index6];
+        var _$rapyd$_Iter7 = reversed(range(len(self.shots)));
+        for (var _$rapyd$_Index7 = 0; _$rapyd$_Index7 < _$rapyd$_Iter7.length; _$rapyd$_Index7++) {
+            i = _$rapyd$_Iter7[_$rapyd$_Index7];
             if (!self.shots[i].move()) {
                 self.shots.pop(i);
                 if (len(self.asteroids) == 0) {

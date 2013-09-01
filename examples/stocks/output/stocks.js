@@ -1,10 +1,11 @@
 (function(){
     function _$rapyd$_bind(fn, thisArg) {
-        if (fn.bound) return fn;
-        fn.bound = true;
-        return function() {
+        if (fn.orig) fn = fn.orig;
+        var ret = function() {
             return fn.apply(thisArg, arguments);
-        };
+        }
+        ret.orig = fn;
+        return ret;
     }
     function len(obj) {
         if (obj instanceof Array || typeof obj === "string") return obj.length;

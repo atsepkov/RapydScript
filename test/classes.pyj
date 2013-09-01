@@ -8,6 +8,7 @@ assert.ok(isinstance(blank, Blank))
 class Human:
 	def __init__(self, name):
 		self.name = name
+		self.nick = name
 
 	def greet(self):
 		return "Hello, I'm " + self.name
@@ -16,10 +17,6 @@ class Human:
 	def getTypicalWeight():
 		return "150"
 
-bob = Human("Bob")
-assert.equal(bob.greet(), "Hello, I'm Bob")
-assert.equal(Human.greet(bob), "Hello, I'm Bob")
-assert.equal(Human.getTypicalWeight(), "150") # static method recognition
 
 # don't have to declare __init__, it either gets inherited or stays empty
 # isinstance correctly sees inheritance
@@ -27,10 +24,8 @@ class Friend(Human):
 	def greet(self):
 		return "Yo, it's me, " + self.name
 
-joe = Friend("Joe")
-assert.equal(joe.greet(), "Yo, it's me, Joe")
-assert.ok(isinstance(joe, Friend))
-assert.ok(isinstance(joe, Human))
+	def nickname(self, name):
+		self.name = name
 
 # __init__ doesn't have to come first
 # can call methods of other classes
@@ -42,6 +37,17 @@ class OldFriend(Friend):
 	def __init__(self, name, duration):
 		self.duration = duration
 		Friend.__init__(self, name)
+
+bob = Human("Bob")
+assert.equal(bob.greet(), "Hello, I'm Bob")
+assert.equal(Human.greet(bob), "Hello, I'm Bob")
+assert.equal(Human.getTypicalWeight(), "150") # static method recognition
+
+joe = Friend("Joe")
+assert.equal(joe.greet(), "Yo, it's me, Joe")
+assert.ok(isinstance(joe, Friend))
+assert.ok(isinstance(joe, Human))
+
 angela = OldFriend("Angela", 8)
 assert.equal(angela.greet(), "Yo, it's me, Angela")
 assert.equal(angela.how_long(), "I've known you for 8 years")
@@ -49,6 +55,10 @@ assert.equal(angela.how_long(), "I've known you for 8 years")
 # test that function stays bound
 bound = angela.get_bound_method()
 assert.equal(bound(), angela.how_long())
+
+# test that binding works in relation to the actual class, not the parent
+angela.nickname("Angie")
+assert.equal(angela.greet(), "Yo, it's me, Angie")
 
 (def module():
 	# test that we can declare classes inside other blocks

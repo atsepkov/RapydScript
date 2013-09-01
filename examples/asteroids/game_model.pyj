@@ -93,17 +93,16 @@ class Shot:
 		self.y = ship.y
 		self.dx = ship.dx
 		self.dy = ship.dy
-		self.dir = ship.rot
+		self.direction = ship.rot
 		self.lifespan = SHOT_LIFESPAN
 
 	def move(self):
 		self.lifespan -= 1
 		if self.lifespan <= 0:
 			return False
-		self.x = self.x + self.dx + SHOT_SPEED * Math.sin(self.dir)
-		self.y = self.y + self.dy - SHOT_SPEED * Math.cos(self.dir)
-		for i in range(len(self.model.asteroids)):
-			a = self.model.asteroids[i]
+		self.x = self.x + self.dx + SHOT_SPEED * Math.sin(self.direction)
+		self.y = self.y + self.dy - SHOT_SPEED * Math.cos(self.direction)
+		for i, a in enumerate(self.model.asteroids):
 			if distsq(self.x, self.y, a.x, a.y) < (a.radius2):
 				self.model.split_asteroid(i)
 				return False
