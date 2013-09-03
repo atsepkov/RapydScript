@@ -87,21 +87,21 @@ assert.equal(inlined[3](1), 5)
 
 # decorators
 def makebold(fn):
-	def wrapped():
-		return "<b>" + fn() + "</b>"
+	def wrapped(arg):
+		return "<b>" + fn(arg) + "</b>"
 	return wrapped
 
 def makeitalic(fn):
-	def wrapped():
-		return "<i>" + fn() + "</i>"
+	def wrapped(arg):
+		return "<i>" + fn(arg) + "</i>"
 	return wrapped
 
 @makebold
 @makeitalic
-def hello():
-	return "hello world"
+def hello(something):
+	return "hello " + something
 
-assert.equal(hello(), "<b><i>hello world</i></b>")
+assert.equal(hello("world"), "<b><i>hello world</i></b>")
 
 # just because something is a reserved keyword in RapydScript, doesn't mean other libraries won't attempt to use it
 # let's make sure we parse that correctly

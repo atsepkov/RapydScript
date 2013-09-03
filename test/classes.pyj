@@ -122,7 +122,11 @@ assert.equal(c.count, 6)
 #for atom in water.structure:
 #	assert.ok(isinstance(atom, Molecule.Atom))
 
-# starargs
+# starargs and method decorators
+def negate(fn):
+	def wrapped(*args):
+		return -fn(*args)
+	return wrapped
 class Math:
 	def sum(s, *args):
 		# fakearg simply tests that offsets work correctly
@@ -132,7 +136,11 @@ class Math:
 		return ttl
 	def concatSum(s, string, *nums):
 		return string + s.sum(*nums)
+	@negate
+	def plus(s, a, b):
+		return a+b
 m = Math()
 assert.equal(m.sum(1,2,3), 6)
 assert.equal(m.sum(1,*[2,3]), 6)
 assert.equal(m.concatSum("foo", 1, 2, 5), "foo8")
+assert.equal(m.plus(2, 5), -7)
