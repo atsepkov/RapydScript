@@ -127,6 +127,12 @@ def negate(fn):
 	def wrapped(*args):
 		return -fn(*args)
 	return wrapped
+
+def add_pi(cls):
+	cls.prototype.pi = 3.14
+	return cls
+
+@add_pi
 class Math:
 	def sum(s, *args):
 		# fakearg simply tests that offsets work correctly
@@ -139,8 +145,10 @@ class Math:
 	@negate
 	def plus(s, a, b):
 		return a+b
+
 m = Math()
 assert.equal(m.sum(1,2,3), 6)
 assert.equal(m.sum(1,*[2,3]), 6)
 assert.equal(m.concatSum("foo", 1, 2, 5), "foo8")
 assert.equal(m.plus(2, 5), -7)
+assert.equal(m.pi, 3.14)
