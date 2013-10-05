@@ -49,7 +49,7 @@ From NPM for programmatic use:
 From Mercurial:
 
     hg clone https://bitbucket.org/pyjeon/rapydscript
-    cd RapydScript
+    cd rapydscript
     npm link .
 
 From Git:
@@ -623,6 +623,78 @@ Like Python, RapydScript allows static methods. Marking the method static with `
 			return a+1
 
 Some methods in the native JavaScript classes, such as `String.fromCharCode()` have also been marked as static to make things easier for the developer.
+
+
+External Classes
+----------------
+RapydScript will automatically detect classes declared within the same scope (as long as the declaration occurs before use), as well as classes properly imported into the module (each module making use of a certain class should explicitly import the module containing that class). RapydScript will also properly detect native JavaScript classes (String, Array, Date, etc.). Unfortunately, RapydScript has no way of detecting classes from third-party libraries. In those cases, you could use the `new` keyword every time you create an object from such class. Alternatively, you could mark the class as external.
+
+Marking a class as external is done via `external` decorator. You do not need to fill in the contents of the class, a simple `pass` statement will do:
+
+	@external
+	class Alpha:
+		pass
+
+RapydScript will now treat `Alpha` as if it was declared within the same scope, auto-prepending the `new` keyword when needed and using `prototype` to access its methods. You don't need to pre-declare the methods of this class (unless you decide to for personal reference, the compiler will simply ignore them) unless you want to mark certain methods as static:
+
+	@external
+	class Alpha:
+		@staticmethod
+		def one():
+			pass
+
+`Alpha.one` is now a static method, every other method invoked on `Alpha` will still be treated as a regular class method. While not mandatory, you could pre-declare other methods you plan to use from `Alpha` class as well, to make your code easier to read for other developers, in which case this `external` declaration would also serve as a table of contents for `Alpha`:
+
+	@external
+	class Alpha:
+		def two(): pass
+		def three(): pass
+
+		@staticmethod
+		def one(): pass
+
+As mentioned earlier, this is simply for making your code easier to read. The compiler itself will ignore all method declarations except ones marked with `staticmethod` decorator.
+
+You could also use `external` decorator to bypass improperly imported RapydScript modules. However, if you actually have control of these modules, the better solution would be to fix those imports.
+
+
+Exception Handling
+------------------
+Like Python and JavaScript, RapydScript has exception handling logic. The following, for example, will warn the user if variable `foo` is not defined:
+
+	try:
+		print(foo)
+	except:
+		print("Foo wasn't declared yet")
+
+It's a good practice, however, to only catch exceptions we expect. Imagine, for example, if `foo` was defined, but as a circular structure (with one of its attributes referencing itself):
+
+	foo = {}
+	foo.bar = foo
+
+We would still trigger an exception, but for a completely different reason. A better way to rewrite our `try/except` block would be:
+
+	try:
+		print(foo)
+	except ReferenceError:
+		print("Foo wasn't declared yet")
+
+We could also handle circular structure exception, if we needed to:
+
+	try:
+		print(foo)
+	except ReferenceError:
+		print("Foo wasn't declared yet")
+	except TypeError:
+		print("One of foo's attributes references foo")
+
+Or we could just dump the error back to the user:
+
+	try:
+		print(foo)
+	except as err:
+		print(err.name + ':' + err.message)
+
 
 
 Exception Handling

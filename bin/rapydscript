@@ -101,7 +101,7 @@ if (ARGS.t || ARGS.test) {
         )
     );
     var files = fs.readdirSync(test_dir).filter(function(name){
-        return /\.pyj$/.test(name);
+        return /^[^_].*\.pyj$/.test(name);
     });
     files.forEach(function(file){
         var ast;
@@ -111,6 +111,7 @@ if (ARGS.t || ARGS.test) {
                 filename: file,
                 toplevel: ast,
                 readfile: fs.readFileSync,
+				basedir: "../test",
                 libdir: path.normalize(
                     path.join(
                         path.dirname(module.filename),
