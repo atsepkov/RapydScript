@@ -7,7 +7,6 @@ assert.equal(Alpha.getName(a), "Alpha")
 
 class Bravo(Alpha):
     def __init__(self):
-        Alpha.__init__(self)
         self.name = "Bravo"
     @staticmethod
     def setName(obj, name):
