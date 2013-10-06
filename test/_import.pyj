@@ -13,6 +13,6 @@ class Bravo:
 def testBravo():
     b = Bravo()
     assert.equal(b.getName(), "Bravo")
-#    assert.equal(Bravo.getName(b), "Bravo")
+    assert.equal(Bravo.getName(b), "Bravo")
     Bravo.setName(b, "Charlie")
     assert.equal(b.getName(), "Charlie")
