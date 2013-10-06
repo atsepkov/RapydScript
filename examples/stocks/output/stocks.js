@@ -7,6 +7,14 @@
         ret.orig = fn;
         return ret;
     }
+    function _$rapyd$_unbindAll(thisArg, rebind) {
+        for (var p in thisArg) {
+            if (thisArg[p] && thisArg[p].orig) {
+                if (rebind) thisArg[p] = _$rapyd$_bind(thisArg[p], thisArg);
+                else thisArg[p] = thisArg[p].orig;
+            }
+        }
+    }
     function len(obj) {
         if (obj instanceof Array || typeof obj === "string") return obj.length;
         else {
@@ -46,6 +54,7 @@
         }
         return range;
     }
+    _$rapyd$_unbindAll(this, true);
     var JSON, str;
         JSON = JSON || {};
 
@@ -86,11 +95,13 @@
 
     function ValueError(message){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         self.name = "ValueError";
         self.message = message;
     };
     ValueError.prototype = new Error();
     ValueError.prototype.constructor = ValueError;
+    _$rapyd$_unbindAll(ValueError.prototype);
 
     String.prototype.find = Array.prototype.indexOf;
 
@@ -101,10 +112,12 @@
     String.prototype.rstrip = String.prototype.trimRight;
 
     String.prototype.join = function(iterable) {
+        _$rapyd$_unbindAll(this, true);
         return iterable.join(this);
     };
 
     String.prototype.zfill = function(size) {
+        _$rapyd$_unbindAll(this, true);
         var s, s;
         s = this;
         while (s.length < size) {
@@ -115,6 +128,7 @@
 
     function list(iterable) {
         if (typeof iterable === "undefined") iterable = [];
+        _$rapyd$_unbindAll(this, true);
         var result, i;
         result = [];
         var _$rapyd$_Iter0 = iterable;
@@ -130,6 +144,7 @@
     Array.prototype.find = Array.prototype.indexOf;
 
     Array.prototype.index = function(index) {
+        _$rapyd$_unbindAll(this, true);
         var val;
         val = this.find(index);
         if (val == -1) {
@@ -139,25 +154,30 @@
     };
 
     Array.prototype.insert = function(index, item) {
+        _$rapyd$_unbindAll(this, true);
         this.splice(index, 0, item);
     };
 
     Array.prototype.pop = function(index) {
         if (typeof index === "undefined") index = this.length - 1;
+        _$rapyd$_unbindAll(this, true);
         return this.splice(index, 1)[0];
     };
 
     Array.prototype.extend = function(array2) {
+        _$rapyd$_unbindAll(this, true);
         this.push.apply(this, array2);
     };
 
     Array.prototype.remove = function(item) {
+        _$rapyd$_unbindAll(this, true);
         var index;
         index = this.find(item);
         this.splice(index, 1);
     };
 
     Array.prototype.copy = function() {
+        _$rapyd$_unbindAll(this, true);
         return this.slice(0);
     };
 
@@ -191,6 +211,7 @@
     }
 
     function map(oper, arr) {
+        _$rapyd$_unbindAll(this, true);
         return arr.map(oper);
     }
 
@@ -224,10 +245,12 @@
     }
 
     function filter(oper, arr) {
+        _$rapyd$_unbindAll(this, true);
         return arr.filter(oper);
     }
 
     function dict(iterable) {
+        _$rapyd$_unbindAll(this, true);
         var result, key;
         result = {};
         var _$rapyd$_Iter1 = iterable;
@@ -240,6 +263,7 @@
 
     if (typeof Object.getOwnPropertyNames !== "function") {
         dict.keys = function(hash) {
+            _$rapyd$_unbindAll(this, true);
             var keys;
             keys = [];
             
@@ -253,11 +277,13 @@
         };
     } else {
         dict.keys = function(hash) {
+            _$rapyd$_unbindAll(this, true);
             return Object.getOwnPropertyNames(hash);
         };
     }
 
     dict.values = function(hash) {
+        _$rapyd$_unbindAll(this, true);
         var vals, key;
         vals = [];
         var _$rapyd$_Iter2 = dict.keys(hash);
@@ -269,6 +295,7 @@
     };
 
     dict.items = function(hash) {
+        _$rapyd$_unbindAll(this, true);
         var items, key;
         items = [];
         var _$rapyd$_Iter3 = dict.keys(hash);
@@ -282,6 +309,7 @@
     dict.copy = dict;
 
     dict.clear = function(hash) {
+        _$rapyd$_unbindAll(this, true);
         var key;
         var _$rapyd$_Iter4 = dict.keys(hash);
         for (var _$rapyd$_Index4 = 0; _$rapyd$_Index4 < _$rapyd$_Iter4.length; _$rapyd$_Index4++) {
@@ -292,25 +320,30 @@
 
         function YQLError(message){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         self.name = "YQLError";
         self.message = message;
     };
     YQLError.prototype = new Error();
     YQLError.prototype.constructor = YQLError;
+    _$rapyd$_unbindAll(YQLError.prototype);
 
     function YQL(query, callback, diagnostics){
         var self = this;
         if (typeof diagnostics === "undefined") diagnostics = false;
+        _$rapyd$_unbindAll(this, true);
         this.fetch = _$rapyd$_bind(this.fetch, this);
         var doNothing;
         self.query = query;
         doNothing = function() {
+            _$rapyd$_unbindAll(this, true);
         };
         self.callback = callback || doNothing;
         self.diagnostics = diagnostics;
     };
     YQL.prototype.fetch = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var scriptEl, uid, encodedQuery, url, url;
         if (!self.query) {
             throw new YQLError("YQL.query attribute must be defined before invoking YQL.fetch()");
@@ -321,6 +354,7 @@
         uid = "yql" + new Date().getTime() + str(Math.floor(Math.random() * 1e3)).zfill(3);
         encodedQuery = encodeURIComponent(self.query.toLowerCase());
         window[uid] = function(json) {
+            _$rapyd$_unbindAll(this, true);
             self.callback(json["query"]);
             delete window[uid];
             document.body.removeChild(scriptEl);
@@ -336,12 +370,14 @@
     function Stock(symbols, callback){
         var self = this;
         if (typeof callback === "undefined") callback = null;
+        _$rapyd$_unbindAll(this, true);
         this.get = _$rapyd$_bind(this.get, this);
         var $start, $end, onUpdate, ENTER, onKeypress;
         self.callback = callback;
         $start = $("#start-date");
         $end = $("#end-date");
         onUpdate = function($event, ui) {
+            _$rapyd$_unbindAll(this, true);
             var startdate, enddate;
             if ($event.type == "autocompleteselect") {
                 self.$widget.val(ui.item.value);
@@ -359,6 +395,7 @@
         self.$widget.blur(onUpdate);
         ENTER = 13;
         onKeypress = function($event) {
+            _$rapyd$_unbindAll(this, true);
             var code;
             code = $event.keyCode || $event.which;
             if (code == ENTER) {
@@ -369,6 +406,7 @@
     };
     Stock.prototype.get = function(startDate, endDate){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var name, format, onUpdate, url;
         "\n\t\tget method for this stock, which retrieves info from google finance\n\t\t";
         name = self.$widget.val();
@@ -379,11 +417,13 @@
         self.startDate = startDate;
         self.endDate = endDate;
         format = function(date) {
+            _$rapyd$_unbindAll(this, true);
             var mmddyyyy;
             mmddyyyy = date.split("/");
             return "-".join([ mmddyyyy[2], mmddyyyy[0], mmddyyyy[1] ]);
         };
         onUpdate = function(query) {
+            _$rapyd$_unbindAll(this, true);
             if (query["results"] === null) {
                 self.data = null;
                 self.$widget.css("background", "#fdd");
@@ -407,6 +447,7 @@
 
     function StockChart(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         this.clear = _$rapyd$_bind(this.clear, this);
         this.add = _$rapyd$_bind(this.add, this);
         this.redraw = _$rapyd$_bind(this.redraw, this);
@@ -415,17 +456,20 @@
         self._filters = {};
         self._filterLogic = {};
         addFilter = function(name, callback) {
+            _$rapyd$_unbindAll(this, true);
             var $button, setFilter;
             $button = $('<input type="checkbox" value="' + name.replace(" ", "-") + '">' + name + "</input>");
             $options.append($button);
             self._filterLogic[name] = callback;
             setFilter = function() {
+                _$rapyd$_unbindAll(this, true);
                 self._filters[name] = $(this).is(":checked");
                 self.redraw();
             };
             $button.click(setFilter);
         };
         normalize = function(cols, rows) {
+            _$rapyd$_unbindAll(this, true);
             var normalized, orig, num, stock, day, row;
             normalized = [];
             orig = rows[len(rows) - 1];
@@ -446,11 +490,14 @@
             return [cols, normalized];
         };
         makeMovingAvg = function(name, days, ema) {
+            _$rapyd$_unbindAll(this, true);
             var sum;
             sum = function(a, b) {
+                _$rapyd$_unbindAll(this, true);
                 return a + b;
             };
             return [name, function(cols, rows) {
+                _$rapyd$_unbindAll(this, true);
                 var avgs, moving, alpha, moving, moving, row, idx, col;
                 var _$rapyd$_Iter7 = enumerate(cols);
                 for (var _$rapyd$_Index7 = 0; _$rapyd$_Index7 < _$rapyd$_Iter7.length; _$rapyd$_Index7++) {
@@ -489,6 +536,7 @@
             }];
         };
         rsi = function(cols, rows) {
+            _$rapyd$_unbindAll(this, true);
             var tmp, ema15, rsis, ups, downs, prev, current, DATE, prev, row, tmp, ups, tmp, downs, rs, rs, index, idx, col;
             _$rapyd$_Unpack = makeMovingAvg("", 15, true);
             tmp = _$rapyd$_Unpack[0];
@@ -551,6 +599,7 @@
     };
     StockChart.prototype.clear = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         self._cols = [];
         self._rows = [];
     };
@@ -558,6 +607,7 @@
         var self = this;
         if (typeof cols === "undefined") cols = self._cols;
         if (typeof rows === "undefined") rows = self._rows;
+        _$rapyd$_unbindAll(this, true);
         var item, index, item;
         if (data !== null) {
             if (!len(cols)) {
@@ -580,6 +630,7 @@
     };
     StockChart.prototype.redraw = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var cols, rows, cols, rows, key, val, data, col;
         cols = $.extend(true, [], self._cols);
         rows = $.extend(true, [], self._rows);
@@ -606,14 +657,18 @@
     };
 
     function main() {
+        _$rapyd$_unbindAll(this, true);
         var stockFields, updateChart, onChartLoad, triggerChange, $start, $end, symbols, $stocks, newStock, sync, exchanges, onUpdate, exchange;
         stockFields = [];
         updateChart = function() {
+            _$rapyd$_unbindAll(this, true);
         };
         onChartLoad = function() {
+            _$rapyd$_unbindAll(this, true);
             var chart;
             chart = new StockChart();
             updateChart = function(symbol, data) {
+                _$rapyd$_unbindAll(this, true);
                 var stock;
                 chart.clear();
                 var _$rapyd$_Iter16 = stockFields;
@@ -629,6 +684,7 @@
             "callback": onChartLoad
         });
         triggerChange = function() {
+            _$rapyd$_unbindAll(this, true);
             $(this).change();
         };
         $start = $("#start-date").datepicker({
@@ -642,10 +698,12 @@
         symbols = [];
         $stocks = $("#stock-input");
         newStock = function() {
+            _$rapyd$_unbindAll(this, true);
             var symbol, get, onWidgetUpdate;
             symbol = new Stock(symbols);
             $stocks.append(symbol.$widget);
             get = function() {
+                _$rapyd$_unbindAll(this, true);
                 var startdate, enddate;
                 startdate = $start.val();
                 enddate = $end.val();
@@ -655,6 +713,7 @@
             $end.change(get);
             stockFields.append(symbol);
             onWidgetUpdate = function(label, data) {
+                _$rapyd$_unbindAll(this, true);
                 var value, isLast;
                 value = symbol.symbol;
                 isLast = symbol.$widget.is(":last-child");
@@ -671,6 +730,7 @@
         sync = 0;
         exchanges = [ "nyse", "nasdaq", "lon" ];
         onUpdate = function(query) {
+            _$rapyd$_unbindAll(this, true);
             var symbol, unique;
             var _$rapyd$_Iter17 = query["results"]["row"];
             for (var _$rapyd$_Index17 = 0; _$rapyd$_Index17 < _$rapyd$_Iter17.length; _$rapyd$_Index17++) {
@@ -681,6 +741,7 @@
             if (sync == len(exchanges)) {
                 $stocks.text("Stocks:");
                 unique = function(element, index) {
+                    _$rapyd$_unbindAll(this, true);
                     return this.index(element) == index;
                 };
                 symbols = symbols.filter(unique, symbols);

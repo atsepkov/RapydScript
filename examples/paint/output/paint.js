@@ -7,6 +7,14 @@
         ret.orig = fn;
         return ret;
     }
+    function _$rapyd$_unbindAll(thisArg, rebind) {
+        for (var p in thisArg) {
+            if (thisArg[p] && thisArg[p].orig) {
+                if (rebind) thisArg[p] = _$rapyd$_bind(thisArg[p], thisArg);
+                else thisArg[p] = thisArg[p].orig;
+            }
+        }
+    }
     function len(obj) {
         if (obj instanceof Array || typeof obj === "string") return obj.length;
         else {
@@ -21,6 +29,7 @@
         if (arr instanceof Array || typeof arr === "string") return arr.indexOf(val) != -1;
         else return val in arr;
     }
+    _$rapyd$_unbindAll(this, true);
     var BRUSH, ERASER, LINE, SELECT, COLORSELECT, LASSO, RECT, ELLIPSE, SAMPLER, BUCKET, TEXT, X, Y, CLICK, RCLICK;
         BRUSH = 0;
 
@@ -54,6 +63,7 @@
 
     function Drawing(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         this.undo = _$rapyd$_bind(this.undo, this);
         this.redo = _$rapyd$_bind(this.redo, this);
         this.setMode = _$rapyd$_bind(this.setMode, this);
@@ -86,11 +96,13 @@
         lastPt = [ 0, 0 ];
         transparent_bg = true;
         getXY = function(obj, event) {
+            _$rapyd$_unbindAll(this, true);
             var absolute;
             absolute = $(obj).offset();
             return [event.pageX - absolute.left, event.pageY - absolute.top];
         };
         normalize = function(x, y, width, height) {
+            _$rapyd$_unbindAll(this, true);
             if (width < 0) {
                 width = -width;
                 x = x - width;
@@ -102,6 +114,7 @@
             return [x, y, width, height];
         };
         ellipse = function(context, x, y, width, height) {
+            _$rapyd$_unbindAll(this, true);
             var ctrX, ctrY, circ, scaleX, scaleY;
             _$rapyd$_Unpack = normalize(x, y, width, height);
             x = _$rapyd$_Unpack[0];
@@ -120,6 +133,7 @@
             context.restore();
         };
         drawSpline = function(context, lastPoint) {
+            _$rapyd$_unbindAll(this, true);
             if (lastPoint === undefined) {
                 lastPoint = points[len(points) - 1];
             }
@@ -135,6 +149,7 @@
             context.stroke();
         };
         sample = function(x, y, click) {
+            _$rapyd$_unbindAll(this, true);
             var data, color, color, tag, tag, color;
             data = ctx.getImageData(x, y, 1, 1).data;
             if (data[3]) {
@@ -160,6 +175,7 @@
             }
         };
         matchStartColor = function(colorLayer, pixelPos, startPixel) {
+            _$rapyd$_unbindAll(this, true);
             var r, g, b, a;
             r = colorLayer[pixelPos];
             g = colorLayer[pixelPos + 1];
@@ -168,6 +184,7 @@
             return r == startPixel[0] && g == startPixel[1] && b == startPixel[2] && !!(a) == !!(startPixel[3]);
         };
         eachPixel = function(imageData, callback) {
+            _$rapyd$_unbindAll(this, true);
             var offset, length, offset;
             offset = 0;
             length = imageData.height * imageData.width * 4;
@@ -177,9 +194,11 @@
             }
         };
         self._clear = clear = function(context) {
+            _$rapyd$_unbindAll(this, true);
             context.clearRect(0, 0, canvasWidth, canvasHeight);
         };
         onMouseDown = function(event) {
+            _$rapyd$_unbindAll(this, true);
             var x, y, pixelStack, colorLayer, data, startPixel, locX, locY, swatchPixel, newPos, x, y, pixelPos, y, pixelPos, pixelPos, y, reachLeft, reachRight, y, reachLeft, reachLeft, reachRight, pixelPos, tmp, data, merge;
             event.preventDefault();
             dragging = true;
@@ -279,6 +298,7 @@
                         tmp = ctx.getImageData(points[0][X], points[0][Y], points[1][X] - points[0][X], points[1][Y] - points[0][Y]).data;
                         data = selection.data;
                         merge = function(offset) {
+                            _$rapyd$_unbindAll(this, true);
                             if (!data[offset + 3]) {
                                 data[offset] = tmp[offset];
                                 data[offset + 1] = tmp[offset + 1];
@@ -296,6 +316,7 @@
             }
         };
         onMouseMove = function(event) {
+            _$rapyd$_unbindAll(this, true);
             var x, y, x, y, point, x, y;
             if (self._mode == LINE && len(points)) {
                 _$rapyd$_Unpack = getXY(this, event);
@@ -345,6 +366,7 @@
             }
         };
         onMouseUp = function(event) {
+            _$rapyd$_unbindAll(this, true);
             var x, y, x, y, sx, sy, width, height, sx, sy, width, height, x, y;
             if (_$rapyd$_in(self._mode, [ RECT, ELLIPSE ])) {
                 _$rapyd$_Unpack = getXY(this, event);
@@ -402,6 +424,7 @@
             }
         };
         self._filter = function(callback) {
+            _$rapyd$_unbindAll(this, true);
             var pixels, pixels, data, invoke;
             if (selection) {
                 pixels = selection;
@@ -410,6 +433,7 @@
             }
             data = pixels.data;
             invoke = function(offset) {
+                _$rapyd$_unbindAll(this, true);
                 callback(data, offset);
             };
             eachPixel(pixels, invoke);
@@ -425,6 +449,7 @@
         $tmpCanvas.mousemove(onMouseMove);
         $tmpCanvas.mouseup(onMouseUp);
         onMouseLeave = function(event) {
+            _$rapyd$_unbindAll(this, true);
             if (dragging) {
                 onMouseUp(event);
             }
@@ -434,6 +459,7 @@
     };
     Drawing.prototype.undo = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var state;
         state = self._undoStack.pop();
         if (state) {
@@ -443,6 +469,7 @@
     };
     Drawing.prototype.redo = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var state;
         state = self._redoStack.pop();
         if (state) {
@@ -452,32 +479,40 @@
     };
     Drawing.prototype.setMode = function(mode){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         self._mode = mode;
     };
     Drawing.prototype.setStroke = function(style){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         self._brushColor = style;
     };
     Drawing.prototype.setFill = function(style){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         self._fillColor = style;
     };
     Drawing.prototype.setWidth = function(value){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         self._lineWidth = value;
     };
     Drawing.prototype.clear = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         self._clear(self._ctx);
     };
     Drawing.prototype.exportDwg = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         return self._canvas.toDataURL();
     };
     Drawing.prototype.invert = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var invert;
         invert = function(data, offset) {
+            _$rapyd$_unbindAll(this, true);
             data[offset] = 255 - data[offset];
             data[offset + 1] = 255 - data[offset + 1];
             data[offset + 2] = 255 - data[offset + 2];
@@ -486,32 +521,40 @@
     };
     Drawing.prototype.redFilter = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var remove;
         remove = function(data, offset) {
+            _$rapyd$_unbindAll(this, true);
             data[offset] = 0;
         };
         self._filter(remove);
     };
     Drawing.prototype.greenFilter = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var remove;
         remove = function(data, offset) {
+            _$rapyd$_unbindAll(this, true);
             data[offset + 1] = 0;
         };
         self._filter(remove);
     };
     Drawing.prototype.blueFilter = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var remove;
         remove = function(data, offset) {
+            _$rapyd$_unbindAll(this, true);
             data[offset + 2] = 0;
         };
         self._filter(remove);
     };
     Drawing.prototype.darken = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var darken;
         darken = function(data, offset) {
+            _$rapyd$_unbindAll(this, true);
             data[offset] /= 2;
             data[offset + 1] /= 2;
             data[offset + 2] /= 2;
@@ -520,8 +563,10 @@
     };
     Drawing.prototype.lighten = function(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var lighten;
         lighten = function(data, offset) {
+            _$rapyd$_unbindAll(this, true);
             data[offset] = Math.min(data[offset] * 2, 255);
             data[offset + 1] = Math.min(data[offset + 1] * 2, 255);
             data[offset + 2] = Math.min(data[offset + 2] * 2, 255);
@@ -531,12 +576,14 @@
 
     function ColorSwatch(){
         var self = this;
+        _$rapyd$_unbindAll(this, true);
         var fg, bg;
         fg = $("<div></div>").width(36).height(36).css({
             "position": "absolute",
             "border": "1px solid black"
         });
         fg.change = function(color) {
+            _$rapyd$_unbindAll(this, true);
             $(self).css("background", color);
         };
         bg = fg.clone();
@@ -544,9 +591,11 @@
     };
 
     function main() {
+        _$rapyd$_unbindAll(this, true);
         var dwg, onChange, $brushWidget, triggerChange, $tools, makeMode, $stroke, $fill, setStroke, setFill, $colorPickers, $colorPicker, makeHandler, makeReset, $swatch, idtag, resetid, callback, popupUnder, $menus, makeMenu, hideMenus, $about;
         dwg = new Drawing();
         onChange = function() {
+            _$rapyd$_unbindAll(this, true);
             dwg.setWidth($(this).val());
         };
         $brushWidget = $("#brush-size").spinner({
@@ -555,14 +604,17 @@
         });
         $brushWidget.change(onChange);
         triggerChange = function() {
+            _$rapyd$_unbindAll(this, true);
             $(this).siblings("input").change();
         };
         $(".ui-spinner-button").click(triggerChange);
         $brushWidget.val(1);
         $tools = $(".toolbox-item");
         makeMode = function(mode) {
+            _$rapyd$_unbindAll(this, true);
             var setMode;
             setMode = function(event) {
+                _$rapyd$_unbindAll(this, true);
                 dwg.setMode(mode);
                 $tools.removeClass("selected");
                 $(event.target).parent().addClass("selected");
@@ -584,10 +636,12 @@
         $stroke = $("#stroke");
         $fill = $("#fill");
         setStroke = function(style) {
+            _$rapyd$_unbindAll(this, true);
             dwg.setStroke(style);
             $stroke.css("background", style);
         };
         setFill = function(style) {
+            _$rapyd$_unbindAll(this, true);
             dwg.setFill(style);
             $fill.css("background", style);
         };
@@ -604,8 +658,10 @@
             $colorPicker = $(idtag);
             $colorPicker.farbtastic(callback);
             makeHandler = function($target, $popup) {
+                _$rapyd$_unbindAll(this, true);
                 var showColorpicker;
                 showColorpicker = function(event) {
+                    _$rapyd$_unbindAll(this, true);
                     $colorPickers.hide();
                     popupUnder(event, $target, $popup);
                 };
@@ -613,8 +669,10 @@
             };
             $swatch.click(makeHandler($swatch, $colorPicker));
             makeReset = function($target, setFunction) {
+                _$rapyd$_unbindAll(this, true);
                 var reset;
                 reset = function() {
+                    _$rapyd$_unbindAll(this, true);
                     event.stopPropagation();
                     setFunction("transparent");
                     $target.css("background", "");
@@ -624,6 +682,7 @@
             $(resetid).click(makeReset($swatch, callback));
         }
         popupUnder = function(event, $element, $popup) {
+            _$rapyd$_unbindAll(this, true);
             var absolute;
             event.stopPropagation();
             absolute = $element.offset();
@@ -634,16 +693,19 @@
         };
         $menus = $(".menubar-menu");
         makeMenu = function() {
+            _$rapyd$_unbindAll(this, true);
             var $this, idtag, showMenu;
             $this = $(this);
             idtag = $this.attr("id").split("-")[2];
             showMenu = function(event) {
+                _$rapyd$_unbindAll(this, true);
                 $menus.hide();
                 popupUnder(event, $this, $("#menubar-menu-" + idtag));
             };
             $this.click(showMenu);
         };
         hideMenus = function() {
+            _$rapyd$_unbindAll(this, true);
             $menus.hide();
             $colorPickers.hide();
         };
@@ -651,44 +713,56 @@
         $menus.menu().removeClass("ui-widget");
         $(".menubar-item").each(makeMenu);
         $("#menubar-menu-item-new").click(function() {
+            _$rapyd$_unbindAll(this, true);
             dwg.clear();
         });
         $("#menubar-menu-item-export-to-image").click(function() {
+            _$rapyd$_unbindAll(this, true);
             var url;
             url = dwg.exportDwg();
             window.open(url, "_blank");
         });
         $("#menubar-menu-item-undo").click(function() {
+            _$rapyd$_unbindAll(this, true);
             dwg.undo();
         });
         $("#menubar-menu-item-redo").click(function() {
+            _$rapyd$_unbindAll(this, true);
             dwg.redo();
         });
         $("#menubar-menu-item-invert-colors").click(function() {
+            _$rapyd$_unbindAll(this, true);
             dwg.invert();
         });
         $("#menubar-menu-item-red-filter").click(function() {
+            _$rapyd$_unbindAll(this, true);
             dwg.redFilter();
         });
         $("#menubar-menu-item-green-filter").click(function() {
+            _$rapyd$_unbindAll(this, true);
             dwg.greenFilter();
         });
         $("#menubar-menu-item-blue-filter").click(function() {
+            _$rapyd$_unbindAll(this, true);
             dwg.blueFilter();
         });
         $("#menubar-menu-item-darken").click(function() {
+            _$rapyd$_unbindAll(this, true);
             dwg.darken();
         });
         $("#menubar-menu-item-lighten").click(function() {
+            _$rapyd$_unbindAll(this, true);
             dwg.lighten();
         });
         $about = $("#about").dialog({
             "modal": true
         });
         $("#menubar-menu-item-about").click(function() {
+            _$rapyd$_unbindAll(this, true);
             $about.dialog("open");
         });
         window.oncontextmenu = function() {
+            _$rapyd$_unbindAll(this, true);
             return false;
         };
     }

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+# you can uncomment rapydml and rapydcss if you have them installed
+#rapydml rapydray.pyml && mv rapydray.html output/
+#rapydcss rapydray.sass && mv rapydray.css output/
+nodejs ../../bin/rapydscript rapydray.pyj -p -o rapydray.js && mv rapydray.js output/
