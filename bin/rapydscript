@@ -111,7 +111,12 @@ if (ARGS.t || ARGS.test) {
                 filename: file,
                 toplevel: ast,
                 readfile: fs.readFileSync,
-				basedir: "../test",
+				basedir: path.normalize(
+                    path.join(
+                        path.dirname(module.filename),
+                        "../test"
+                    )
+                ),
                 libdir: path.normalize(
                     path.join(
                         path.dirname(module.filename),
