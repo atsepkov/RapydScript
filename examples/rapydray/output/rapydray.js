@@ -30,7 +30,6 @@
         }
         return range;
     }
-    _$rapyd$_unbindAll(this, true);
     var WIDTH, HEIGHT, lightDir, lightColor, CHECKER_PATTERN, toggle;
     WIDTH = 440;
 
@@ -58,54 +57,44 @@
     };
     Vector.prototype.copy = function(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return new Vector(self.x, self.y, self.z);
     };
     Vector.prototype.length = function(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return Math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z);
     };
     Vector.prototype.sqrLength = function(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return self.x * self.x + self.y * self.y + self.z * self.z;
     };
     Vector.prototype.normalize = function(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         var inv;
         inv = 1 / self.length();
         return new Vector(self.x * inv, self.y * inv, self.z * inv);
     };
     Vector.prototype.negate = function(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return new Vector(-self.x, -self.y, -self.z);
     };
     Vector.prototype.add = function(v){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return new Vector(self.x + v.x, self.y + v.y, self.z + v.z);
     };
     Vector.prototype.sub = function(v){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return new Vector(self.x - v.x, self.y - v.y, self.z - v.z);
     };
     Vector.prototype.times = function(k){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return new Vector(k * self.x, k * self.y, k * self.z);
     };
     Vector.prototype.dot = function(t){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return self.x * t.x + self.y * t.y + self.z * t.z;
     };
     Vector.prototype.cross = function(w){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         var v;
         v = new Vector();
         v.x = self.y * w.z - self.z * w.y;
@@ -114,7 +103,6 @@
         return v;
     };
     Vector.zero = function(){
-        _$rapyd$_unbindAll(this, true);
         return new Vector();
     };
 
@@ -127,7 +115,6 @@
     };
     Ray.prototype.getPoint = function(t){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return self.origin.add(self.direction.times(t));
     };
 
@@ -140,7 +127,6 @@
         self.normal = Vector.zero();
     };
     IntersectionResult.nohit = function(){
-        _$rapyd$_unbindAll(this, true);
         return new IntersectionResult();
     };
 
@@ -158,17 +144,14 @@
     };
     Sphere.prototype.initialize = function(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         self.sqrRadius = self.radius * self.radius;
     };
     Sphere.prototype.double = function(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return 100;
     };
     Sphere.prototype.intersect = function(ray){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         var v, a0, DdotV, discr, r;
         v = ray.origin.sub(self.center);
         a0 = v.sqrLength() - self.sqrRadius;
@@ -200,14 +183,12 @@
     };
     Camera.prototype.initialize = function(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         self.right = self.front.cross(self.RefUp);
         self.up = self.right.cross(self.front);
         self.fovScale = Math.tan(self.fov * .5 * Math.PI / 180) * 2;
     };
     Camera.prototype.generateRay = function(x, y){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         var r, u, ray;
         r = self.right.times((x - .5) * self.fovScale * self.aspectratio);
         u = self.up.times((y - .5) * self.fovScale);
@@ -224,7 +205,6 @@
     };
     Union.prototype.initialize = function(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         var geo;
         var _$rapyd$_Iter0 = self.geometries;
         for (var _$rapyd$_Index0 = 0; _$rapyd$_Index0 < _$rapyd$_Iter0.length; _$rapyd$_Index0++) {
@@ -234,7 +214,6 @@
     };
     Union.prototype.intersect = function(ray){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         var minDistance, minResult, result, minDistance, minResult, geo;
         minDistance = Infinity;
         minResult = new IntersectionResult();
@@ -261,12 +240,10 @@
     };
     Plane.prototype.initialize = function(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         self.position = self.normal.times(self.d);
     };
     Plane.prototype.intersect = function(ray){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         var a, b, result;
         a = ray.direction.dot(self.normal);
         if (a >= 0) {
@@ -296,17 +273,14 @@
     };
     Color.prototype.add = function(c){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return new Color(self.r + c.r, self.g + c.g, self.b + c.b);
     };
     Color.prototype.times = function(k){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return new Color(k * self.r, k * self.g, k * self.b);
     };
     Color.prototype.modulate = function(c){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         return new Color(self.r * c.r, self.g * c.g, self.b * c.b);
     };
 
@@ -333,7 +307,6 @@
     };
     CheckerMaterial.prototype.sample = function(ray, position, normal){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         var v;
         v = Math.abs((Math.floor(position.x * .1) + Math.floor(position.z * self.scale)) % 2);
         if (v < 1) {
@@ -358,7 +331,6 @@
     };
     PhongMaterial.prototype.sample = function(ray, position, normal){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
         var NdotL, H, NdotH, diffuseTerm, specularTerm;
         NdotL = normal.dot(lightDir);
         H = lightDir.sub(ray.direction).normalize();
@@ -369,7 +341,6 @@
     };
 
     function rayTraceRecursive(scene, ray, maxReflect) {
-        _$rapyd$_unbindAll(this, true);
         var result, reflectiveness, mat, color, r, reflectedColor, color;
         result = scene.intersect(ray);
         if (result.sceneobject) {
@@ -391,7 +362,6 @@
     CHECKER_PATTERN = true;
 
     function main() {
-        _$rapyd$_unbindAll(this, true);
         var canvas, ctx, w, h, aspectratio, camera, sphere, sphere2, sphere3, plane, scene, maxDepth, imgdata, sy, sx, index, ray, result, col, x, y;
         canvas = document.getElementById("canvas");
         ctx = canvas.getContext("2d");
@@ -447,7 +417,6 @@
     toggle = document.getElementById("toggle");
 
     toggle.onclick = function() {
-        _$rapyd$_unbindAll(this, true);
         CHECKER_PATTERN = !CHECKER_PATTERN;
         main();
     };

@@ -1,5 +1,4 @@
 (function(){
-    _$rapyd$_unbindAll(this, true);
     var margin, width, height, color, treemap, div;
     margin = {
         top: 40,
@@ -15,24 +14,20 @@
     color = d3.scale.category20c();
 
     treemap = d3.layout.treemap().size([ width, height ]).sticky(true).value(function(d) {
-        _$rapyd$_unbindAll(this, true);
         return d.size;
     });
 
     div = d3.select("body").append("div").style("position", "relative").style("width", width + margin.left + margin.right + "px").style("height", height + margin.top + margin.bottom + "px").style("left", margin.left + "px").style("top", margin.top + "px");
 
     d3.json("flare.json", function(error, root) {
-        _$rapyd$_unbindAll(this, true);
         var node;
         node = div.datum(root).selectAll(".node").data(treemap.nodes).enter().append("div").attr("class", "node").call(position).style("background", function(d) {
-            _$rapyd$_unbindAll(this, true);
             if (d.children) {
                 return color(d.name);
             } else {
                 return null;
             }
         }).text(function(d) {
-            _$rapyd$_unbindAll(this, true);
             if (d.children) {
                 return null;
             } else {
@@ -40,16 +35,13 @@
             }
         });
         d3.selectAll("input").on("change", function change() {
-            _$rapyd$_unbindAll(this, true);
             var value, value;
             if (this.value === "count") {
                 value = function() {
-                    _$rapyd$_unbindAll(this, true);
                     return 1;
                 };
             } else {
                 value = function(d) {
-                    _$rapyd$_unbindAll(this, true);
                     return d.size;
                 };
             }
@@ -58,18 +50,13 @@
     });
 
     function position() {
-        _$rapyd$_unbindAll(this, true);
         this.style("left", function(d) {
-            _$rapyd$_unbindAll(this, true);
             return d.x + "px";
         }).style("top", function(d) {
-            _$rapyd$_unbindAll(this, true);
             return d.y + "px";
         }).style("width", function(d) {
-            _$rapyd$_unbindAll(this, true);
             return Math.max(0, d.dx - 1) + "px";
         }).style("height", function(d) {
-            _$rapyd$_unbindAll(this, true);
             return Math.max(0, d.dy - 1) + "px";
         });
     }
