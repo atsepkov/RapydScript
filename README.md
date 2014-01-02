@@ -777,6 +777,8 @@ Basically, `try/except/finally` in RapydScript works very similar to the way it 
 		# reset foo
 		foo = 'bar'
 
+Like in Python (but unlike in regular JavaScript), you can use `raise` keyword by itself from within `except` block to reraise last-caught error.
+
 
 Scope Control
 -------------
