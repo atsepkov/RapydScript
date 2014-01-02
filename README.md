@@ -651,6 +651,66 @@ As mentioned earlier, this is simply for making your code easier to read. The co
 You could also use `external` decorator to bypass improperly imported RapydScript modules. However, if you actually have control of these modules, the better solution would be to fix those imports.
 
 
+Modules
+-------
+Unlike Python, RapydScript's import system does not automatically encapsulate external files in modules. Multiple RapydScript users have raised concerns about this, so I added explicit modules to RapydScript. They work very similar to implicit modules of Python, with the exception that developer would use the `module` keyword rather than creating a new file. As a result, one can place multiple modules into a single file, or even nest them (note that import logic cannot import from within nested modules individually, only form files). In terms of JavaScript, a module is basically a function such that all of its local variables are visible to the outside. For example:
+
+	module math:
+		pi = Math.PI
+
+		a = "foo"
+		a += "bar"
+
+		counter = 0
+		def inc_counter():
+			nonlocal counter
+			counter += 1
+		def get_counter():
+			return counter
+
+		class Counter:
+			def __init__(self):
+				self.counter = 0
+			def inc(self):
+				self.counter += 1
+
+	print(math.pi)				# outputs 3.141592653589793
+	print(math.a)				# outputs 'foobar'
+
+	math.inc_counter()			# increments counter
+	print(math.counter)			# outputs 0 (math.counter has been imported by value, it will not update when internal counter does)
+	print(math.get_counter())	# outputs 1
+
+	c = math.Counter()			# creates a new instance of math.Counter, note the absence of 'new' keyword
+	c.inc()						# increments counter
+	print(c.output)				# outputs 1
+
+Above examples show a few interesting features of RapydScript modules. First, note that modules allow all of the same logic inside of them as regular functions, as seen by appending 'bar' to 'foo'. Since module runs at the time of its initialization, any such logic will have already been executed by the time you reference the module from other code. This is how Python works with modules as well. Second, since JavaScript (like Python) passes primitive types by value, referencing them directly from outside the module will return their values at the time of module initialization rather than their current values. The example printing `math.counter` makes this clear. Third, RapydScript is smart enough to detect classes through modules, so you don't need to remember the `new` keyword for classes declared within modules.
+
+The automatic `new` keyword is a useful feature, but what about modules that are declared in different files and not imported? Like classes (and functions), modules support `@external` decorator:
+
+	@external
+	module math:
+		class Counter:
+			pass
+
+	c = math.Counter()
+
+Since modules are technically functions, they also support normal decorators, like the functions themselves:
+
+	def has_item(m):
+		m.item = "an item"
+		return m
+
+	@has_item
+	module blank:
+		pass
+
+	print(blank.item)		# outputs 'an item'
+
+This is unlike Python modules, but can be useful in case you want to tweak your modules further, like adding extra parameters to them or conditional debug logic.
+
+
 Exception Handling
 ------------------
 Like Python and JavaScript, RapydScript has exception handling logic. The following, for example, will warn the user if variable `foo` is not defined:
@@ -727,7 +787,7 @@ Or we could just dump the error back to the user:
 	except as err:
 		print(err.name + ':' + err.message)
 
-In this example, `err` is a JavaScript error object, it has `name` and `message` attributes, more information can be found at <https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Error>. You can inherit from this object as if it was a class to create custom errors, just like you would in Python:
+In this example, `err` is a JavaScript error object, it has `name` and `message` attributes, more information can be found at <https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Error>. You can inherit from this object as if it was a class to create custom errors, just like you would in Python:		
 
 	class MyError(Error):
 		def __init__(self, message):

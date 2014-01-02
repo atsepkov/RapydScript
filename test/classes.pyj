@@ -59,7 +59,7 @@ assert.equal(bound(), angela.how_long())
 angela.nickname("Angie")
 assert.equal(angela.greet(), "Yo, it's me, Angie")
 
-(def module():
+(def fake_module():
 	# test that we can declare classes inside other blocks
 	# test that we can call methods of classes we didn't inherit from
 	nonlocal dude
