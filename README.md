@@ -748,45 +748,6 @@ Or we could just dump the error back to the user:
 	except as err:
 		print(err.name + ':' + err.message)
 
-
-
-Exception Handling
-------------------
-Like Python and JavaScript, RapydScript has exception handling logic. The following, for example, will warn the user if variable `foo` is not defined:
-
-	try:
-		print(foo)
-	except:
-		print("Foo wasn't declared yet")
-
-It's a good practice, however, to only catch exceptions we expect. Imagine, for example, if `foo` was defined, but as a circular structure (with one of its attributes referencing itself):
-
-	foo = {}
-	foo.bar = foo
-
-We would still trigger an exception, but for a completely different reason. A better way to rewrite our `try/except` block would be:
-
-	try:
-		print(foo)
-	except ReferenceError:
-		print("Foo wasn't declared yet")
-
-We could also handle circular structure exception, if we needed to:
-
-	try:
-		print(foo)
-	except ReferenceError:
-		print("Foo wasn't declared yet")
-	except TypeError:
-		print("One of foo's attributes references foo")
-
-Or we could just dump the error back to the user:
-
-	try:
-		print(foo)
-	except as err:
-		print(err.name + ':' + err.message)
-
 In this example, `err` is a JavaScript error object, it has `name` and `message` attributes, more information can be found at <https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Error>. You can inherit from this object as if it was a class to create custom errors, just like you would in Python:		
 
 	class MyError(Error):
