@@ -13,3 +13,6 @@ class Bravo(Alpha):
         obj.name = name
 
 testBravo()
+
+a = foo.Bar()
+assert.equal(a.baz(), "foo bar baz")

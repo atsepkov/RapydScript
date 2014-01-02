@@ -10,6 +10,14 @@ class Bravo:
     def setName(obj, name):
         pass
 
+module foo:
+    class Bar:
+        def __init__(self):
+            self.val = "foo bar"
+        def baz(self):
+            return self.val + " baz"
+
+
 def testBravo():
     b = Bravo()
     assert.equal(b.getName(), "Bravo")
