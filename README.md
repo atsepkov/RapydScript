@@ -687,7 +687,7 @@ Unlike Python, RapydScript's import system does not automatically encapsulate ex
 
 Above examples show a few interesting features of RapydScript modules. First, note that modules allow all of the same logic inside of them as regular functions, as seen by appending 'bar' to 'foo'. Since module runs at the time of its initialization, any such logic will have already been executed by the time you reference the module from other code. This is how Python works with modules as well. Second, since JavaScript (like Python) passes primitive types by value, referencing them directly from outside the module will return their values at the time of module initialization rather than their current values. The example printing `math.counter` makes this clear. Third, RapydScript is smart enough to detect classes through modules, so you don't need to remember the `new` keyword for classes declared within modules.
 
-The automatic `new` keyword is a useful feature, but what about modules that are declared in different files and not imported? Like classes (and functions), modules support `@external` decorator:
+The automatic `new` keyword is a useful feature, but what about modules that are declared in different files? If you `import` them in your code directly, RapydScript will pick them up automatically as well. If you instead include multiple `.js` files in your HTML, you could bypass the problem via decorators. Like classes (and functions), modules support `@external` decorator:
 
 	@external
 	module math:
@@ -696,7 +696,7 @@ The automatic `new` keyword is a useful feature, but what about modules that are
 
 	c = math.Counter()
 
-Since modules are technically functions, they also support normal decorators, like the functions themselves:
+The above example will treat `math.Counter` as a class, but will not create the class or the `math` module containing it, assuming that `math.Class` will be included from somewhere else when the page loads. Since modules are technically functions, they also support normal decorators, like the functions themselves:
 
 	def has_item(m):
 		m.item = "an item"
