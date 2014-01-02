@@ -653,7 +653,7 @@ You could also use `external` decorator to bypass improperly imported RapydScrip
 
 Modules
 -------
-Unlike Python, RapydScript's import system does not automatically encapsulate external files in modules. Multiple RapydScript users have raised concerns about this, so I added explicit modules to RapydScript. They work very similar to implicit modules of Python, with the exception that developer would use the `module` keyword rather than creating a new file. As a result, one can place multiple modules into a single file, or even nest them (note that import logic cannot import from within nested modules individually, only form files). In terms of JavaScript, a module is basically a function such that all of its local variables are visible to the outside. For example:
+Unlike Python, RapydScript's import system does not automatically encapsulate external files in modules. Multiple RapydScript users have raised concerns about this, so I added explicit modules to RapydScript. They work very similar to implicit modules of Python, with the exception that developer would use the `module` keyword rather than creating a new file. As a result, one can place multiple modules into a single file, or even nest them (note that import logic cannot import from within nested modules individually, only from files). In terms of JavaScript, a module is basically a function such that all of its local variables are visible to the outside. For example:
 
 	module math:
 		pi = Math.PI
@@ -683,7 +683,7 @@ Unlike Python, RapydScript's import system does not automatically encapsulate ex
 
 	c = math.Counter()			# creates a new instance of math.Counter, note the absence of 'new' keyword
 	c.inc()						# increments counter
-	print(c.output)				# outputs 1
+	print(c.counter)			# outputs 1
 
 Above examples show a few interesting features of RapydScript modules. First, note that modules allow all of the same logic inside of them as regular functions, as seen by appending 'bar' to 'foo'. Since module runs at the time of its initialization, any such logic will have already been executed by the time you reference the module from other code. This is how Python works with modules as well. Second, since JavaScript (like Python) passes primitive types by value, referencing them directly from outside the module will return their values at the time of module initialization rather than their current values. The example printing `math.counter` makes this clear. Third, RapydScript is smart enough to detect classes through modules, so you don't need to remember the `new` keyword for classes declared within modules.
 
