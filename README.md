@@ -7,9 +7,10 @@ What is RapydScript?
 --------------------
 RapydScript is a pre-compiler for JavaScript, similar to CoffeeScript, but with cleaner, more readable syntax. The syntax is very similar to Python, but allows JavaScript as well. This project was written as an alternative to Pyjamas for those wishing Python-like JavaScript without the extra overhead and complexity Pyjamas introduces.
 
-RapydScript allows to write your front-end in Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with PyvaScript, the best way to describe RapydScript is PyvaScript++ (it really is like comparing C++ to C in terms of what it brings to the table). To those familiar with CoffeeScript, RapydScript is like CoffeeScript with syntax (and some features) of Python. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
+RapydScript allows to write your front-end in Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with PyvaScript, the best way to describe RapydScript is PyvaScript++. To those familiar with CoffeeScript, RapydScript is like CoffeeScript with syntax (and some features) of Python. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
 
 - classes that work and feel similar to Python
+- modules that can be used for logic abstraction and allow more flexibility than Python's modules
 - optional function arguments that work similar to Python
 - inheritance system that's both, more powerful than Python and cleaner than JavaScript
 - support for object literals with anonymous functions, like in JavaScript
@@ -25,6 +26,14 @@ Community
 ---------
 If you have questions, bug reports, or feature requests, feel free to post them on our mailing list:
 (<http://groups.google.com/group/rapydscript>)
+
+I bundled a few demos with RapydScript itself, but several members of the community put together much better demos themselves. If you would like to take a look at them to see what's possible with RapydScript, here are some examples:
+
+http://salvatore.pythonanywhere.com/RapydScript
+This includes the demos from RapydScript's `examples` directory, as well as a few others.
+
+http://salvatore.pythonanywhere.com/RapydBox/editor
+This is a collection of very cool demos, showcasing RapydScript's similarity to real Python and at the same time its ability to work with other JavaScript. It relies on a JavaScript port of NodeBox (which was originally written in Python). NodeBox was ported from Python to JavaScript to allow cross-platform compatibility. Ironically, the original demos from Python version of NodeBox now work with JavaScript version of NodeBox with few changes (and sometimes none at all) by using RapydScript.
 
 
 Installation
@@ -708,7 +717,25 @@ The above example will treat `math.Counter` as a class, but will not create the 
 
 	print(blank.item)		# outputs 'an item'
 
-This is unlike Python modules, but can be useful in case you want to tweak your modules further, like adding extra parameters to them or conditional debug logic.
+This is unlike Python modules, but can be useful in case you want to tweak your modules further, like adding extra parameters to them or conditional debug logic. You could also nest modules as many levels as you wish:
+
+	module world:
+		module country:
+			co = 'US'
+			module city:
+				ct = 'Cupertino, CA'
+				module zipcode:
+					z = '95014'
+					class House:
+						def __init__(self, address):
+							self.addr = address
+						def get_address(self):
+							return [self.addr, ct, z, co].join(', ')
+
+	apple_hq = world.country.city.zipcode.House('1 Infinite Loop')
+	apple_hq.get_address()		# '1 Infinite Loop, Cupertino, CA, 95014, US'
+
+This is admittedly a silly example, since we hardcoded the city and zipcode yet dynamically specify the address, but it's a good example of what can be achieved via module-nesting.
 
 
 Exception Handling

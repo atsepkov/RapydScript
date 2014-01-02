@@ -54,3 +54,21 @@ module blank:
     pass
 
 assert.equal(blank.item, "an item")
+
+# nesting
+module world:
+    module country:
+        co = 'US'
+        module city:
+            ct = 'Cupertino, CA'
+            module zipcode:
+                z = '95014'
+                class House:
+                    def __init__(self, address):
+                        self.addr = address
+                    def get_address(self):
+                        return [self.addr, ct, z, co].join(', ')
+
+
+apple_hq = world.country.city.zipcode.House('1 Infinite Loop')
+assert.equal(apple_hq.get_address(), '1 Infinite Loop, Cupertino, CA, 95014, US')

@@ -1,17 +1,15 @@
 (function(){
     function _$rapyd$_bind(fn, thisArg) {
-        if (fn.orig) fn = fn.orig;
-        var ret = function() {
-            return fn.apply(thisArg, arguments);
-        }
-        ret.orig = fn;
+        if (fn._orig) fn = fn._orig;
+        var ret = fn.bind(thisArg);
+        ret._orig = fn;
         return ret;
     }
-    function _$rapyd$_unbindAll(thisArg, rebind) {
+    function _$rapyd$_rebindAll(thisArg, rebind) {
         for (var p in thisArg) {
-            if (thisArg[p] && thisArg[p].orig) {
+            if (thisArg[p] && thisArg[p]._orig) {
                 if (rebind) thisArg[p] = _$rapyd$_bind(thisArg[p], thisArg);
-                else thisArg[p] = thisArg[p].orig;
+                else thisArg[p] = thisArg[p]._orig;
             }
         }
     }
@@ -56,7 +54,6 @@
     }
     var JSON, str;
         JSON = JSON || {};
-
     if (!JSON.stringify) {
         
 	JSON.stringify = function(obj) {
@@ -89,40 +86,31 @@
 	};
 	;
     }
-
     str = JSON.stringify;
-
     function ValueError(message){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
+        _$rapyd$_rebindAll(this, true);
         self.name = "ValueError";
         self.message = message;
     };
     ValueError.prototype = new Error();
     ValueError.prototype.constructor = ValueError;
-    _$rapyd$_unbindAll(ValueError.prototype);
-
+    _$rapyd$_rebindAll(ValueError.prototype);
     String.prototype.find = Array.prototype.indexOf;
-
     String.prototype.strip = String.prototype.trim;
-
     String.prototype.lstrip = String.prototype.trimLeft;
-
     String.prototype.rstrip = String.prototype.trimRight;
-
     String.prototype.join = function(iterable) {
         return iterable.join(this);
     };
-
     String.prototype.zfill = function(size) {
-        var s, s;
+        var s;
         s = this;
         while (s.length < size) {
             s = "0" + s;
         }
         return s;
     };
-
     function list(iterable) {
         if (typeof iterable === "undefined") iterable = [];
         var result, i;
@@ -134,11 +122,8 @@
         }
         return result;
     }
-
     Array.prototype.append = Array.prototype.push;
-
     Array.prototype.find = Array.prototype.indexOf;
-
     Array.prototype.index = function(index) {
         var val;
         val = this.find(index);
@@ -147,30 +132,24 @@
         }
         return val;
     };
-
     Array.prototype.insert = function(index, item) {
         this.splice(index, 0, item);
     };
-
     Array.prototype.pop = function(index) {
         if (typeof index === "undefined") index = this.length - 1;
         return this.splice(index, 1)[0];
     };
-
     Array.prototype.extend = function(array2) {
         this.push.apply(this, array2);
     };
-
     Array.prototype.remove = function(item) {
         var index;
         index = this.find(item);
         this.splice(index, 1);
     };
-
     Array.prototype.copy = function() {
         return this.slice(0);
     };
-
     if (!Array.prototype.map) {
         
 	Array.prototype.map = function(callback, thisArg) {
@@ -199,11 +178,9 @@
 	};
 	;
     }
-
     function map(oper, arr) {
         return arr.map(oper);
     }
-
     if (!Array.prototype.filter) {
         
 	Array.prototype.filter = function(filterfun, thisArg) {
@@ -232,11 +209,9 @@
 	};
 	;
     }
-
     function filter(oper, arr) {
         return arr.filter(oper);
     }
-
     function dict(iterable) {
         var result, key;
         result = {};
@@ -247,7 +222,6 @@
         }
         return result;
     }
-
     if (typeof Object.getOwnPropertyNames !== "function") {
         dict.keys = function(hash) {
             var keys;
@@ -266,7 +240,6 @@
             return Object.getOwnPropertyNames(hash);
         };
     }
-
     dict.values = function(hash) {
         var vals, key;
         vals = [];
@@ -277,7 +250,6 @@
         }
         return vals;
     };
-
     dict.items = function(hash) {
         var items, key;
         items = [];
@@ -288,9 +260,7 @@
         }
         return items;
     };
-
     dict.copy = dict;
-
     dict.clear = function(hash) {
         var key;
         var _$rapyd$_Iter4 = dict.keys(hash);
@@ -299,21 +269,19 @@
             delete hash[key];
         }
     };
-
         function YQLError(message){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
+        _$rapyd$_rebindAll(this, true);
         self.name = "YQLError";
         self.message = message;
     };
     YQLError.prototype = new Error();
     YQLError.prototype.constructor = YQLError;
-    _$rapyd$_unbindAll(YQLError.prototype);
-
+    _$rapyd$_rebindAll(YQLError.prototype);
     function YQL(query, callback, diagnostics){
         var self = this;
         if (typeof diagnostics === "undefined") diagnostics = false;
-        _$rapyd$_unbindAll(this, true);
+        _$rapyd$_rebindAll(this, true);
         this.fetch = _$rapyd$_bind(this.fetch, this);
         var doNothing;
         self.query = query;
@@ -322,9 +290,9 @@
         self.callback = callback || doNothing;
         self.diagnostics = diagnostics;
     };
-    YQL.prototype.fetch = function(){
+    YQL.prototype.fetch = function fetch(){
         var self = this;
-        var scriptEl, uid, encodedQuery, url, url;
+        var scriptEl, uid, encodedQuery, url;
         if (!self.query) {
             throw new YQLError("YQL.query attribute must be defined before invoking YQL.fetch()");
         } else if (!self.callback) {
@@ -345,11 +313,10 @@
         scriptEl.src = url + "&format=json&callback=" + uid;
         document.body.appendChild(scriptEl);
     };
-
     function Stock(symbols, callback){
         var self = this;
         if (typeof callback === "undefined") callback = null;
-        _$rapyd$_unbindAll(this, true);
+        _$rapyd$_rebindAll(this, true);
         this.get = _$rapyd$_bind(this.get, this);
         var $start, $end, onUpdate, ENTER, onKeypress;
         self.callback = callback;
@@ -381,7 +348,7 @@
         };
         self.$widget.keypress(onKeypress);
     };
-    Stock.prototype.get = function(startDate, endDate){
+    Stock.prototype.get = function get(startDate, endDate){
         var self = this;
         var name, format, onUpdate, url;
         "\n\t\tget method for this stock, which retrieves info from google finance\n\t\t";
@@ -418,10 +385,9 @@
             self.callback(name, self.data);
         }
     };
-
     function StockChart(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
+        _$rapyd$_rebindAll(this, true);
         this.clear = _$rapyd$_bind(this.clear, this);
         this.add = _$rapyd$_bind(this.add, this);
         this.redraw = _$rapyd$_bind(this.redraw, this);
@@ -466,7 +432,7 @@
                 return a + b;
             };
             return [name, function(cols, rows) {
-                var avgs, moving, alpha, moving, moving, row, idx, col;
+                var avgs, alpha, moving, row, idx, col;
                 var _$rapyd$_Iter7 = enumerate(cols);
                 for (var _$rapyd$_Index7 = 0; _$rapyd$_Index7 < _$rapyd$_Iter7.length; _$rapyd$_Index7++) {
                     _$rapyd$_Unpack = _$rapyd$_Iter7[_$rapyd$_Index7];
@@ -504,7 +470,7 @@
             }];
         };
         rsi = function(cols, rows) {
-            var tmp, ema15, rsis, ups, downs, prev, current, DATE, prev, row, tmp, ups, tmp, downs, rs, rs, index, idx, col;
+            var ema15, rsis, current, DATE, prev, row, ups, tmp, downs, rs, index, idx, col;
             _$rapyd$_Unpack = makeMovingAvg("", 15, true);
             tmp = _$rapyd$_Unpack[0];
             ema15 = _$rapyd$_Unpack[1];
@@ -564,16 +530,16 @@
         self.annotatedTimeline = new google.visualization.AnnotatedTimeLine($("#chart").get(0));
         self.clear();
     };
-    StockChart.prototype.clear = function(){
+    StockChart.prototype.clear = function clear(){
         var self = this;
         self._cols = [];
         self._rows = [];
     };
-    StockChart.prototype.add = function(symbol, data, cols, rows){
+    StockChart.prototype.add = function add(symbol, data, cols, rows){
         var self = this;
         if (typeof cols === "undefined") cols = self._cols;
         if (typeof rows === "undefined") rows = self._rows;
-        var item, index, item;
+        var index, item;
         if (data !== null) {
             if (!len(cols)) {
                 var _$rapyd$_Iter12 = data.slice(1);
@@ -593,9 +559,9 @@
             cols.append(symbol);
         }
     };
-    StockChart.prototype.redraw = function(){
+    StockChart.prototype.redraw = function redraw(){
         var self = this;
-        var cols, rows, cols, rows, key, val, data, col;
+        var cols, rows, key, val, data, col;
         cols = $.extend(true, [], self._cols);
         rows = $.extend(true, [], self._rows);
         var _$rapyd$_Iter14 = dict.items(self._filters);
@@ -619,7 +585,6 @@
         data.addRows(rows);
         self.annotatedTimeline.draw(data, {});
     };
-
     function main() {
         var stockFields, updateChart, onChartLoad, triggerChange, $start, $end, symbols, $stocks, newStock, sync, exchanges, onUpdate, exchange;
         stockFields = [];
@@ -709,6 +674,5 @@
             new YQL('select col0 from csv where url="http://www.nasdaq.com/screening/companies-by-name.aspx?letter=0&exchange=' + exchange + '&render=download"', onUpdate).fetch();
         }
     }
-
     $(document).ready(main);
 })();

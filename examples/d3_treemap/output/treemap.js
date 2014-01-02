@@ -6,19 +6,13 @@
         bottom: 10,
         left: 10
     };
-
     width = 960 - margin.left - margin.right;
-
     height = 500 - margin.top - margin.bottom;
-
     color = d3.scale.category20c();
-
     treemap = d3.layout.treemap().size([ width, height ]).sticky(true).value(function(d) {
         return d.size;
     });
-
     div = d3.select("body").append("div").style("position", "relative").style("width", width + margin.left + margin.right + "px").style("height", height + margin.top + margin.bottom + "px").style("left", margin.left + "px").style("top", margin.top + "px");
-
     d3.json("flare.json", function(error, root) {
         var node;
         node = div.datum(root).selectAll(".node").data(treemap.nodes).enter().append("div").attr("class", "node").call(position).style("background", function(d) {
@@ -35,7 +29,7 @@
             }
         });
         d3.selectAll("input").on("change", function change() {
-            var value, value;
+            var value;
             if (this.value === "count") {
                 value = function() {
                     return 1;
@@ -48,7 +42,6 @@
             node.data(treemap.value(value).nodes).transition().duration(1500).call(position);
         });
     });
-
     function position() {
         this.style("left", function(d) {
             return d.x + "px";

@@ -1,17 +1,15 @@
 (function(){
     function _$rapyd$_bind(fn, thisArg) {
-        if (fn.orig) fn = fn.orig;
-        var ret = function() {
-            return fn.apply(thisArg, arguments);
-        }
-        ret.orig = fn;
+        if (fn._orig) fn = fn._orig;
+        var ret = fn.bind(thisArg);
+        ret._orig = fn;
         return ret;
     }
-    function _$rapyd$_unbindAll(thisArg, rebind) {
+    function _$rapyd$_rebindAll(thisArg, rebind) {
         for (var p in thisArg) {
-            if (thisArg[p] && thisArg[p].orig) {
+            if (thisArg[p] && thisArg[p]._orig) {
                 if (rebind) thisArg[p] = _$rapyd$_bind(thisArg[p], thisArg);
-                else thisArg[p] = thisArg[p].orig;
+                else thisArg[p] = thisArg[p]._orig;
             }
         }
     }
@@ -31,38 +29,23 @@
     }
     var BRUSH, ERASER, LINE, SELECT, COLORSELECT, LASSO, RECT, ELLIPSE, SAMPLER, BUCKET, TEXT, X, Y, CLICK, RCLICK;
         BRUSH = 0;
-
     ERASER = 1;
-
     LINE = 2;
-
     SELECT = 3;
-
     COLORSELECT = 4;
-
     LASSO = 5;
-
     RECT = 6;
-
     ELLIPSE = 7;
-
     SAMPLER = 8;
-
     BUCKET = 9;
-
     TEXT = 10;
-
     X = 0;
-
     Y = 1;
-
     CLICK = 1;
-
     RCLICK = 3;
-
     function Drawing(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
+        _$rapyd$_rebindAll(this, true);
         this.undo = _$rapyd$_bind(this.undo, this);
         this.redo = _$rapyd$_bind(this.redo, this);
         this.setMode = _$rapyd$_bind(this.setMode, this);
@@ -144,7 +127,7 @@
             context.stroke();
         };
         sample = function(x, y, click) {
-            var data, color, color, tag, tag, color;
+            var data, tag, color;
             data = ctx.getImageData(x, y, 1, 1).data;
             if (data[3]) {
                 color = "rgb(" + data[0] + "," + data[1] + "," + data[2] + ")";
@@ -177,7 +160,7 @@
             return r == startPixel[0] && g == startPixel[1] && b == startPixel[2] && !!(a) == !!(startPixel[3]);
         };
         eachPixel = function(imageData, callback) {
-            var offset, length, offset;
+            var length, offset;
             offset = 0;
             length = imageData.height * imageData.width * 4;
             while (offset < length) {
@@ -189,7 +172,7 @@
             context.clearRect(0, 0, canvasWidth, canvasHeight);
         };
         onMouseDown = function(event) {
-            var x, y, pixelStack, colorLayer, data, startPixel, locX, locY, swatchPixel, newPos, x, y, pixelPos, y, pixelPos, pixelPos, y, reachLeft, reachRight, y, reachLeft, reachLeft, reachRight, pixelPos, tmp, data, merge;
+            var pixelStack, colorLayer, startPixel, locX, locY, swatchPixel, newPos, x, y, reachLeft, reachRight, pixelPos, tmp, data, merge;
             event.preventDefault();
             dragging = true;
             _$rapyd$_Unpack = getXY(this, event);
@@ -305,7 +288,7 @@
             }
         };
         onMouseMove = function(event) {
-            var x, y, x, y, point, x, y;
+            var point, x, y;
             if (self._mode == LINE && len(points)) {
                 _$rapyd$_Unpack = getXY(this, event);
                 x = _$rapyd$_Unpack[0];
@@ -354,7 +337,7 @@
             }
         };
         onMouseUp = function(event) {
-            var x, y, x, y, sx, sy, width, height, sx, sy, width, height, x, y;
+            var sx, sy, width, height, x, y;
             if (_$rapyd$_in(self._mode, [ RECT, ELLIPSE ])) {
                 _$rapyd$_Unpack = getXY(this, event);
                 x = _$rapyd$_Unpack[0];
@@ -411,7 +394,7 @@
             }
         };
         self._filter = function(callback) {
-            var pixels, pixels, data, invoke;
+            var pixels, data, invoke;
             if (selection) {
                 pixels = selection;
             } else {
@@ -441,7 +424,7 @@
         $tmpCanvas.mouseleave(onMouseLeave);
         self._ctx.lineJoin = tmpCtx.lineJoin = self._ctx.lineCap = tmpCtx.lineCap = "round";
     };
-    Drawing.prototype.undo = function(){
+    Drawing.prototype.undo = function undo(){
         var self = this;
         var state;
         state = self._undoStack.pop();
@@ -450,7 +433,7 @@
             self._ctx.putImageData(state, 0, 0);
         }
     };
-    Drawing.prototype.redo = function(){
+    Drawing.prototype.redo = function redo(){
         var self = this;
         var state;
         state = self._redoStack.pop();
@@ -459,31 +442,31 @@
             self._ctx.putImageData(state, 0, 0);
         }
     };
-    Drawing.prototype.setMode = function(mode){
+    Drawing.prototype.setMode = function setMode(mode){
         var self = this;
         self._mode = mode;
     };
-    Drawing.prototype.setStroke = function(style){
+    Drawing.prototype.setStroke = function setStroke(style){
         var self = this;
         self._brushColor = style;
     };
-    Drawing.prototype.setFill = function(style){
+    Drawing.prototype.setFill = function setFill(style){
         var self = this;
         self._fillColor = style;
     };
-    Drawing.prototype.setWidth = function(value){
+    Drawing.prototype.setWidth = function setWidth(value){
         var self = this;
         self._lineWidth = value;
     };
-    Drawing.prototype.clear = function(){
+    Drawing.prototype.clear = function clear(){
         var self = this;
         self._clear(self._ctx);
     };
-    Drawing.prototype.exportDwg = function(){
+    Drawing.prototype.exportDwg = function exportDwg(){
         var self = this;
         return self._canvas.toDataURL();
     };
-    Drawing.prototype.invert = function(){
+    Drawing.prototype.invert = function invert(){
         var self = this;
         var invert;
         invert = function(data, offset) {
@@ -493,7 +476,7 @@
         };
         self._filter(invert);
     };
-    Drawing.prototype.redFilter = function(){
+    Drawing.prototype.redFilter = function redFilter(){
         var self = this;
         var remove;
         remove = function(data, offset) {
@@ -501,7 +484,7 @@
         };
         self._filter(remove);
     };
-    Drawing.prototype.greenFilter = function(){
+    Drawing.prototype.greenFilter = function greenFilter(){
         var self = this;
         var remove;
         remove = function(data, offset) {
@@ -509,7 +492,7 @@
         };
         self._filter(remove);
     };
-    Drawing.prototype.blueFilter = function(){
+    Drawing.prototype.blueFilter = function blueFilter(){
         var self = this;
         var remove;
         remove = function(data, offset) {
@@ -517,7 +500,7 @@
         };
         self._filter(remove);
     };
-    Drawing.prototype.darken = function(){
+    Drawing.prototype.darken = function darken(){
         var self = this;
         var darken;
         darken = function(data, offset) {
@@ -527,7 +510,7 @@
         };
         self._filter(darken);
     };
-    Drawing.prototype.lighten = function(){
+    Drawing.prototype.lighten = function lighten(){
         var self = this;
         var lighten;
         lighten = function(data, offset) {
@@ -537,10 +520,9 @@
         };
         self._filter(lighten);
     };
-
     function ColorSwatch(){
         var self = this;
-        _$rapyd$_unbindAll(this, true);
+        _$rapyd$_rebindAll(this, true);
         var fg, bg;
         fg = $("<div></div>").width(36).height(36).css({
             "position": "absolute",
@@ -552,7 +534,6 @@
         bg = fg.clone();
         $("#color-swatch");
     };
-
     function main() {
         var dwg, onChange, $brushWidget, triggerChange, $tools, makeMode, $stroke, $fill, setStroke, setFill, $colorPickers, $colorPicker, makeHandler, makeReset, $swatch, idtag, resetid, callback, popupUnder, $menus, makeMenu, hideMenus, $about;
         dwg = new Drawing();
@@ -702,6 +683,5 @@
             return false;
         };
     }
-
     $(document).ready(main);
 })();
