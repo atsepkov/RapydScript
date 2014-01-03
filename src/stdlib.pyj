@@ -2,62 +2,13 @@
 # RapydScript Standard Library
 # Author: Alexander Tsepkov
 # Copyright 2013 Pyjeon Software LLC
-# License: Apache License	2.0
+# License: Apache License    2.0
 # This library is covered under Apache license, so that
 # you can distribute it with your RapydScript applications.
 ###########################################################
 
 
-###########################################################
-# Basic Functionality
-###########################################################
-
-JSON = JSON or {}
-
-# implement JSON.stringify in older browsers, if doesn't already exist
-if not JSON.stringify:
-	JS("""
-	JSON.stringify = function(obj) {
-		var t = typeof (obj);
-		if (t != "object" || obj === null) {
-			// simple data type
-			if (t == "string")
-				obj = '"' + obj + '"';
-			if (t == "function")
-				return; // return undefined
-			else
-				return String(obj);
-		} else {
-			// recurse array or object
-			var n, v, json = []
-			var arr = (obj && obj.constructor == Array);
-			for (n in obj) {
-				v = obj[n];
-				t = typeof (v);
-				if (t != "function" && t != "undefined") {
-					if (t == "string")
-						v = '"' + v + '"';
-					else if ((t == "object" || t == "function") && v !== null)
-						v = JSON.stringify(v);
-					json.push((arr ? "" : '"' + n + '":') + String(v));
-				}
-			}
-			return (arr ? "[" : "{") + String(json) + (arr ? "]" : "}");
-		}
-	};
-	""")
-
-# Pythonic shortcut for converting an object to string
-str = JSON.stringify
-
-
-###########################################################
-# Errors
-###########################################################
-class ValueError(Error):
-	def __init__(self, message):
-		self.name = "ValueError"
-		self.message = message
+import stdlib_common
 
 
 ###########################################################
@@ -68,100 +19,40 @@ String.prototype.strip = String.prototype.trim
 String.prototype.lstrip = String.prototype.trimLeft
 String.prototype.rstrip = String.prototype.trimRight
 String.prototype.join = def(iterable):
-	return iterable.join(this)
+    return iterable.join(this)
 String.prototype.zfill = def(size):
-	s = this
-	while s.length < size:
-		s = "0" + s
-	return s
+    s = this
+    while s.length < size:
+        s = "0" + s
+    return s
 
 
 ###########################################################
 # Array Methods
 ###########################################################
 def list(iterable=[]):
-	result = []
-	for i in iterable:
-		result.append(i)
-	return result
+    result = []
+    for i in iterable:
+        result.append(i)
+    return result
 Array.prototype.append = Array.prototype.push
 Array.prototype.find = Array.prototype.indexOf
 Array.prototype.index = def(index):
-	val = this.find(index)
-	if val == -1:
-		raise ValueError(str(index) + " is not in list")
-	return val
+    val = this.find(index)
+    if val == -1:
+        raise ValueError(str(index) + " is not in list")
+    return val
 Array.prototype.insert = def(index, item):
-	this.splice(index, 0, item)
+    this.splice(index, 0, item)
 Array.prototype.pop = def(index=this.length-1):
-	return this.splice(index, 1)[0]
+    return this.splice(index, 1)[0]
 Array.prototype.extend = def(array2):
-	this.push.apply(this, array2)
+    this.push.apply(this, array2)
 Array.prototype.remove = def(item):
-	index = this.find(item)
-	this.splice(index, 1)
+    index = this.find(item)
+    this.splice(index, 1)
 Array.prototype.copy = def():
-	return this.slice(0)
-if not Array.prototype.map:
-	# declare map() method for older browsers
-	JS("""
-	Array.prototype.map = function(callback, thisArg) {
-		var T, A, k;
-		if (this == null) {
-			throw new TypeError(" this is null or not defined");
-		}
-		var O = Object(this);
-		var len = O.length >>> 0;
-		if ({}.toString.call(callback) != "[object Function]") {
-			throw new TypeError(callback + " is not a function");
-		}
-		if (thisArg) {
-			T = thisArg;
-		}
-		A = new Array(len);
-		for (var k = 0; k < len; k++) {
-			var kValue, mappedValue;
-			if (k in O) {
-				kValue = O[k];
-				mappedValue = callback.call(T, kValue);
-				A[k] = mappedValue;
-			}
-		}
-		return A;
-	};
-	""")
-def map(oper, arr):
-	return arr.map(oper)
-if not Array.prototype.filter:
-	# declare filter() method for older browsers
-	JS("""
-	Array.prototype.filter = function(filterfun, thisArg) {
-		"use strict";
-		if (this == null) {
-			throw new TypeError(" this is null or not defined");
-		}
-		var O = Object(this);
-		var len = O.length >>> 0;
-		if ({}.toString.call(filterfun) != "[object Function]") {
-			throw new TypeError(filterfun + " is not a function");
-		}
-		if (thisArg) {
-			T = thisArg;
-		}
-		var A = [];
-		var thisp = arguments[1];
-		for (var k = 0; k < len; k++) {
-			if (k in O) {
-				var val = O[k]; // in case fun mutates this
-				if (filterfun.call(T, val))
-					A.push(val);
-			}
-		}
-		return A;
-	};
-	""")
-def filter(oper, arr):
-	return arr.filter(oper)
+    return this.slice(0)
 
 
 ###########################################################
@@ -170,44 +61,44 @@ def filter(oper, arr):
 # dict (this is a bit of a hack for now, to avoid overwriting the Object)
 # the methods below must be used via dict.method(object) instead of object.method()
 def dict(iterable):
-	result = {}
-	for key in iterable:
-		result[key] = iterable[key]
-	return result
+    result = {}
+    for key in iterable:
+        result[key] = iterable[key]
+    return result
 
 if type(Object.getOwnPropertyNames) is not "function":
-	# IE and older browsers
-	dict.keys = def(hash):
-		keys = []
+    # IE and older browsers
+    dict.keys = def(hash):
+        keys = []
 
-		# Use a standard for in loop
-		JS("""
-		for (var x in hash) {
-			if (hash.hasOwnProperty(x)) {
-				keys.push(x);
-			}
-		}
-		""")
-		return keys
+        # Use a standard for in loop
+        JS("""
+        for (var x in hash) {
+            if (hash.hasOwnProperty(x)) {
+                keys.push(x);
+            }
+        }
+        """)
+        return keys
 else:
-	# normal browsers
-	dict.keys = def(hash):
-		return Object.getOwnPropertyNames(hash)
+    # normal browsers
+    dict.keys = def(hash):
+        return Object.getOwnPropertyNames(hash)
 
 dict.values = def(hash):
-	vals = []
-	for key in dict.keys(hash):
-		vals.append(hash[key])
-	return vals
+    vals = []
+    for key in dict.keys(hash):
+        vals.append(hash[key])
+    return vals
 
 dict.items = def(hash):
-	items = []
-	for key in dict.keys(hash):
-		items.append((key, hash[key]))
-	return items
+    items = []
+    for key in dict.keys(hash):
+        items.append((key, hash[key]))
+    return items
 
 dict.copy = dict
 
 dict.clear = def(hash):
-	for key in dict.keys(hash):
-		del hash[key]
+    for key in dict.keys(hash):
+        del hash[key]

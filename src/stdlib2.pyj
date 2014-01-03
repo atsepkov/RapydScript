@@ -8,53 +8,7 @@
 ###########################################################
 
 
-###########################################################
-# Basic Functionality
-###########################################################
-
-JSON = JSON or {}
-
-# implement JSON.stringify in older browsers, if doesn't already exist
-if not JSON.stringify:
-	JS("""
-	JSON.stringify = function(obj) {
-		var t = typeof (obj);
-		if (t != "object" || obj === null) {
-			// simple data type
-			if (t == "string")
-				obj = '"' + obj + '"';
-			if (t == "function")
-				return; // return undefined
-			else
-				return String(obj);
-		} else {
-			// recurse array or object
-			var n, v, json = []
-			var arr = (obj && obj.constructor == Array);
-			for (n in obj) {
-				v = obj[n];
-				t = typeof (v);
-				if (t != "function" && t != "undefined") {
-					if (t == "string")
-						v = '"' + v + '"';
-					else if ((t == "object" || t == "function") && v !== null)
-						v = JSON.stringify(v);
-					json.push((arr ? "" : '"' + n + '":') + String(v));
-				}
-			}
-			return (arr ? "[" : "{") + String(json) + (arr ? "]" : "}");
-		}
-	};
-	""")
-
-
-###########################################################
-# Errors
-###########################################################
-class ValueError(Error):
-	def __init__(self, message):
-		self.name = "ValueError"
-		self.message = message
+import stdlib_common
 
 
 ###########################################################
@@ -155,68 +109,6 @@ class list(Array):
 		# a method needed only for Firefox, otherwise it craps out
 		# this is a bit of a hack now, stringify doesn't return correct array representation
 		return '[' + self + ']'
-
-if not Array.prototype.map:
-	# declare map() method for older browsers
-	JS("""
-	Array.prototype.map = function(callback, thisArg) {
-		var T, A, k;
-		if (this == null) {
-			throw new TypeError(" this is null or not defined");
-		}
-		var O = Object(this);
-		var len = O.length >>> 0;
-		if ({}.toString.call(callback) != "[object Function]") {
-			throw new TypeError(callback + " is not a function");
-		}
-		if (thisArg) {
-			T = thisArg;
-		}
-		A = new Array(len);
-		for (var k = 0; k < len; k++) {
-			var kValue, mappedValue;
-			if (k in O) {
-				kValue = O[k];
-				mappedValue = callback.call(T, kValue);
-				A[k] = mappedValue;
-			}
-		}
-		return A;
-	};
-	""")
-def map(oper, arr):
-	return list(arr.map(oper))
-
-if not Array.prototype.filter:
-	# declare filter() method for older browsers
-	JS("""
-	Array.prototype.filter = function(filterfun, thisArg) {
-		"use strict";
-		if (this == null) {
-			throw new TypeError(" this is null or not defined");
-		}
-		var O = Object(this);
-		var len = O.length >>> 0;
-		if ({}.toString.call(filterfun) != "[object Function]") {
-			throw new TypeError(filterfun + " is not a function");
-		}
-		if (thisArg) {
-			T = thisArg;
-		}
-		var A = [];
-		var thisp = arguments[1];
-		for (var k = 0; k < len; k++) {
-			if (k in O) {
-				var val = O[k]; // in case fun mutates this
-				if (filterfun.call(T, val))
-					A.push(val);
-			}
-		}
-		return A;
-	};
-	""")
-def filter(oper, arr):
-	return list(arr.filter(oper))
 
 
 ###########################################################

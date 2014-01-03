@@ -1,0 +1,179 @@
+###########################################################
+# RapydScript Standard Library
+# Author: Alexander Tsepkov
+# Copyright 2013 Pyjeon Software LLC
+# License: Apache License    2.0
+# This library is covered under Apache license, so that
+# you can distribute it with your RapydScript applications.
+###########################################################
+
+
+###########################################################
+# Basic Functionality
+###########################################################
+JSON = JSON or {}
+
+# implement JSON.stringify in older browsers, if doesn't already exist
+if not JSON.stringify:
+    JS("""
+    JSON.stringify = function(obj) {
+        var t = typeof (obj);
+        if (t != "object" || obj === null) {
+            // simple data type
+            if (t == "string")
+                obj = '"' + obj + '"';
+            if (t == "function")
+                return; // return undefined
+            else
+                return String(obj);
+        } else {
+            // recurse array or object
+            var n, v, json = []
+            var arr = (obj && obj.constructor == Array);
+            for (n in obj) {
+                v = obj[n];
+                t = typeof (v);
+                if (t != "function" && t != "undefined") {
+                    if (t == "string")
+                        v = '"' + v + '"';
+                    else if ((t == "object" || t == "function") && v !== null)
+                        v = JSON.stringify(v);
+                    json.push((arr ? "" : '"' + n + '":') + String(v));
+                }
+            }
+            return (arr ? "[" : "{") + String(json) + (arr ? "]" : "}");
+        }
+    };
+    """)
+
+# Pythonic shortcut for converting an object to string
+str = JSON.stringify
+
+
+
+###########################################################
+# Errors
+###########################################################
+class IndexError(Error):
+    def __init__(self, message="list index out of range"):
+        self.name = "IndexError"
+        self.message = message
+
+class TypeError(Error):
+    def __init__(self, message):
+        self.name = "TypeError"
+        self.message = message
+
+class ValueError(Error):
+    def __init__(self, message):
+        self.name = "ValueError"
+        self.message = message
+
+class AssertionError(Error):
+    def __init__(self, message=""):
+        self.name = "AssertionError"
+        self.message = message
+
+
+###########################################################
+# Arrays
+###########################################################
+if not Array.prototype.map:
+	# declare map() method for older browsers
+	JS("""
+	Array.prototype.map = function(callback, thisArg) {
+		var T, A, k;
+		if (this == null) {
+			throw new TypeError(" this is null or not defined");
+		}
+		var O = Object(this);
+		var len = O.length >>> 0;
+		if ({}.toString.call(callback) != "[object Function]") {
+			throw new TypeError(callback + " is not a function");
+		}
+		if (thisArg) {
+			T = thisArg;
+		}
+		A = new Array(len);
+		for (var k = 0; k < len; k++) {
+			var kValue, mappedValue;
+			if (k in O) {
+				kValue = O[k];
+				mappedValue = callback.call(T, kValue);
+				A[k] = mappedValue;
+			}
+		}
+		return A;
+	};
+	""")
+def map(oper, arr):
+	return list(arr.map(oper))
+
+if not Array.prototype.filter:
+	# declare filter() method for older browsers
+	JS("""
+	Array.prototype.filter = function(filterfun, thisArg) {
+		"use strict";
+		if (this == null) {
+			throw new TypeError(" this is null or not defined");
+		}
+		var O = Object(this);
+		var len = O.length >>> 0;
+		if ({}.toString.call(filterfun) != "[object Function]") {
+			throw new TypeError(filterfun + " is not a function");
+		}
+		if (thisArg) {
+			T = thisArg;
+		}
+		var A = [];
+		var thisp = arguments[1];
+		for (var k = 0; k < len; k++) {
+			if (k in O) {
+				var val = O[k]; // in case fun mutates this
+				if (filterfun.call(T, val))
+					A.push(val);
+			}
+		}
+		return A;
+	};
+	""")
+def filter(oper, arr):
+	return list(arr.filter(oper))
+def sum(arr, start=0):
+    return arr.reduce(
+        def(prev, cur): return prev+cur;,
+        start
+    )
+
+
+###########################################################
+# Deep Equality Comparison
+###########################################################
+def deep_eq(a, b):
+    """
+    Equality comparison that works with all data types, returns true if structure and
+    contents of first object equal to those of second object
+
+    Arguments:
+        a: first object
+        b: second object
+    """
+    if a is b:
+        # simple object
+        return True
+
+    if (isinstance(a, Array) and isinstance(b, Array)) or (isinstance(a, Object) and isinstance(b, Object)):
+        # if length ot type doesn't match, they can't be equal
+        if a.constructor is not b.constructor or a.length is not b.length:
+            return False
+
+        # compare individual properties (order doesn't matter if it's a hash)
+        for i in dict.keys(a):
+            if b.hasOwnProperty(i):
+                # recursively test equality of object children
+                if not deep_eq(a[i], b[i]):
+                    return False
+            else:
+                return False
+        return True
+    return False
