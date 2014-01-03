@@ -81,11 +81,12 @@ module random:
         return x.slice(population.length-k)
 
 
+#import stdlib
 #a = range(50)
 #random.seed(5)
-#console.log(random.choice(a))
-#console.log(random.shuffle(a))
-#console.log(random.randrange(10))
-#console.log(random.randint(1,5))
-#console.log(random.uniform(1,5))
-#console.log(random.sample(range(20),5))
+#print(random.choice(a))
+#print(random.shuffle(a))
+#print(random.randrange(10))
+#print(random.randint(1,5))
+#print(random.uniform(1,5))
+#print(random.sample(range(20),5))

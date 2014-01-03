@@ -147,15 +147,15 @@ module re:
 
 
 
-
+#import stdlib
 #a = re.compile('test.*one', re.I + re.M + re.D)
-#console.log(a)
+#print(a)
 #s = "Isaac Newton, physicist"
 #c = re.search("(\\w+) (\\w+)", s)
-#console.log(c)
+#print(c)
 #c = re.match("(\\w+) (\\w+)", s)
-#console.log(c)
-#console.log(re.split('\\s', s))
-#console.log(re.findall('s[a-z]', s))
-#console.log(re.sub('[A-Z]', '_', s))
-#console.log(re.subn('[A-Z]', '_', s))
+#print(c)
+#print(re.split('\\s', s))
+#print(re.findall('s[a-z]', s))
+#print(re.sub('[A-Z]', '_', s))
+#print(re.subn('[A-Z]', '_', s))

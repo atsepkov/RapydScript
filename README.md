@@ -314,7 +314,7 @@ One thing to note here, is that unlike Python, RapydScript will create a separat
 
 Variable number of arguments (*args)
 ------------------------------------
-Like Python, Javascript allows the user to write a function that takes variable number of arguments and performs its logic on all of them. Some examples of this are Math.max(), console.log() function and array's concat() method. Unlike, Python, however, JavaScript does not make this intuitive. You have to use a special iterable element inside the function called `arguments`, which has some properties of an array but doesn't support all of the functionality. Likewise, if you want to unfold an array into a list of arguments for a function during a function call, you have to use `.apply()` method instead of invoking the function normally. RapydScript converts Pythonic way of `*args` declaration to JavaScript. For example, the following function definition will take 2 named arguments, and dump the rest into an array (which DOES support all of array functionality):
+Like Python, Javascript allows the user to write a function that takes variable number of arguments and performs its logic on all of them. Some examples of this are Math.max(), console.log() function and array's concat() method. Unlike, Python, however, JavaScript does not make this intuitive. You have to use a special iterable element inside the function called `arguments`, which has some properties of an array but doesn't support all of the functionality. Likewise, if you want to unfold an array into a list of arguments for a function during a function call, you have to use `.apply()` method instead of invoking the function normally. RapydScript converts Pythonic way of `*args` declaration to JavaScript. For example, the following function definition will take 2 named arguments, and dump the rest into an array (an actual array, not a gimped `arguments` object, like in JavaScript):
 	
 	def doSomething(a, b, *args):
 		...
@@ -341,7 +341,7 @@ In this particular case, there is no advantage to using `*`, but if `args` gets 
 
 Inferred Tuple Packing/Unpacking
 --------------------------------
-Like Python, RapydScript allows inferred tuple packing/unpacking and assignment. While inferred/implicit logic is usually bad, it can sometimes make the code more cleaner, and based on the order of statements in the Zen of Python, 'beautiful' takes priority over 'explicit'. For example, if you wanted to swap two variables, the following looks cleaner than explicitly declaring a temporary variable:
+Like Python, RapydScript allows inferred tuple packing/unpacking and assignment. While inferred/implicit logic is usually bad, it can sometimes make the code cleaner, and based on the order of statements in the Zen of Python, 'beautiful' takes priority over 'explicit'. For example, if you wanted to swap two variables, the following looks cleaner than explicitly declaring a temporary variable:
 
 	a, b = b, a
 
@@ -380,7 +380,7 @@ To summarize packing and unpacking, it's basically just syntax sugar to remove o
 
 Python vs JavaScript
 --------------------
-RapydScript allows you use both, Python and JavaScript names for the methods. For example, we can 'push()' a value to array, as well as 'append()' it:
+RapydScript allows you to use both, Python and JavaScript names for the methods. For example, we can 'push()' a value to array, as well as 'append()' it:
 
 	arr = []
 	arr.push(2)
@@ -427,6 +427,12 @@ The JavaScript operators, however, are not supported. You will have to use Pytho
 	
 Admittedly, `is` is not exactly the same thing in Python as `===` in JavaScript, but JavaScript is quirky when it comes to comparing objects anyway.
 
+You may also be interested in `deep_eq` function, which is part of `stdlib`. It performs deep equality test on two objects, and works on any types, including hashes and arrays:
+
+	deep_eq([1,2,3], [1,[2,3]])		# False
+	deep_eq([[1,2],3], [1,[2,3]])	# False
+	deep_eq([1,[2,3]], [1,[2,3]])	# True
+
 In rare cases RapydScript might not allow you to do what you need to, and you need access to pure JavaScript. When that's the case, you can wrap your JavaScript in a string, passing it to JS() method. Code inside JS() method is not a sandbox, you can still interact with it from normal RapydScript:
 
 	JS('a = {foo: "bar", baz: 1};')
@@ -464,7 +470,10 @@ Like in Python, if you just want the index, you can use range:
 
 	for index in range(len(animals)):			# or range(animals.length)
 		print("animal "+index+" is a "+animals[index])
-		
+
+When possible, RapydScript will automatically optimize the loop for you into JavaScript's basic syntax, so you're not missing much by not being able to call it directly.
+
+
 List Comprehensions
 -------------------
 RapydScript also supports list comprehensions, using Python syntax. Instead of the following, for example:
@@ -477,28 +486,13 @@ RapydScript also supports list comprehensions, using Python syntax. Instead of t
 You could write this:
 
 	myArray = [i*i for i in range(1,20) if i*i%3 == 0]
-	
-Which is not only shorter, but easier to read too. There are a few gotchas you might want to be aware of. RapydScript implements list comprehensions via a combination of `map()` and `filter()` functions, which are now part of the stdlib. For example, the above line compiles to:
 
-	var myArray;
-	myArray = range(1,20).filter(function(i) { return i*i%3 == 0; }).map(function(i) { return i*i; });
-
-I have not tested RapydScript with more complex list comprehensions, and given its current implementation (regex), it's likely to break when you start nesting them (however, this in general is a bad idea anyway, when your list comprehensions start getting incomprehensibly long, you're better off with a loop anyway). Second, RapydScript takes the `i*i` and `i*i%3 == 0` portions and inserts them into the output verbatim. This means that Python-only syntax, such as `i**2` might not get compiled correctly here, but `**` is not supported by RapydScript anyway, and I couldn't think of another case, so this is a low-priority bug for now (also, the work-around is quite simple, define a function doing the same operation before-hand). Which brings me to my last point. To accomodate filter() and map() syntax, RapydScript wraps this logic in an additional function call. So `i*i` becomes:
-
-	function (i) {
-		return i*i;
-	}
-	
-This makes sense. However, this also means that if you write the following comprehension:
-
-	[stuff(x) for x in [1,2,3]]
-
-then `stuff(x)` also gets wrapped in an extra function. I'd rather deal with the overhead of an extra function call, however, than adding more special cases that could introduce additional bugs. The current list comprehension in RapydScript is not built with performance in mind. It does omit the filter() part if you don't include the `if` statement, and it always filters first, to reduce the number of elements it needs to run map() on. However, in the worst case scenario (when filter doesn't remove any elements), it will generate two extra arrays internally of the same size as original.
+**NOTE:** The rest of this section has been removed since the quirks it mentions have not been relevant since the old, Python-based compiler. Current implementation works just as well as a normal loop.
 
 
 Inclusive/Exclusive Sequences
 -----------------------------
-Like Python, RapydScript has a range() function. While powerful, the result it generates isn't immediatelly obvious when looking at the code. It's a minor pet peeve, but the couple extra seconds trying to visually parse it and remember that it's not inclusive can detract from the code flow. To remedy this, RapydScript borrows `to/til` operators from LiveScript (also known as human-readable versions of Ruby's `../...`). The following 4 lines of code are equivalent, for example:
+Like Python, RapydScript has a range() function. While powerful, the result it generates isn't immediately obvious when looking at the code. It's a minor pet peeve, but the couple extra seconds trying to visually parse it and remember that it's not inclusive can detract from the code flow. To remedy this, RapydScript borrows `to/til` operators from LiveScript (also known as human-readable versions of Ruby's `../...`). The following 4 lines of code are equivalent, for example:
 
 	a = [3 to 8]
 	a = [3 til 9]
