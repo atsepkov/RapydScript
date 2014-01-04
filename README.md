@@ -24,15 +24,15 @@ Let's not waste any more time with the introductions, however. The best way to l
 
 Community
 ---------
-If you have questions, bug reports, or feature requests, feel free to post them on our mailing list:
-(<http://groups.google.com/group/rapydscript>)
+If you have questions, bug reports, or feature requests, feel free to post them on our mailing list:  
+<http://groups.google.com/group/rapydscript>
 
 I bundled a few demos with RapydScript itself, but several members of the community put together much better demos themselves. If you would like to take a look at them to see what's possible with RapydScript, here are some examples:
 
-http://salvatore.pythonanywhere.com/RapydScript
+<http://salvatore.pythonanywhere.com/RapydScript>  
 This includes the demos from RapydScript's `examples` directory, as well as a few others.
 
-http://salvatore.pythonanywhere.com/RapydBox/editor
+<http://salvatore.pythonanywhere.com/RapydBox/editor>  
 This is a collection of very cool demos, showcasing RapydScript's similarity to real Python and at the same time its ability to work with other JavaScript. It relies on a JavaScript port of NodeBox (which was originally written in Python). NodeBox was ported from Python to JavaScript to allow cross-platform compatibility. Ironically, the original demos from Python version of NodeBox now work with JavaScript version of NodeBox with few changes (and sometimes none at all) by using RapydScript.
 
 
@@ -175,6 +175,12 @@ Note the comma on a new line following a function declaration, it needs to be th
 		'bar':	def():
 			print('bar')
 	}
+
+It is because of easy integration with JavaScript's native libraries that RapydScript keeps its own libraries to a minimum. For example, it does not implement string interpolation, like native Python. However, by using `sprintf.js` library (<https://github.com/alexei/sprintf.js>) you can reproduce the same behavior in RapydScript:
+
+	string = vsprintf('%d bottles of %s on the wall', (99, 'beer'))
+
+Take a look at the `examples` directory to see RapydScript integration with `jQuery`, `jQuery-UI`, `D3`, and `Google Charts`.
 
 
 Anonymous Functions
