@@ -577,7 +577,11 @@ An important distinction between Python and RapydScript is that RapydScript does
 			SomethingElse.method(self, var)
 			SomethingElse.anotherMethod(self)
 
-Notice that `Something` class has no `__init__` method. Like in Python, this method is optional for classes. If you omit it, an empty constructor will automatically get created for you by RapydScript (or when inheriting, the parent's constructor will be used). Also notice that we never inherited from SomethingElse class, yet we can invoke its methods. This brings us to the next point, the only real advantage of inheriting from another class (which you can't gain by calling the other classes method as shown above) is that the omitted methods are automatically copied from the parent. Admittedly, we might also care about instance() method, to have it work with the non-main parent, but we're already overwriting JavaScript's instanceof() method in stdlib, so feel free to tweak it further, if you have the need to. To summarize classes, assume they work the same way as in Python, plus a few bonus cases. The following, for example, are equivalent:
+Notice that `Something` class has no `__init__` method. Like in Python, this method is optional for classes. If you omit it, an empty constructor will automatically get created for you by RapydScript (or when inheriting, the parent's constructor will be used). Also notice that we never inherited from SomethingElse class, yet we can invoke its methods. This brings us to the next point, the only real advantage of inheriting from another class (which you can't gain by calling the other classes method as shown above) is that the omitted methods are automatically copied from the parent. Admittedly, we might also care about `isinstance()` method, to have it work with the non-main parent, which is equivalent to JavaScript's `instanceof` operator.
+
+**NOTE:** If you compile your code without `--screw-ie8` flag, the constructor will be executed every time you create a subclass of the given class. In most cases this will not hurt you, but in some cases you could see odd side-effects. For example, having a `print()` statement in the parent constructor will cause its contents to be output for every subclass, even if you do not explicitly create an instance. `--screw-ie8` option fixes this issue, at the expense of compatibility with Internet Explorer 6-8.
+
+To summarize classes, assume they work the same way as in Python, plus a few bonus cases. The following, for example, are equivalent:
 
 	class Aclass:
 		def __init__(self):
@@ -894,6 +898,9 @@ For the most part, the logic implemented in these libraries functions identicall
 Advanced Usage Topics
 ---------------------
 This section contains various topics which might be of interest to the programmer writing large projects using RapydScript, but might not be relevant to a programmer who is just getting started with RapydScript. The topics in this section focus on coding conventions to keep your code clean, optimizations, and additional libraries that come with RapydScript, as well as suggestions for writing your own libraries.
+
+### Browser Compatibility
+By default, RapydScript compiles your logic such that it will work on modern browsers running HTML5, as well as older browser like IE6-8. To do so, the compiler sometimes has to generate rather messy and inefficient output. As of September, 2013, less than 8% of the world has been found to be using IE8. If you know that your users will not be using older browsers, you can compile your logic with `--screw-ie8` option to generate cleaner, faster code.
 
 ### Code Conventions
 It's not hard to see that RapydScript is a cleaner language than JavaScript. However, like with all dynamically-typed languages (including Python), it's still easy to shoot yourself in the foot if you don't follow some sort of code conventions. Needless to say, they're called `conventions` for a reason, feel free to ignore them if you already have a set of conventions you follow or if you disagree with some.

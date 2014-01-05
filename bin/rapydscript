@@ -91,6 +91,20 @@ if (ARGS.h || ARGS.help) {
     process.exit(0);
 }
 
+// configure settings for the output
+var BEAUTIFY = getOptions("p", true);
+var NO_MODULE_WRAPPER = getOptions("b", false);
+var NAMESPACE_IMPORTS = getOptions("n", false);
+var OMIT_BASELIB = getOptions("m", false);
+
+var OUTPUT_OPTIONS = {
+    beautify: BEAUTIFY ? true : false,
+    private_scope: NO_MODULE_WRAPPER ? false : true,
+    namespace_imports: NAMESPACE_IMPORTS ? true : false,
+    omit_baselib: OMIT_BASELIB ? true : false,
+    screw_old_browsers: ARGS.screw_ie8 ? true : false
+};
+
 if (ARGS.t || ARGS.test) {
     // run all tests and exit
     var assert = require("assert");
@@ -132,42 +146,37 @@ if (ARGS.t || ARGS.test) {
             return;
         }
         // generate output
-        var output = RapydScript.OutputStream({beautify: true});
-        ast.print(output);
+        // only a certain subset of flags we can set could produce successful unit tests, let's hardcode that subset
+        for (var i = 0; i < 2; i++) {
+            var title = i == 0 ? 'normal:\t\t' : 'screw-ie8:\t';
+            sys.print(title);
+            var output = RapydScript.OutputStream({
+                screw_old_browsers: i
+            });
+            ast.print(output);
 
-        // test that output performs correct JS operations
-//        sys.print(output);
-//            eval(output.toString());
-        var testcontent = "exports.run = function(){assert = require('assert');" + output.toString() + "};";
-        fs.writeFileSync(filepath + ".js", testcontent);
-        var testcase = require(filepath + ".js");
-        try {
-            testcase.run();
-        } catch (e) {
-            sys.print(file + ":\t" + e.stack + "\n\n");
+            // test that output performs correct JS operations
+    //        sys.print(output);
+    //            eval(output.toString());
+            var testcontent = "exports.run = function(){assert = require('assert');" + output.toString() + "};";
+            fs.writeFileSync(filepath + ".js", testcontent);
+            var testcase = require(filepath + ".js");
+            try {
+                testcase.run();
+            } catch (e) {
+                sys.print(file + ":\t" + e.stack + "\n\n");
+                fs.unlinkSync(filepath + ".js");
+                return;
+            }
+            sys.print(file + ":\ttest completed successfully\n");
             fs.unlinkSync(filepath + ".js");
-            return;
-        }
-        sys.print(file + ":\ttest completed successfully\n");
-        fs.unlinkSync(filepath + ".js");
+        };
     });
     process.exit(0);
 }
 
-var BEAUTIFY = getOptions("p", true);
-var NO_MODULE_WRAPPER = getOptions("b", false);
-var NAMESPACE_IMPORTS = getOptions("n", false);
-var OMIT_BASELIB = getOptions("m", false);
-
-var OUTPUT_OPTIONS = {
-    beautify: BEAUTIFY ? true : false,
-    private_scope: NO_MODULE_WRAPPER ? false : true,
-    namespace_imports: NAMESPACE_IMPORTS ? true : false,
-    omit_baselib: OMIT_BASELIB ? true : false
-};
-
-if (BEAUTIFY)
-    RapydScript.merge(OUTPUT_OPTIONS, BEAUTIFY);
+//if (BEAUTIFY);
+//    RapydScript.merge(OUTPUT_OPTIONS, BEAUTIFY);
 
 if (ARGS.comments) {
     if (/^\//.test(ARGS.comments)) {
