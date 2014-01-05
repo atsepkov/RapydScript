@@ -18,12 +18,12 @@ Use a single dash to read input from the standard input.\
     .describe("o", "Output file (default STDOUT).")
     .describe("b", "Remove the module wrapper that prevents RapydScript \
 scope from bleeding into other JavaScript logic.")
-    .describe("n", "Import modules into separate namespaces like Python \
+    .describe("n", "Import files into separate modules like Python \
 instead of concatenating them [experimental].")
+    .describe("i", "Automatically bind function methods to functions themselves \
+instead of using @bound decorator [experimental].")
     .describe("p", "Prettify output/specify output options.")
     .describe("m", "Omit baselib functions (use this if you have a different way of ensuring they're imported, such as including baselib.js).")
-    .describe("d", "Global definitions")
-    .describe("e", "Embed everything in a big function, with a configurable parameter/argument list.")
     .describe("t", "Run RapydScript tests")
 
     .describe("comments", "Preserve copyright comments in the output. \
@@ -36,10 +36,10 @@ Note that currently not *all* comments can be kept when compression is on, \
 because of dead code removal or cascading statements into sequences.")
 
     .describe("stats", "Display operations run time on STDERR.")
-    .describe("self", "Build itself (RapydScript2) as a library (implies --wrap=RapydScript --export-all)")
-    .describe("wrap", "Embed everything in a big function, making the “exports” and “global” variables available. \
-You need to pass an argument to this option to specify the name that your module will take when included in, say, a browser.")
-    .describe("export-all", "Only used when --wrap, this tells RapydScript to add code to automatically export all globals.")
+//    .describe("self", "Build itself (RapydScript2) as a library (implies --wrap=RapydScript --export-all)")
+//    .describe("wrap", "Embed everything in a big function, making the “exports” and “global” variables available. \
+//You need to pass an argument to this option to specify the name that your module will take when included in, say, a browser.")
+//    .describe("export-all", "Only used when --wrap, this tells RapydScript to add code to automatically export all globals.")
     .describe("v", "Verbose")
     .describe("V", "Print version number and exit.")
 
@@ -47,25 +47,21 @@ You need to pass an argument to this option to specify the name that your module
     .alias("b", "bare")
     .alias("v", "verbose")
     .alias("n", "namespace-imports")
+    .alias("i", "auto-bind")
     .alias("p", "prettify")
     .alias("m", "omit-baselib")
-    .alias("d", "define")
-    .alias("r", "reserved")
     .alias("V", "version")
-    .alias("e", "enclose")
     .alias("t", "test")
 
     .string("p")
-    .string("d")
-    .string("e")
     .string("comments")
     .string("wrap")
     .boolean("screw-ie8")
-    .boolean("export-all")
-    .boolean("self")
     .boolean("v")
     .boolean("stats")
     .boolean("V")
+//    .boolean("export-all")
+//    .boolean("self")
 
     .wrap(80)
 
@@ -95,12 +91,14 @@ if (ARGS.h || ARGS.help) {
 var BEAUTIFY = getOptions("p", true);
 var NO_MODULE_WRAPPER = getOptions("b", false);
 var NAMESPACE_IMPORTS = getOptions("n", false);
+var AUTO_BIND = getOptions("i", false);
 var OMIT_BASELIB = getOptions("m", false);
 
 var OUTPUT_OPTIONS = {
     beautify: BEAUTIFY ? true : false,
     private_scope: NO_MODULE_WRAPPER ? false : true,
     namespace_imports: NAMESPACE_IMPORTS ? true : false,
+    auto_bind: AUTO_BIND ? true : false,
     omit_baselib: OMIT_BASELIB ? true : false,
     screw_old_browsers: ARGS.screw_ie8 ? true : false
 };
@@ -146,7 +144,7 @@ if (ARGS.t || ARGS.test) {
             return;
         }
         // generate output
-        // only a certain subset of flags we can set could produce successful unit tests, let's hardcode that subset
+        // test with and without screw-ie8 flag
         for (var i = 0; i < 2; i++) {
             var title = i == 0 ? 'normal:\t\t' : 'screw-ie8:\t';
             sys.print(title);
@@ -166,7 +164,7 @@ if (ARGS.t || ARGS.test) {
             } catch (e) {
                 sys.print(file + ":\t" + e.stack + "\n\n");
                 fs.unlinkSync(filepath + ".js");
-                return;
+                continue;
             }
             sys.print(file + ":\ttest completed successfully\n");
             fs.unlinkSync(filepath + ".js");
@@ -245,6 +243,7 @@ async.eachLimit(files, 1, function (file, cb) {
                 toplevel: TOPLEVEL,
                 readfile: fs.readFileSync,
                 basedir: path.dirname(file),
+                auto_bind: AUTO_BIND ? true : false,
                 libdir: path.normalize(
                     path.join(
                         path.dirname(module.filename),

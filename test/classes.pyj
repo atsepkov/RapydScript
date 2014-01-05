@@ -32,7 +32,7 @@ class OldFriend(Friend):
 	def how_long(self):
 		return "I've known you for " + self.duration + " years"
 	def get_bound_method(self):
-		return self.how_long
+		return bind(self.how_long, self)
 	def __init__(self, name, duration):
 		self.duration = duration
 		Friend.__init__(self, name)
@@ -80,7 +80,7 @@ assert.throws(
 
 # attributes
 assert.ok(hasattr(dude, "greet"))
-assert.equal(getattr(dude, "greet")(), "Yo, it's me, some guy") # function stays bound
+assert.equal(bind(getattr(dude, "greet"), dude)(), "Yo, it's me, some guy") # function stays bound after binding
 assert.equal(hasattr(dude, "stuff"), False)
 setattr(dude, "stuff", True)
 assert.ok(hasattr(dude, "stuff"))

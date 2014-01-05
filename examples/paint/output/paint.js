@@ -1,17 +1,7 @@
 (function(){
-    function _$rapyd$_bind(fn, thisArg) {
-        if (fn._orig) fn = fn._orig;
-        var ret = fn.bind(thisArg);
-        ret._orig = fn;
-        return ret;
-    }
-    function _$rapyd$_rebindAll(thisArg, rebind) {
-        for (var p in thisArg) {
-            if (thisArg[p] && thisArg[p]._orig) {
-                if (rebind) thisArg[p] = _$rapyd$_bind(thisArg[p], thisArg);
-                else thisArg[p] = thisArg[p]._orig;
-            }
-        }
+    function _$rapyd$_extends(child, parent) {
+        child.prototype = new parent;
+        child.prototype.constructor = child;
     }
     function len(obj) {
         if (obj instanceof Array || typeof obj === "string") return obj.length;
@@ -45,21 +35,6 @@
     RCLICK = 3;
     function Drawing(){
         var self = this;
-        _$rapyd$_rebindAll(this, true);
-        this.undo = _$rapyd$_bind(this.undo, this);
-        this.redo = _$rapyd$_bind(this.redo, this);
-        this.setMode = _$rapyd$_bind(this.setMode, this);
-        this.setStroke = _$rapyd$_bind(this.setStroke, this);
-        this.setFill = _$rapyd$_bind(this.setFill, this);
-        this.setWidth = _$rapyd$_bind(this.setWidth, this);
-        this.clear = _$rapyd$_bind(this.clear, this);
-        this.exportDwg = _$rapyd$_bind(this.exportDwg, this);
-        this.invert = _$rapyd$_bind(this.invert, this);
-        this.redFilter = _$rapyd$_bind(this.redFilter, this);
-        this.greenFilter = _$rapyd$_bind(this.greenFilter, this);
-        this.blueFilter = _$rapyd$_bind(this.blueFilter, this);
-        this.darken = _$rapyd$_bind(this.darken, this);
-        this.lighten = _$rapyd$_bind(this.lighten, this);
         var ctx, $tmpCanvas, tmpCanvas, tmpCtx, canvasWidth, canvasHeight, dragging, points, selection, lastPt, transparent_bg, getXY, normalize, ellipse, drawSpline, sample, matchStartColor, eachPixel, clear, onMouseDown, onMouseMove, onMouseUp, onMouseLeave;
         self._canvas = $("#perm-dwg").get(0);
         self._ctx = ctx = self._canvas.getContext("2d");
@@ -94,7 +69,7 @@
             return [x, y, width, height];
         };
         ellipse = function(context, x, y, width, height) {
-            var ctrX, ctrY, circ, scaleX, scaleY;
+            var _$rapyd$_Unpack, ctrX, ctrY, circ, scaleX, scaleY;
             _$rapyd$_Unpack = normalize(x, y, width, height);
             x = _$rapyd$_Unpack[0];
             y = _$rapyd$_Unpack[1];
@@ -172,7 +147,7 @@
             context.clearRect(0, 0, canvasWidth, canvasHeight);
         };
         onMouseDown = function(event) {
-            var pixelStack, colorLayer, startPixel, locX, locY, swatchPixel, newPos, x, y, reachLeft, reachRight, pixelPos, tmp, data, merge;
+            var pixelStack, colorLayer, startPixel, _$rapyd$_Unpack, locX, locY, swatchPixel, newPos, x, y, reachLeft, reachRight, pixelPos, tmp, data, merge;
             event.preventDefault();
             dragging = true;
             _$rapyd$_Unpack = getXY(this, event);
@@ -288,7 +263,7 @@
             }
         };
         onMouseMove = function(event) {
-            var point, x, y;
+            var _$rapyd$_Unpack, point, x, y;
             if (self._mode == LINE && len(points)) {
                 _$rapyd$_Unpack = getXY(this, event);
                 x = _$rapyd$_Unpack[0];
@@ -337,7 +312,7 @@
             }
         };
         onMouseUp = function(event) {
-            var sx, sy, width, height, x, y;
+            var _$rapyd$_Unpack, sx, sy, width, height, x, y;
             if (_$rapyd$_in(self._mode, [ RECT, ELLIPSE ])) {
                 _$rapyd$_Unpack = getXY(this, event);
                 x = _$rapyd$_Unpack[0];
@@ -424,6 +399,8 @@
         $tmpCanvas.mouseleave(onMouseLeave);
         self._ctx.lineJoin = tmpCtx.lineJoin = self._ctx.lineCap = tmpCtx.lineCap = "round";
     };
+
+
     Drawing.prototype.undo = function undo(){
         var self = this;
         var state;
@@ -433,6 +410,7 @@
             self._ctx.putImageData(state, 0, 0);
         }
     };
+
     Drawing.prototype.redo = function redo(){
         var self = this;
         var state;
@@ -442,30 +420,37 @@
             self._ctx.putImageData(state, 0, 0);
         }
     };
+
     Drawing.prototype.setMode = function setMode(mode){
         var self = this;
         self._mode = mode;
     };
+
     Drawing.prototype.setStroke = function setStroke(style){
         var self = this;
         self._brushColor = style;
     };
+
     Drawing.prototype.setFill = function setFill(style){
         var self = this;
         self._fillColor = style;
     };
+
     Drawing.prototype.setWidth = function setWidth(value){
         var self = this;
         self._lineWidth = value;
     };
+
     Drawing.prototype.clear = function clear(){
         var self = this;
         self._clear(self._ctx);
     };
+
     Drawing.prototype.exportDwg = function exportDwg(){
         var self = this;
         return self._canvas.toDataURL();
     };
+
     Drawing.prototype.invert = function invert(){
         var self = this;
         var invert;
@@ -476,6 +461,7 @@
         };
         self._filter(invert);
     };
+
     Drawing.prototype.redFilter = function redFilter(){
         var self = this;
         var remove;
@@ -484,6 +470,7 @@
         };
         self._filter(remove);
     };
+
     Drawing.prototype.greenFilter = function greenFilter(){
         var self = this;
         var remove;
@@ -492,6 +479,7 @@
         };
         self._filter(remove);
     };
+
     Drawing.prototype.blueFilter = function blueFilter(){
         var self = this;
         var remove;
@@ -500,6 +488,7 @@
         };
         self._filter(remove);
     };
+
     Drawing.prototype.darken = function darken(){
         var self = this;
         var darken;
@@ -510,6 +499,7 @@
         };
         self._filter(darken);
     };
+
     Drawing.prototype.lighten = function lighten(){
         var self = this;
         var lighten;
@@ -520,9 +510,9 @@
         };
         self._filter(lighten);
     };
+
     function ColorSwatch(){
         var self = this;
-        _$rapyd$_rebindAll(this, true);
         var fg, bg;
         fg = $("<div></div>").width(36).height(36).css({
             "position": "absolute",
@@ -534,8 +524,10 @@
         bg = fg.clone();
         $("#color-swatch");
     };
+
+
     function main() {
-        var dwg, onChange, $brushWidget, triggerChange, $tools, makeMode, $stroke, $fill, setStroke, setFill, $colorPickers, $colorPicker, makeHandler, makeReset, $swatch, idtag, resetid, callback, popupUnder, $menus, makeMenu, hideMenus, $about;
+        var dwg, onChange, $brushWidget, triggerChange, $tools, makeMode, $stroke, $fill, setStroke, setFill, $colorPickers, $colorPicker, makeHandler, makeReset, _$rapyd$_Unpack, $swatch, idtag, resetid, callback, popupUnder, $menus, makeMenu, hideMenus, $about;
         dwg = new Drawing();
         onChange = function() {
             dwg.setWidth($(this).val());

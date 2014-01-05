@@ -1,17 +1,7 @@
 (function(){
-    function _$rapyd$_bind(fn, thisArg) {
-        if (fn._orig) fn = fn._orig;
-        var ret = fn.bind(thisArg);
-        ret._orig = fn;
-        return ret;
-    }
-    function _$rapyd$_rebindAll(thisArg, rebind) {
-        for (var p in thisArg) {
-            if (thisArg[p] && thisArg[p]._orig) {
-                if (rebind) thisArg[p] = _$rapyd$_bind(thisArg[p], thisArg);
-                else thisArg[p] = thisArg[p]._orig;
-            }
-        }
+    function _$rapyd$_extends(child, parent) {
+        child.prototype = new parent;
+        child.prototype.constructor = child;
     }
     function range(start, stop, step) {
         if (arguments.length <= 1) {
@@ -36,59 +26,59 @@
         if (typeof x === "undefined") x = 0;
         if (typeof y === "undefined") y = 0;
         if (typeof z === "undefined") z = 0;
-        _$rapyd$_rebindAll(this, true);
-        this.copy = _$rapyd$_bind(this.copy, this);
-        this.length = _$rapyd$_bind(this.length, this);
-        this.sqrLength = _$rapyd$_bind(this.sqrLength, this);
-        this.normalize = _$rapyd$_bind(this.normalize, this);
-        this.negate = _$rapyd$_bind(this.negate, this);
-        this.add = _$rapyd$_bind(this.add, this);
-        this.sub = _$rapyd$_bind(this.sub, this);
-        this.times = _$rapyd$_bind(this.times, this);
-        this.dot = _$rapyd$_bind(this.dot, this);
-        this.cross = _$rapyd$_bind(this.cross, this);
         self.x = x;
         self.y = y;
         self.z = z;
     };
+
+
     Vector.prototype.copy = function copy(){
         var self = this;
         return new Vector(self.x, self.y, self.z);
     };
+
     Vector.prototype.length = function length(){
         var self = this;
         return Math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z);
     };
+
     Vector.prototype.sqrLength = function sqrLength(){
         var self = this;
         return self.x * self.x + self.y * self.y + self.z * self.z;
     };
+
     Vector.prototype.normalize = function normalize(){
         var self = this;
         var inv;
         inv = 1 / self.length();
         return new Vector(self.x * inv, self.y * inv, self.z * inv);
     };
+
     Vector.prototype.negate = function negate(){
         var self = this;
         return new Vector(-self.x, -self.y, -self.z);
     };
+
     Vector.prototype.add = function add(v){
         var self = this;
         return new Vector(self.x + v.x, self.y + v.y, self.z + v.z);
     };
+
     Vector.prototype.sub = function sub(v){
         var self = this;
         return new Vector(self.x - v.x, self.y - v.y, self.z - v.z);
     };
+
     Vector.prototype.times = function times(k){
         var self = this;
         return new Vector(k * self.x, k * self.y, k * self.z);
     };
+
     Vector.prototype.dot = function dot(t){
         var self = this;
         return self.x * t.x + self.y * t.y + self.z * t.z;
     };
+
     Vector.prototype.cross = function cross(w){
         var self = this;
         var v;
@@ -98,51 +88,56 @@
         v.z = self.x * w.y - self.y * w.x;
         return v;
     };
+
     Vector.zero = function zero(){
         return new Vector();
     };
+
     function Ray(vectOrigin, vectDest){
         var self = this;
-        _$rapyd$_rebindAll(this, true);
-        this.getPoint = _$rapyd$_bind(this.getPoint, this);
         self.origin = vectOrigin;
         self.direction = vectDest;
     };
+
+
     Ray.prototype.getPoint = function getPoint(t){
         var self = this;
         return self.origin.add(self.direction.times(t));
     };
+
     function IntersectionResult(){
         var self = this;
-        _$rapyd$_rebindAll(this, true);
         self.sceneobject = null;
         self.distance = 0;
         self.position = Vector.zero();
         self.normal = Vector.zero();
     };
+
+
     IntersectionResult.nohit = function nohit(){
         return new IntersectionResult();
     };
+
     function Sphere(center, radius){
         var self = this;
         if (typeof center === "undefined") center = new Vector(0, 2, -1);
         if (typeof radius === "undefined") radius = 1;
-        _$rapyd$_rebindAll(this, true);
-        this.initialize = _$rapyd$_bind(this.initialize, this);
-        this.double = _$rapyd$_bind(this.double, this);
-        this.intersect = _$rapyd$_bind(this.intersect, this);
         self.center = center;
         self.radius = radius;
         self.name = "Sphere";
     };
+
+
     Sphere.prototype.initialize = function initialize(){
         var self = this;
         self.sqrRadius = self.radius * self.radius;
     };
+
     Sphere.prototype.double = function double(){
         var self = this;
         return 100;
     };
+
     Sphere.prototype.intersect = function intersect(ray){
         var self = this;
         var v, a0, DdotV, discr, r;
@@ -162,23 +157,24 @@
         }
         return IntersectionResult.nohit();
     };
+
     function Camera(eye, front, up, fov, aspectratio){
         var self = this;
-        _$rapyd$_rebindAll(this, true);
-        this.initialize = _$rapyd$_bind(this.initialize, this);
-        this.generateRay = _$rapyd$_bind(this.generateRay, this);
         self.eye = eye;
         self.front = front;
         self.RefUp = up;
         self.fov = fov;
         self.aspectratio = aspectratio;
     };
+
+
     Camera.prototype.initialize = function initialize(){
         var self = this;
         self.right = self.front.cross(self.RefUp);
         self.up = self.right.cross(self.front);
         self.fovScale = Math.tan(self.fov * .5 * Math.PI / 180) * 2;
     };
+
     Camera.prototype.generateRay = function generateRay(x, y){
         var self = this;
         var r, u, ray;
@@ -187,13 +183,13 @@
         ray = new Ray(self.eye, self.front.add(r).add(u).normalize());
         return ray;
     };
+
     function Union(geometries){
         var self = this;
-        _$rapyd$_rebindAll(this, true);
-        this.initialize = _$rapyd$_bind(this.initialize, this);
-        this.intersect = _$rapyd$_bind(this.intersect, this);
         self.geometries = geometries;
     };
+
+
     Union.prototype.initialize = function initialize(){
         var self = this;
         var geo;
@@ -203,6 +199,7 @@
             geo.initialize();
         }
     };
+
     Union.prototype.intersect = function intersect(ray){
         var self = this;
         var result, minDistance, minResult, geo;
@@ -219,19 +216,20 @@
         }
         return minResult;
     };
+
     function Plane(normal, distance){
         var self = this;
-        _$rapyd$_rebindAll(this, true);
-        this.initialize = _$rapyd$_bind(this.initialize, this);
-        this.intersect = _$rapyd$_bind(this.intersect, this);
         self.normal = normal;
         self.d = distance;
         self.name = "Plane";
     };
+
+
     Plane.prototype.initialize = function initialize(){
         var self = this;
         self.position = self.normal.times(self.d);
     };
+
     Plane.prototype.intersect = function intersect(ray){
         var self = this;
         var a, b, result;
@@ -247,31 +245,33 @@
         result.normal = self.normal;
         return result;
     };
+
     function Color(r, g, b){
         var self = this;
         if (typeof r === "undefined") r = 0;
         if (typeof g === "undefined") g = 0;
         if (typeof b === "undefined") b = 0;
-        _$rapyd$_rebindAll(this, true);
-        this.add = _$rapyd$_bind(this.add, this);
-        this.times = _$rapyd$_bind(this.times, this);
-        this.modulate = _$rapyd$_bind(this.modulate, this);
         self.r = r;
         self.g = g;
         self.b = b;
     };
+
+
     Color.prototype.add = function add(c){
         var self = this;
         return new Color(self.r + c.r, self.g + c.g, self.b + c.b);
     };
+
     Color.prototype.times = function times(k){
         var self = this;
         return new Color(k * self.r, k * self.g, k * self.b);
     };
+
     Color.prototype.modulate = function modulate(c){
         var self = this;
         return new Color(self.r * c.r, self.g * c.g, self.b * c.b);
     };
+
     Color.black = new Color();
     Color.red = new Color(1, 0, 0);
     Color.white = new Color(1, 1, 1);
@@ -281,11 +281,11 @@
     Color.cyan = new Color(0, 1, 1);
     function CheckerMaterial(scale, reflectiveness){
         var self = this;
-        _$rapyd$_rebindAll(this, true);
-        this.sample = _$rapyd$_bind(this.sample, this);
         self.scale = scale;
         self.reflectiveness = reflectiveness;
     };
+
+
     CheckerMaterial.prototype.sample = function sample(ray, position, normal){
         var self = this;
         var v;
@@ -296,17 +296,18 @@
             return Color.white;
         }
     };
+
     lightDir = new Vector(6, 8.5, 15).normalize();
     lightColor = new Color(1, 1, 1);
     function PhongMaterial(diffuse, specular, shininess, reflectiveness){
         var self = this;
-        _$rapyd$_rebindAll(this, true);
-        this.sample = _$rapyd$_bind(this.sample, this);
         self.diffuse = diffuse;
         self.specular = specular;
         self.shininess = shininess;
         self.reflectiveness = reflectiveness;
     };
+
+
     PhongMaterial.prototype.sample = function sample(ray, position, normal){
         var self = this;
         var NdotL, H, NdotH, diffuseTerm, specularTerm;
@@ -317,6 +318,7 @@
         specularTerm = self.specular.times(Math.pow(Math.max(NdotH, 0), self.shininess));
         return lightColor.modulate(diffuseTerm.add(specularTerm));
     };
+
     function rayTraceRecursive(scene, ray, maxReflect) {
         var result, reflectiveness, mat, r, reflectedColor, color;
         result = scene.intersect(ray);

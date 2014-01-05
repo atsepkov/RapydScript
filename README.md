@@ -38,27 +38,27 @@ This is a collection of very cool demos, showcasing RapydScript's similarity to 
 
 Installation
 ------------
-First make sure you have installed the latest version of [node.js](http://nodejs.org/) (You may need to restart your computer after this step).
+First make sure you have installed the latest version of [node.js](http://nodejs.org/) (You may need to restart your computer after this step). You may also need to install `optimist` library.
 
 From NPM for use as a command line app:
 
-    npm install rapydscript -g
+	npm install rapydscript -g
 
 From NPM for programmatic use:
 
-    npm install rapydscript
+	npm install rapydscript
 
 From Mercurial:
 
-    hg clone https://bitbucket.org/pyjeon/rapydscript
-    cd rapydscript
-    npm link .
+	hg clone https://bitbucket.org/pyjeon/rapydscript
+	cd rapydscript
+	npm link .
 
 From Git:
 
-    git clone git://github.com/atsepkov/RapydScript.git
-    cd RapydScript
-    npm link .
+	git clone git://github.com/atsepkov/RapydScript.git
+	cd RapydScript
+	npm link .
 
 If you're using OSX, you can probably use the same commands (let me know if that's not the case). If you're using Windows, you should be able to follow similar commands after installing node.js and git on your system.
 
@@ -78,12 +78,16 @@ files.
 
 The available options are:
 
-    -o, --output       Output file (default STDOUT).
-    -b, --bare         Omit scope-protection wrapper around generated code
-    -p, --prettify     Beautify output/specify output options.            [string]
-    -n, --namespace-imports  Pythonic imports (experimental)
-    -v, --verbose      Verbose                                           [boolean]
-    -V, --version      Print version number and exit.                    [boolean]
+	-o, --output       Output file (default STDOUT).
+	-b, --bare         Omit scope-protection wrapper around generated code
+	-p, --prettify     Beautify output/specify output options.            [string]
+	-n, --namespace-imports  Pythonic imports (experimental)
+	-v, --verbose      Verbose                                           [boolean]
+	-V, --version      Print version number and exit.                    [boolean]
+	-t, --test         Run unit tests, making sure the compiler produces usable code
+	-m, --omit-baselib Omit base library from generated code, make sure you're including baselib.js if you use this
+	-i, --auto-bind    Automatically bind methods to the class they belong to (more Pythonic, but could interfere with other JS libs)
+	--screw-ie8        Optimize compilation, sacrificing compatibility with older browsers
 
 The rest of the option remain from UglifyJS and have not been tested, some may work, but most will not, since the AST is different between RapydScript and UglifyJS. These option  will eventually be removed or modified to be relevant to RapydScript.
 
@@ -631,8 +635,7 @@ Like Python, RapydScript allows static methods. Marking the method static with `
 Some methods in the native JavaScript classes, such as `String.fromCharCode()` have also been marked as static to make things easier for the developer.
 
 
-External Classes
-----------------
+### External Classes
 RapydScript will automatically detect classes declared within the same scope (as long as the declaration occurs before use), as well as classes properly imported into the module (each module making use of a certain class should explicitly import the module containing that class). RapydScript will also properly detect native JavaScript classes (String, Array, Date, etc.). Unfortunately, RapydScript has no way of detecting classes from third-party libraries. In those cases, you could use the `new` keyword every time you create an object from such class. Alternatively, you could mark the class as external.
 
 Marking a class as external is done via `external` decorator. You do not need to fill in the contents of the class, a simple `pass` statement will do:
@@ -641,7 +644,7 @@ Marking a class as external is done via `external` decorator. You do not need to
 	class Alpha:
 		pass
 
-RapydScript will now treat `Alpha` as if it was declared within the same scope, auto-prepending the `new` keyword when needed and using `prototype` to access its methods. You don't need to pre-declare the methods of this class (unless you decide to for personal reference, the compiler will simply ignore them) unless you want to mark certain methods as static:
+RapydScript will now treat `Alpha` as if it was declared within the same scope, auto-prepending the `new` keyword when needed and using `prototype` to access its methods (see `casperjs` example in next section to see how this can be used in practice). You don't need to pre-declare the methods of this class (unless you decide to for personal reference, the compiler will simply ignore them) unless you want to mark certain methods as static:
 
 	@external
 	class Alpha:
@@ -662,6 +665,59 @@ RapydScript will now treat `Alpha` as if it was declared within the same scope, 
 As mentioned earlier, this is simply for making your code easier to read. The compiler itself will ignore all method declarations except ones marked with `staticmethod` decorator.
 
 You could also use `external` decorator to bypass improperly imported RapydScript modules. However, if you actually have control of these modules, the better solution would be to fix those imports.
+
+
+### Method Binding
+By default, RapydScript does not bind methods to the classes they're declared under. This behavior is unlike Python, but very much like the rest of JavaScript. For example, consider this code:
+
+	class Boy:
+		def __init__(self, name):
+			self.name = name
+
+		def greet(self):
+			print('My name is' + self.name)
+
+	tod = Boy('Tod')
+	tod.greet()                 # Hello, my name is Tod
+	getattr(tod, 'greet')()     # Hello, my name is undefined
+
+In some cases, however, you may wish for the functions to remain bound to the object they were retrieved from. For those cases, RapydScript has `bind` function. Unlike regular JavaScript `Function.prototype.bind`, RapydScript's `bind` can rebind methods that have already been bound. The binding we wanted to see in the above example can be achieved as follows:
+
+	bound = bind(getattr(tod, 'greet'), tod)
+	bound()                     # Hello, my name is Tod
+
+To unbind a bound method, you can call pass `false` as a second argument instead of an object you wish to bind to. You can also auto-bind all methods of the class by calling `rebind_all`:
+
+	class Boy:
+		def __init__(self, name):
+			self.name = name
+			rebind_all(self)
+
+		def greet(self):
+			print('My name is' + self.name)
+
+	tod = Boy('Tod')
+	tod.greet()                 # Hello, my name is Tod
+	getattr(tod, 'greet')()     # Hello, my name is Tod
+
+Likewise, `rebind_all(self, false)` will unbind all methods. It's not recommended to auto-bind classes that inherit from 3rd party libraries. For example, `casperjs` has `Casper` class, which RapydScript can easily inherit and extend:
+
+	@external
+	class Casper:
+		pass
+
+	class Scraper(Casper):
+		def __init__(self):
+			Casper.__init__(self)
+			self.start()
+
+	s = Scraper()
+	s.thenOpen('http://casperjs.org',
+		def(): this.echo(this.getTitle())
+	)
+	s.run()
+
+Including `rebind_all` call in the constructor, however, will break `Casper`. It is for that reason that `rebind_all` isn't added to the constructor by default by RapydScript. You could, however use `--auto-bind` compile flag to have RapydScript rebind automatically for you. There is a bit more that this flag does behind the scenes, which ensures that class binding behaves identical to Python, at the expense of some performance and compatibility with libraries like `casperjs`.
 
 
 Modules
