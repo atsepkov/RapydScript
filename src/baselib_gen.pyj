@@ -1,0 +1,15 @@
+@external
+class External:
+    def gen():
+        for i in []:
+            len()
+            range()
+            mixin()
+            bind()
+            rebindAll()
+            enumerate()
+            print()
+            reversed()
+            getattr()
+            setattr()
+            hasattr()
