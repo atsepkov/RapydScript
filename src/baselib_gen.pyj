@@ -1,7 +1,8 @@
 @external
 class External:
     def gen():
-        for i in []:
+        if a in []:
+            abs()
             len()
             range()
             mixin()
