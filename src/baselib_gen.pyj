@@ -3,6 +3,7 @@ class External:
     def gen():
         if a in []:
             abs()
+            dir()
             len()
             range()
             mixin()

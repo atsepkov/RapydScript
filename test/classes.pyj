@@ -54,6 +54,7 @@ assert.equal(angela.how_long(), "I've known you for 8 years")
 # test that function stays bound
 bound = angela.get_bound_method()
 assert.equal(bound(), angela.how_long())
+assert.deepEqual(dir(angela).sort(), ["constructor","duration","get_bound_method","greet","how_long","name","nickname"])
 
 # test that binding works in relation to the actual class, not the parent
 angela.nickname("Angie")
