@@ -132,7 +132,7 @@ if (ARGS.t || ARGS.test) {
                 libdir: path.normalize(
                     path.join(
                         path.dirname(module.filename),
-                        "../src"
+                        "../src/lib"
                     )
                 )
             });
@@ -247,7 +247,7 @@ async.eachLimit(files, 1, function (file, cb) {
                 libdir: path.normalize(
                     path.join(
                         path.dirname(module.filename),
-                        "../src"
+                        "../src/lib"
                     )
                 )
             });
