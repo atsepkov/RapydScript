@@ -108,3 +108,9 @@ assert.equal(hello("world"), "<b><i>hello world</i></b>")
 five = {}
 JS("five.is = function(n) { return 5 == n };")
 assert.ok(five.is(5))
+
+# function assignment via conditional
+foo = 0 ? def(): return 5; : def(): return 6
+bar = 0<1 ? def(): return 5; : def(): return 6
+assert.equal(foo(), 6)
+assert.equal(bar(), 5)

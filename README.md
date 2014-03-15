@@ -462,6 +462,18 @@ One last thing to note is the difference between `print()` and `console.log`, `p
 	print(hash)			# {"dogs":1,"cats":2}
 	console.log(hash)	# Object
 
+One other topic I debated for a while is handling of conditionals. In Python, if you wanted a one-liner conditional that gets assigned to a variable, you would write something like this:
+
+	foo = bar if baz else 10
+
+In JavaScript, the equivalent logic would be written as follows:
+
+	var foo = baz ? bar : 10
+
+Which one looks cleaner is subject to personal preference (I'm used to seeing condition first in most of the `if` statements, so the second way makes more sense to me). But where the second approach wins is when dealing with anonymous functions. Indeed, Python doesn't have to handle them, yet RapydScript does. As a result, I decided to go with JavaScript's approach here. This also allows me to assign functions here, same way as JavaScript would:
+
+	foo = baz ? def(): return bar; : def(): return 10
+
 
 Loops
 -----
