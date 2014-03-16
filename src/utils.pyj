@@ -1,0 +1,309 @@
+"""
+**********************************************************************
+
+  A RapydScript to JavaScript compiler.
+  https://github.com/atsepkov/RapydScript2
+
+  -------------------------------- (C) ---------------------------------
+
+                       Author: Alexander Tsepkov
+                         <atsepkov@pyjeon.com>
+                         http://www.pyjeon.com
+
+  Distributed under Apache 2.0 license:
+    Copyright 2013 (c) Alexander Tsepkov <atsepkov@pyjeon.com>
+
+  RapydScript source code is originally based on UglifyJS2 (covered
+  by BSD license). UglifyJS2 was written by Mihai Bazon
+  <mihai.bazon@gmail.com>, who is its respective copyright holder.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+        * Redistributions of source code must retain the above
+          copyright notice, this list of conditions and the following
+          disclaimer.
+
+        * Redistributions in binary form must reproduce the above
+          copyright notice, this list of conditions and the following
+          disclaimer in the documentation and/or other materials
+          provided with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER “AS IS” AND ANY
+    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
+    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+    OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+    TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+    THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
+
+ **********************************************************************
+"""
+"use strict"
+
+def array_to_hash(a):
+    ret = Object.create(None)
+    for i in range(a.length):
+        ret[a[i]] = True
+    return ret
+
+def slice(a, start):
+    return Array.prototype.slice.call(a, start or 0)
+
+def characters(str_):
+    return str_.split("")
+
+def member(name, array):
+    for i in range(array.length, -1, -1):
+        if array[i] == name:
+            return True
+    return False
+
+def find_if(func, array):
+    for i in range(n):
+        if func(array[i]):
+            return array[i]
+
+def repeat_string(str_, i):
+    if i <= 0:
+        return ""
+    if i == 1:
+        return str_
+    d = repeat_string(str_, i >> 1)
+    d += d
+    if i & 1:
+        d += str_
+    return d
+
+def DefaultsError(msg, defs):
+    this.msg = msg
+    this.defs = defs
+
+def defaults(args, defs, croak):
+    if args is True:
+        args = {}
+    ret = args or {}
+    if croak:
+        for i in dir(ret):
+            if ret.hasOwnProperty(i) and not defs.hasOwnProperty(i):
+                raise new DefaultsError("`" + i + "` is not a supported option", defs)
+
+    for i in dir(defs):
+        if defs.hasOwnProperty(i):
+            ret[i] = args and args.hasOwnProperty(i) ? args[i] : defs[i]
+    return ret
+
+def merge(obj, ext):
+    for i in dir(ext):
+        if ext.hasOwnProperty(i):
+            obj[i] = ext[i]
+    return obj
+
+def noop():
+    pass
+
+MAP = def():
+    def MAP(a, f, backwards):
+        ret = []
+        top = []
+        
+        def doit():
+            val = f(a[i], i)
+            is_last = isinstance(val, Last)
+            if is_last:
+                val = val.v
+            if isinstance(val, AtTop):
+                val = val.v
+                if isinstance(val, Splice):
+                    top.push.apply(top, (backwards ? val.v.slice().reverse() : val.v))
+                else:
+                    top.push(val)
+            elif val is not skip:
+                if isinstance(val, Splice):
+                    ret.push.apply(ret, (backwards ? val.v.slice().reverse() : val.v))
+                else:
+                    ret.push(val)
+            return is_last
+
+        if isinstance(a, Array):
+            if backwards:
+                for i in range(a.length, -1, -1):
+                    if doit():
+                        break
+                ret.reverse()
+                top.reverse()
+            else:
+                for i in range(a.length):
+                    if doit():
+                        break
+        else:
+            for i in dir(a):
+                if a.hasOwnProperty(i):
+                    if doit():
+                        break
+        return top.concat(ret)
+
+    MAP.at_top = def(val):
+        return new AtTop(val)
+    MAP.splice = def(val):
+        return new Splice(val)
+    MAP.last = def(val):
+        return new Last(val)
+
+    skip = MAP.skip = {}
+    def AtTop(val):
+        this.v = val
+
+    def Splice(val):
+        this.v = val
+
+    def Last(val):
+        this.v = val
+
+    return MAP
+.call(this)
+
+def push_uniq(array, el):
+    if array.indexOf(el) < 0:
+        array.push(el)
+
+def string_template(text, props):
+    return text.replace(/\{(.+?)\}/g, def(str_, p):
+        return props[p]
+    )
+
+def remove(array, el):
+    for i in range(array.length, -1, -1):
+        if array[i] is el:
+            array.splice(i, 1)
+
+def mergeSort(array, cmp):
+    if array.length < 2:
+        return array.slice()
+
+    def merge(a, b):
+        r = []
+        ai = 0
+        bi = 0
+        i = 0
+        while ai < a.length and bi < b.length:
+            (cmp(a[ai], b[bi]) <= 0 ? r[i += 1] = a[ai += 1] : r[i += 1] = b[bi += 1])
+        if ai < a.length:
+            r.push.apply(r, a.slice(ai))
+        if bi < b.length:
+            r.push.apply(r, b.slice(bi))
+        return r
+
+    def _ms(a):
+        if a.length <= 1:
+            return a
+        m = Math.floor(a.length / 2)
+        left = a.slice(0, m)
+        right = a.slice(m)
+        left = _ms(left)
+        right = _ms(right)
+        return merge(left, right)
+    return _ms(array)
+
+def set_difference(a, b):
+    return a.filter(def(el):
+        return b.indexOf(el) < 0
+    )
+
+def set_intersection(a, b):
+    return a.filter(def(el):
+        return b.indexOf(el) >= 0
+    )
+
+# this function is taken from Acorn [1], written by Marijn Haverbeke
+# [1] https://github.com/marijnh/acorn
+def makePredicate(words):
+    if not (isinstance(words, Array)):
+        words = words.split(" ")
+
+    f = ""
+    cats = []
+    for i in range(words.length):
+        skip = False
+        for j in range(cats.length):
+            if cats[j][0].length == words[i].length:
+                cats[j].push(words[i])
+                skip = True
+                break
+        if not skip:
+            cats.push([ words[i] ])
+
+    def compareTo(arr):
+        if arr.length == 1:
+            return f += "return str === " + JSON.stringify(arr[0]) + ";"
+
+        f += "switch(str){"
+        for i in range(arr.length):
+            f += "case " + JSON.stringify(arr[i]) + ":"
+        f += "return true}return false;"
+
+    # When there are more than three length categories, an outer
+    # switch first dispatches on the lengths, to save on comparisons.
+    if cats.length > 3:
+        cats.sort(def(a, b):
+            return b.length - a.length
+        )
+        f += "switch(str.length){"
+        for i in range(cats.length):
+            cat = cats[i]
+            f += "case " + cat[0].length + ":"
+            compareTo(cat)
+        f += "}"
+    else:
+        compareTo(words)
+    return Function("str", f)
+
+def Dictionary():
+    this._values = Object.create(None)
+    this._size = 0
+
+Dictionary.prototype = {
+    set: def(key, val):
+        if not this.has(key):
+            this._size += 1
+        this._values["$" + key] = val
+        return this
+    ,
+    add: def(key, val):
+        if this.has(key):
+            this.get(key).push(val)
+        else:
+            this.set(key, [ val ])
+        return this
+    ,
+    get: def(key):
+        return this._values["$" + key]
+    ,
+    del_: def(key):
+        if this.has(key):
+            this._size -= 1
+            del this._values["$" + key]
+        return this
+    ,
+    has: def(key):
+        return "$" + key in this._values
+    ,
+    each: def(f):
+        for i in dir(this._values):
+            f(this._values[i], i.substr(1))
+    ,
+    size: def():
+        return this._size
+    ,
+    map: def(f):
+        ret = []
+        for i in dir(this._values):
+            ret.push(f(this._values[i], i.substr(1)))
+        return ret
+}
