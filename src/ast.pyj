@@ -1,0 +1,1046 @@
+"""
+**********************************************************************
+
+  A RapydScript to JavaScript compiler.
+  https://github.com/atsepkov/RapydScript2
+
+  -------------------------------- (C) ---------------------------------
+
+                       Author: Alexander Tsepkov
+                         <atsepkov@pyjeon.com>
+                         http://www.pyjeon.com
+
+  Distributed under Apache 2.0 license:
+    Copyright 2013 (c) Alexander Tsepkov <atsepkov@pyjeon.com>
+
+  RapydScript source code is originally based on UglifyJS2 (covered
+  by BSD license). UglifyJS2 was written by Mihai Bazon
+  <mihai.bazon@gmail.com>, who is its respective copyright holder.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+        * Redistributions of source code must retain the above
+          copyright notice, this list of conditions and the following
+          disclaimer.
+
+        * Redistributions in binary form must reproduce the above
+          copyright notice, this list of conditions and the following
+          disclaimer in the documentation and/or other materials
+          provided with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER “AS IS” AND ANY
+    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
+    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+    OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+    TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+    THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
+
+**********************************************************************
+"""
+"use strict"
+
+def DEFNODE(type, props, methods, base):
+    if arguments.length < 4:
+        base = AST_Node
+
+    if not props:
+        props = []
+    else:
+        props = props.split(/\s+/)
+
+    self_props = props
+    if base and base.PROPS:
+        props = props.concat(base.PROPS)
+
+    code = "return function AST_" + type + "(props){ if (props) { "
+    for i in range(props.length, -1, -1):
+        code += "this." + props[i] + " = props." + props[i] + ";"
+
+    proto = base and base()
+    if proto and proto.initialize or methods and methods.initialize:
+        code += "this.initialize();"
+
+    code += "}}"
+    ctor = Function(code)()
+    if proto:
+        ctor.prototype = proto
+        ctor.BASE = base
+
+    if base:
+        base.SUBCLASSES.push(ctor)
+
+    ctor.prototype.CTOR = ctor
+    ctor.PROPS = props or None
+    ctor.SELF_PROPS = self_props
+    ctor.SUBCLASSES = []
+    if type:
+        ctor.prototype.TYPE = ctor.TYPE = type
+
+    if methods:
+        for i in dir(methods):
+            if methods.hasOwnProperty(i):
+                if /^\$/.test(i):
+                    ctor[i.substr(1)] = methods[i]
+                else:
+                    ctor.prototype[i] = methods[i]
+    ctor.DEFMETHOD = def(name, method):
+        this.prototype[name] = method
+
+    return ctor
+
+AST_Token = DEFNODE("Token", "type value line col pos endpos nlb comments_before file", {}, None)
+
+AST_Node = DEFNODE("Node", "start end", {
+    clone: def():
+        return this.CTOR(this)
+    ,
+    $documentation: "Base class of all AST nodes",
+    $propdoc: {
+        start: "[AST_Token] The first token of this node",
+        end: "[AST_Token] The last token of this node"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this)
+    ,
+    walk: def(visitor):
+        return this._walk(visitor)
+}, None)
+AST_Node.warn_function = None
+AST_Node.warn = def(txt, props):
+    if AST_Node.warn_function:
+        AST_Node.warn_function(string_template(txt, props))
+
+# -----[ statements ]-----
+AST_Statement = DEFNODE("Statement", None, {
+    $documentation: "Base class of all statements"
+})
+
+AST_Debugger = DEFNODE("Debugger", None, {
+    $documentation: "Represents a debugger statement"
+}, AST_Statement)
+
+AST_Directive = DEFNODE("Directive", "value scope", {
+    $documentation: 'Represents a directive, like "use strict";',
+    $propdoc: {
+        value: "[string] The value of this directive as a plain string (it's not an AST_String!)",
+        scope: "[AST_Scope/S] The scope that this directive affects"
+    }
+}, AST_Statement)
+
+AST_SimpleStatement = DEFNODE("SimpleStatement", "body", {
+    $documentation: "A statement consisting of an expression, i.e. a = 1 + 2",
+    $propdoc: {
+        body: "[AST_Node] an expression node (should not be instanceof AST_Statement)"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.body._walk(visitor)
+        )
+
+}, AST_Statement)
+
+def walk_body(node, visitor):
+    if isinstance(node.body, AST_Statement):
+        node.body._walk(visitor)
+    else:
+        node.body.forEach(def(stat):
+            stat._walk(visitor)
+        )
+
+AST_Block = DEFNODE("Block", "body", {
+    $documentation: "A body of statements (usually bracketed)",
+    $propdoc: {
+        body: "[AST_Statement*] an array of statements"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            walk_body(this, visitor)
+        )
+}, AST_Statement)
+
+AST_BlockStatement = DEFNODE("BlockStatement", None, {
+    $documentation: "A block statement"
+}, AST_Block)
+
+AST_EmptyStatement = DEFNODE("EmptyStatement", None, {
+    $documentation: "The empty statement (empty block or simply a semicolon)",
+    _walk: def(visitor):
+        return visitor._visit(this)
+}, AST_Statement)
+
+AST_StatementWithBody = DEFNODE("StatementWithBody", "body", {
+    $documentation: "Base class for all statements that contain one nested body: `For`, `ForIn`, `Do`, `While`, `With`",
+    $propdoc: {
+        body: "[AST_Statement] the body; this should always be present, even if it's an AST_EmptyStatement"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.body._walk(visitor)
+        )
+}, AST_Statement)
+
+AST_LabeledStatement = DEFNODE("LabeledStatement", "label", {
+    $documentation: "Statement with a label",
+    $propdoc: {
+        label: "[AST_Label] a label definition"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.label._walk(visitor)
+            this.body._walk(visitor)
+        )
+}, AST_StatementWithBody)
+
+AST_DWLoop = DEFNODE("DWLoop", "condition", {
+    $documentation: "Base class for do/while statements",
+    $propdoc: {
+        condition: "[AST_Node] the loop condition.  Should not be instanceof AST_Statement"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.condition._walk(visitor)
+            this.body._walk(visitor)
+        )
+}, AST_StatementWithBody)
+
+AST_Do = DEFNODE("Do", None, {
+    $documentation: "A `do` statement"
+}, AST_DWLoop)
+
+AST_While = DEFNODE("While", None, {
+    $documentation: "A `while` statement"
+}, AST_DWLoop)
+
+AST_ForIn = DEFNODE("ForIn", "init name object", {
+    $documentation: "A `for ... in` statement",
+    $propdoc: {
+        init: "[AST_Node] the `for/in` initialization code",
+        name: "[AST_SymbolRef?] the loop variable, only if `init` is AST_Var",
+        object: "[AST_Node] the object that we're looping through"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.init._walk(visitor)
+            this.object._walk(visitor)
+            this.body._walk(visitor)
+        )
+}, AST_StatementWithBody)
+
+AST_ListComprehension = DEFNODE("ListComprehension", "condition statement", {
+    $documentation: "A list comprehension expression",
+    $propdoc: {
+        condition: "[AST_Node] the `if` condition",
+        statement: "[AST_Node] statement to perform on each element before returning it"
+    }
+}, AST_ForIn)
+
+AST_With = DEFNODE("With", "expression", {
+    $documentation: "A `with` statement",
+    $propdoc: {
+        expression: "[AST_Node] the `with` expression"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.expression._walk(visitor)
+            this.body._walk(visitor)
+        )
+}, AST_StatementWithBody)
+
+# -----[ scope and functions ]-----
+AST_Scope = DEFNODE("Scope", "directives variables localvars functions uses_with uses_eval parent_scope enclosed cname", {
+    $documentation: "Base class for all statements introducing a lexical scope",
+    $propdoc: {
+        directives: "[string*/S] an array of directives declared in this scope",
+        variables: "[Object/S] a map of name -> SymbolDef for all variables/functions defined in this scope",
+        localvars: "[SymbolDef*] list of variables local to this scope",
+        functions: "[Object/S] like `variables`, but only lists function declarations",
+        uses_with: "[boolean/S] tells whether this scope uses the `with` statement",
+        uses_eval: "[boolean/S] tells whether this scope contains a direct call to the global `eval`",
+        parent_scope: "[AST_Scope?/S] link to the parent scope",
+        enclosed: "[SymbolDef*/S] a list of all symbol definitions that are accessed from this scope or any subscopes",
+        cname: "[integer/S] current index for mangling variables (used internally by the mangler)"
+    }
+}, AST_Block)
+
+AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports", {
+    $documentation: "The toplevel scope",
+    $propdoc: {
+        globals: "[Object/S] a map of name -> SymbolDef for all undeclared names",
+        baselib: "[Object/s] a collection of used parts of baselib",
+        imports: "[AST_Import*] a collection of all imported modules"
+    },
+    wrap_enclose: def(arg_parameter_pairs):
+        self = this
+        args = []
+        parameters = []
+        arg_parameter_pairs.forEach(def(pair):
+            split = pair.split(":")
+            args.push(split[0])
+            parameters.push(split[1])
+        )
+        wrapped_tl = "(function(" + parameters.join(",") + "){ '$ORIG'; })(" + args.join(",") + ")"
+        wrapped_tl = parse(wrapped_tl)
+        wrapped_tl = wrapped_tl.transform(TreeTransformer(def before(node):
+            if isinstance(node, AST_Directive) and node.value == "$ORIG":
+                return MAP.splice(self.body)
+        ))
+        return wrapped_tl
+    ,
+    wrap_commonjs: def(name, export_all):
+        self = this
+        to_export = []
+        if export_all:
+            self.figure_out_scope()
+            self.walk(TreeWalker(def(node):
+                if isinstance(node, AST_SymbolDeclaration) and node.definition().global:
+                    if not find_if(def(n):
+                        return n.name == node.name
+                    , to_export):
+                        to_export.push(node)
+            ))
+        wrapped_tl = "(function(exports, global){ global['" + name + "'] = exports; '$ORIG'; '$EXPORTS'; }({}, (function(){return this}())))"
+        wrapped_tl = parse(wrapped_tl)
+        wrapped_tl = wrapped_tl.transform(TreeTransformer(def before(node):
+            if isinstance(node, AST_SimpleStatement):
+                node = node.body
+                if isinstance(node, AST_String):
+                    val = node.getValue()
+                    if val == "$ORIG":
+                        return MAP.splice(self.body)
+                    elif val == "$EXPORTS":
+                        body = []
+                        to_export.forEach(def(sym):
+                            body.push(AST_SimpleStatement({
+                                body: AST_Assign({
+                                    left: AST_Sub({
+                                        expression: AST_SymbolRef({
+                                            name: "exports"
+                                        }),
+                                        property: AST_String({
+                                            value: sym.name
+                                        })
+                                    }),
+                                    operator: "=",
+                                    right: AST_SymbolRef(sym)
+                                })
+                            }))
+                        )
+                        return MAP.splice(body)
+        ))
+        return wrapped_tl
+}, AST_Scope)
+
+AST_Import = DEFNODE("Import", "module argnames variables body", {
+    $documentation: "Container for imported files",
+    $propdoc: {
+        module: "[AST_SymbolVar] name of the module we're importing",
+        argnames: "[AST_SymbolVar*] names of objects to be imported",
+        variables: "[Object/S] a map of name -> SymbolDef for all variables/functions defined in this scope",
+        body: "[AST_TopLevel] contents of the imported file"
+    }
+}, AST_Statement)
+
+AST_Decorator = DEFNODE("Decorator", "name", {
+    $documentation: "Class for function decorators",
+    $propdoc: {
+        name: "[string] decorator name"
+    }
+})
+
+AST_Lambda = DEFNODE("Lambda", "name argnames uses_arguments decorators", {
+    $documentation: "Base class for functions",
+    $propdoc: {
+        name: "[AST_SymbolDeclaration?] the name of this function",
+        argnames: "[AST_SymbolFunarg*] array of function arguments",
+        uses_arguments: "[boolean/S] tells whether this function accesses the arguments array",
+        decorators: "[AST_Decorator*] function decorators, if any"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            if this.name:
+                this.name._walk(visitor)
+
+            this.argnames.forEach(def(arg):
+                arg._walk(visitor)
+            )
+            walk_body(this, visitor)
+        )
+}, AST_Scope)
+
+AST_Accessor = DEFNODE("Accessor", None, {
+    $documentation: "A setter/getter function"
+}, AST_Lambda)
+
+AST_Function = DEFNODE("Function", None, {
+    $documentation: "A function expression"
+}, AST_Lambda)
+
+AST_Class = DEFNODE("Class", "init name parent static external bound decorators modules", {
+    $documentation: "A class declaration",
+    $propdoc: {
+        name: "[AST_SymbolDeclaration?] the name of this class",
+        init: "[AST_Function] constructor for the class",
+        parent: "[AST_Class?] parent class this class inherits from",
+        "static": "[string*] list of static methods",
+        external: "[boolean] true if class is declared elsewhere, but will be within current scope at runtime",
+        bound: "[string*] list of methods that need to be bound to behave correctly (function pointers)",
+        decorators: "[AST_Decorator*] function decorators, if any",
+        modules: "[string*] module stack that this class resides inside of, if any"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.name._walk(visitor)
+            walk_body(this, visitor)
+            this.parent._walk(visitor)
+        )
+}, AST_Scope)
+
+AST_Module = DEFNODE("Module", "name external decorators", {
+    $documentation: "A module definition, meant to abstract a group of related classes and/or functions",
+    $propdoc: {
+        name: "[AST_SymbolDeclaration?] the name of this class",
+        external: "[boolean] true if module is declared elsewhere, but will be within current scope at runtime",
+        decorators: "[AST_Decorator*] module decorators, if any"
+    }
+}, AST_Scope)
+
+AST_Defun = DEFNODE("Defun", "static", {
+    $documentation: "A class method definition",
+    $propdoc: {
+        "static": "[boolean] true if method is static"
+    }
+}, AST_Lambda)
+
+# -----[ JUMPS ]-----
+AST_Jump = DEFNODE("Jump", None, {
+    $documentation: "Base class for “jumps” (for now that's `return`, `throw`, `break` and `continue`)"
+}, AST_Statement)
+
+AST_Exit = DEFNODE("Exit", "value", {
+    $documentation: "Base class for “exits” (`return` and `throw`)",
+    $propdoc: {
+        value: "[AST_Node?] the value returned or thrown by this statement; could be null for AST_Return"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, this.value and def():
+            this.value._walk(visitor)
+        )
+}, AST_Jump)
+
+AST_Return = DEFNODE("Return", None, {
+    $documentation: "A `return` statement"
+}, AST_Exit)
+
+AST_Throw = DEFNODE("Throw", None, {
+    $documentation: "A `throw` statement"
+}, AST_Exit)
+
+AST_LoopControl = DEFNODE("LoopControl", "label", {
+    $documentation: "Base class for loop control statements (`break` and `continue`)",
+    $propdoc: {
+        label: "[AST_LabelRef?] the label, or null if none"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, this.label and def():
+            this.label._walk(visitor)
+        )
+}, AST_Jump)
+
+AST_Break = DEFNODE("Break", None, {
+    $documentation: "A `break` statement"
+}, AST_LoopControl)
+
+AST_Continue = DEFNODE("Continue", None, {
+    $documentation: "A `continue` statement"
+}, AST_LoopControl)
+
+# -----[ IF ]-----
+AST_If = DEFNODE("If", "condition alternative", {
+    $documentation: "A `if` statement",
+    $propdoc: {
+        condition: "[AST_Node] the `if` condition",
+        alternative: "[AST_Statement?] the `else` part, or null if not present"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.condition._walk(visitor)
+            this.body._walk(visitor)
+            if this.alternative:
+                this.alternative._walk(visitor)
+        )
+}, AST_StatementWithBody)
+
+# -----[ SWITCH ]-----
+AST_Switch = DEFNODE("Switch", "expression", {
+    $documentation: "A `switch` statement",
+    $propdoc: {
+        expression: "[AST_Node] the `switch` “discriminant”"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.expression._walk(visitor)
+            walk_body(this, visitor)
+        )
+}, AST_Block)
+
+AST_SwitchBranch = DEFNODE("SwitchBranch", None, {
+    $documentation: "Base class for `switch` branches"
+}, AST_Block)
+
+AST_Default = DEFNODE("Default", None, {
+    $documentation: "A `default` switch branch"
+}, AST_SwitchBranch)
+
+AST_Case = DEFNODE("Case", "expression", {
+    $documentation: "A `case` switch branch",
+    $propdoc: {
+        expression: "[AST_Node] the `case` expression"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.expression._walk(visitor)
+            walk_body(this, visitor)
+        )
+}, AST_SwitchBranch)
+
+# -----[ EXCEPTIONS ]-----
+AST_Try = DEFNODE("Try", "bcatch bfinally", {
+    $documentation: "A `try` statement",
+    $propdoc: {
+        bcatch: "[AST_Catch?] the catch block, or null if not present",
+        bfinally: "[AST_Finally?] the finally block, or null if not present"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            walk_body(this, visitor)
+            if this.bcatch:
+                this.bcatch._walk(visitor)
+
+            if this.bfinally:
+                this.bfinally._walk(visitor)
+        )
+}, AST_Block)
+
+# XXX: this is wrong according to ECMA-262 (12.4).  the catch block
+# should introduce another scope, as the argname should be visible
+# only inside the catch block.  However, doing it this way because of
+# IE which simply introduces the name in the surrounding scope.  If
+# we ever want to fix this then AST_Catch should inherit from
+# AST_Scope.
+AST_Catch = DEFNODE("Catch", None, {
+    $documentation: "A `catch` node; only makes sense as part of a `try` statement",
+    $propdoc: {},
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.argname._walk(visitor)
+            walk_body(this, visitor)
+        )
+}, AST_Block)
+
+AST_Except = DEFNODE("Except", "argname errors", {
+    $documentation: "An `except` node for RapydScript, which resides inside the catch block",
+    $propdoc: {
+        argname: "[AST_SymbolCatch] symbol for the exception",
+        errors: "[AST_SymbolVar*] error classes to catch in this block"
+    }
+}, AST_Block)
+
+AST_Finally = DEFNODE("Finally", None, {
+    $documentation: "A `finally` node; only makes sense as part of a `try` statement"
+}, AST_Block)
+
+# -----[ VAR/CONST ]-----
+AST_Definitions = DEFNODE("Definitions", "definitions", {
+    $documentation: "Base class for `var` or `const` nodes (variable declarations/initializations)",
+    $propdoc: {
+        definitions: "[AST_VarDef*] array of variable definitions"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.definitions.forEach(def(def_):
+                def_._walk(visitor)
+            )
+        )
+}, AST_Statement)
+
+AST_Var = DEFNODE("Var", None, {
+    $documentation: "A `var` statement"
+}, AST_Definitions)
+
+AST_Const = DEFNODE("Const", None, {
+    $documentation: "A `const` statement"
+}, AST_Definitions)
+
+AST_VarDef = DEFNODE("VarDef", "name value", {
+    $documentation: "A variable declaration; only appears in a AST_Definitions node",
+    $propdoc: {
+        name: "[AST_SymbolVar|AST_SymbolConst] name of the variable",
+        value: "[AST_Node?] initializer, or null if there's no initializer"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.name._walk(visitor)
+            if this.value:
+                this.value._walk(visitor)
+        )
+})
+
+# -----[ OTHER ]-----
+AST_BaseCall = DEFNODE("BaseCall", "args", {
+    $documentation: "A base class for function calls",
+    $propdoc: {
+        args: "[AST_Node*] array of arguments"
+    }
+})
+
+AST_Call = DEFNODE("Call", "expression", {
+    $documentation: "A function call expression",
+    $propdoc: {
+        expression: "[AST_Node] expression to invoke as function"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.expression._walk(visitor)
+            this.args.forEach(def(arg):
+                arg._walk(visitor)
+            )
+        )
+
+}, AST_BaseCall)
+
+AST_ClassCall = DEFNODE("ClassCall", "class method static", {
+    $documentation: "A function call expression",
+    $propdoc: {
+        "class": "[string] name of the class method belongs to",
+        method: "[string] class method being called",
+        "static": "[boolean] defines whether the method is static"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.expression._walk(visitor)
+            this.args.forEach(def(arg):
+                arg._walk(visitor)
+            )
+        )
+
+}, AST_BaseCall)
+
+AST_New = DEFNODE("New", None, {
+    $documentation: "An object instantiation. Derives from a function call since it has exactly the same properties"
+}, AST_Call)
+
+AST_Seq = DEFNODE("Seq", "car cdr", {
+    $documentation: "A sequence expression (two comma-separated expressions)",
+    $propdoc: {
+        car: "[AST_Node] first element in sequence",
+        cdr: "[AST_Node] second element in sequence"
+    },
+    $cons: def(x, y):
+        seq = AST_Seq(x)
+        seq.car = x
+        seq.cdr = y
+        return seq
+    ,
+    $from_array: def(array):
+        if array.length == 0:
+            return None
+
+        if array.length == 1:
+            return array[0].clone()
+
+        list = None
+        for i in range(array.length, -1, -1):
+            list = AST_Seq.cons(array[i], list)
+
+        p = list
+        while p:
+            if p.cdr and not p.cdr.cdr:
+                p.cdr = p.cdr.car
+                break
+            p = p.cdr
+        return list
+    ,
+    to_array: def():
+        p = this
+        a = []
+        while p:
+            a.push(p.car)
+            if p.cdr and not (isinstance(p.cdr, AST_Seq)):
+                a.push(p.cdr)
+                break
+            p = p.cdr
+        return a
+    ,
+    add: def(node):
+        p = this
+        while p:
+            if not (isinstance(p.cdr, AST_Seq)):
+                cell = AST_Seq.cons(p.cdr, node)
+                return p.cdr = cell
+            p = p.cdr
+    ,
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.car._walk(visitor)
+            if this.cdr:
+                this.cdr._walk(visitor)
+        )
+})
+
+AST_PropAccess = DEFNODE("PropAccess", "expression property", {
+    $documentation: 'Base class for property access expressions, i.e. `a.foo` or `a["foo"]`',
+    $propdoc: {
+        expression: "[AST_Node] the “container” expression",
+        property: "[AST_Node|string] the property to access.  For AST_Dot this is always a plain string, while for AST_Sub it's an arbitrary AST_Node"
+    }
+})
+
+AST_Dot = DEFNODE("Dot", None, {
+    $documentation: "A dotted property access expression",
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.expression._walk(visitor)
+        )
+}, AST_PropAccess)
+
+AST_Sub = DEFNODE("Sub", None, {
+    $documentation: 'Index-style property access, i.e. `a["foo"]`',
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.expression._walk(visitor)
+            this.property._walk(visitor)
+        )
+}, AST_PropAccess)
+
+AST_Unary = DEFNODE("Unary", "operator expression", {
+    $documentation: "Base class for unary expressions",
+    $propdoc: {
+        operator: "[string] the operator",
+        expression: "[AST_Node] expression that this unary operator applies to"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.expression._walk(visitor)
+        )
+})
+
+AST_UnaryPrefix = DEFNODE("UnaryPrefix", None, {
+    $documentation: "Unary prefix expression, i.e. `typeof i` or `++i`"
+}, AST_Unary)
+
+AST_UnaryPostfix = DEFNODE("UnaryPostfix", None, {
+    $documentation: "Unary postfix expression, i.e. `i++`"
+}, AST_Unary)
+
+AST_Binary = DEFNODE("Binary", "left operator right", {
+    $documentation: "Binary expression, i.e. `a + b`",
+    $propdoc: {
+        left: "[AST_Node] left-hand side expression",
+        operator: "[string] the operator",
+        right: "[AST_Node] right-hand side expression"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.left._walk(visitor)
+            this.right._walk(visitor)
+        )
+})
+
+AST_Conditional = DEFNODE("Conditional", "condition consequent alternative", {
+    $documentation: "Conditional expression using the ternary operator, i.e. `a ? b : c`",
+    $propdoc: {
+        condition: "[AST_Node]",
+        consequent: "[AST_Node]",
+        alternative: "[AST_Node]"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.condition._walk(visitor)
+            this.consequent._walk(visitor)
+            this.alternative._walk(visitor)
+        )
+})
+
+AST_Assign = DEFNODE("Assign", None, {
+    $documentation: "An assignment expression — `a = b + 5`"
+}, AST_Binary)
+
+# -----[ LITERALS ]-----
+AST_Array = DEFNODE("Array", "elements", {
+    $documentation: "An array literal",
+    $propdoc: {
+        elements: "[AST_Node*] array of elements"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.elements.forEach(def(el):
+                el._walk(visitor)
+            )
+        )
+})
+
+AST_TupleUnpack = DEFNODE("TupleUnpack", "elements right", {
+    $documentation: "An object used to represent tuple unpacking",
+    $propdoc: {
+        elements: "[AST_Node*] array of elements being assigned to",
+        right: "[AST_Node] right-hand side expression"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.elements.forEach(def(el):
+                el._walk(visitor)
+            )
+            this.right._walk(visitor)
+        )
+})
+
+AST_Object = DEFNODE("Object", "properties", {
+    $documentation: "An object literal",
+    $propdoc: {
+        properties: "[AST_ObjectProperty*] array of properties"
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.properties.forEach(def(prop):
+                prop._walk(visitor)
+            )
+        )
+})
+
+AST_ObjectProperty = DEFNODE("ObjectProperty", "key value quoted", {
+    $documentation: "Base class for literal object properties",
+    $propdoc: {
+        key: "[string] the property name; it's always a plain string in our AST, no matter if it was a string, number or identifier in original code",
+        value: "[AST_Node] property value.  For setters and getters this is an AST_Function.",
+        quoted: "[true/false] keeps track whether the property was quoted in original code."
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.value._walk(visitor)
+        )
+})
+
+AST_ObjectKeyVal = DEFNODE("ObjectKeyVal", None, {
+    $documentation: "A key: value object property"
+}, AST_ObjectProperty)
+
+AST_ObjectSetter = DEFNODE("ObjectSetter", None, {
+    $documentation: "An object setter property"
+}, AST_ObjectProperty)
+
+AST_ObjectGetter = DEFNODE("ObjectGetter", None, {
+    $documentation: "An object getter property"
+}, AST_ObjectProperty)
+
+AST_Symbol = DEFNODE("Symbol", "scope name thedef", {
+    $propdoc: {
+        name: "[string] name of this symbol",
+        scope: "[AST_Scope/S] the current scope (not necessarily the definition scope)",
+        thedef: "[SymbolDef/S] the definition of this symbol"
+    },
+    $documentation: "Base class for all symbols"
+})
+
+AST_SymbolAccessor = DEFNODE("SymbolAccessor", None, {
+    $documentation: "The name of a property accessor (setter/getter function)"
+}, AST_Symbol)
+
+AST_SymbolDeclaration = DEFNODE("SymbolDeclaration", "init", {
+    $documentation: "A declaration symbol (symbol in var/const, function name or argument, symbol in catch)",
+    $propdoc: {
+        init: "[AST_Node*/S] array of initializers for this declaration."
+    }
+}, AST_Symbol)
+
+AST_SymbolVar = DEFNODE("SymbolVar", None, {
+    $documentation: "Symbol defining a variable"
+}, AST_SymbolDeclaration)
+
+AST_SymbolConst = DEFNODE("SymbolConst", None, {
+    $documentation: "A constant declaration"
+}, AST_SymbolDeclaration)
+
+AST_SymbolFunarg = DEFNODE("SymbolFunarg", None, {
+    $documentation: "Symbol naming a function argument"
+}, AST_SymbolVar)
+
+AST_SymbolDefun = DEFNODE("SymbolDefun", None, {
+    $documentation: "Symbol defining a function"
+}, AST_SymbolDeclaration)
+
+AST_SymbolLambda = DEFNODE("SymbolLambda", None, {
+    $documentation: "Symbol naming a function expression"
+}, AST_SymbolDeclaration)
+
+AST_SymbolCatch = DEFNODE("SymbolCatch", None, {
+    $documentation: "Symbol naming the exception in catch"
+}, AST_SymbolDeclaration)
+
+AST_Label = DEFNODE("Label", "references", {
+    $documentation: "Symbol naming a label (declaration)",
+    $propdoc: {
+        references: "[AST_LabelRef*] a list of nodes referring to this label"
+    }
+}, AST_Symbol)
+
+AST_SymbolRef = DEFNODE("SymbolRef", None, {
+    $documentation: "Reference to some symbol (not definition/declaration)"
+}, AST_Symbol)
+
+AST_LabelRef = DEFNODE("LabelRef", None, {
+    $documentation: "Reference to a label symbol"
+}, AST_Symbol)
+
+AST_This = DEFNODE("This", None, {
+    $documentation: "The `this` symbol"
+}, AST_Symbol)
+
+AST_Constant = DEFNODE("Constant", None, {
+    $documentation: "Base class for all constants",
+    getValue: def():
+        return this.value
+})
+
+AST_String = DEFNODE("String", "value", {
+    $documentation: "A string literal",
+    $propdoc: {
+        value: "[string] the contents of this string"
+    }
+}, AST_Constant)
+
+AST_Verbatim = DEFNODE("Verbatim", "value", {
+    $documentation: "Raw JavaScript code",
+    $propdoc: {
+        value: "[string] A string of raw JS code"
+    }
+}, AST_Constant)
+
+AST_Number = DEFNODE("Number", "value", {
+    $documentation: "A number literal",
+    $propdoc: {
+        value: "[number] the numeric value"
+    }
+}, AST_Constant)
+
+AST_RegExp = DEFNODE("RegExp", "value", {
+    $documentation: "A regexp literal",
+    $propdoc: {
+        value: "[RegExp] the actual regexp"
+    }
+}, AST_Constant)
+
+AST_Atom = DEFNODE("Atom", None, {
+    $documentation: "Base class for atoms"
+}, AST_Constant)
+
+AST_Null = DEFNODE("Null", None, {
+    $documentation: "The `null` atom",
+    value: None
+}, AST_Atom)
+
+AST_NaN = DEFNODE("NaN", None, {
+    $documentation: "The impossible value",
+    value: 0 / 0
+}, AST_Atom)
+
+AST_Undefined = DEFNODE("Undefined", None, {
+    $documentation: "The `undefined` value",
+    value: def(): pass
+    .call(this)
+}, AST_Atom)
+
+AST_Hole = DEFNODE("Hole", None, {
+    $documentation: "A hole in an array",
+    value: def(): pass
+    .call(this)
+}, AST_Atom)
+
+AST_Infinity = DEFNODE("Infinity", None, {
+    $documentation: "The `Infinity` value",
+    value: 1 / 0
+}, AST_Atom)
+
+AST_Boolean = DEFNODE("Boolean", None, {
+    $documentation: "Base class for booleans"
+}, AST_Atom)
+
+AST_False = DEFNODE("False", None, {
+    $documentation: "The `false` atom",
+    value: False
+}, AST_Boolean)
+
+AST_True = DEFNODE("True", None, {
+    $documentation: "The `true` atom",
+    value: True
+}, AST_Boolean)
+
+# -----[ TreeWalker ]-----
+def TreeWalker(callback):
+    this.visit = callback
+    this.stack = []
+
+TreeWalker.prototype = {
+    _visit: def(node, descend):
+        this.stack.push(node)
+        ret = this.visit(node, (descend ? def(): descend.call(node); : noop))
+        if not ret and descend:
+            descend.call(node)
+
+        this.stack.pop()
+        return ret
+    ,
+    parent: def(n):
+        return this.stack[this.stack.length - 2 - (n or 0)]
+    ,
+    push: def(node):
+        this.stack.push(node)
+    ,
+    pop: def():
+        return this.stack.pop()
+    ,
+    self: def():
+        return this.stack[this.stack.length - 1]
+    ,
+    find_parent: def(type):
+        stack = this.stack
+        for i in range(stack.length, -1, -1):
+            x = stack[i]
+            if isinstance(x, type):
+                return x
+    ,
+    in_boolean_context: def():
+        stack = this.stack
+        i = stack.length
+        self = stack[i -= 1]
+        while i > 0:
+            p = stack[i -= 1]
+            if isinstance(p, AST_If) and p.condition is self
+            or isinstance(p, AST_Conditional) and p.condition is self
+            or isinstance(p, AST_DWLoop) and p.condition is self
+            or isinstance(p, AST_UnaryPrefix) and p.operator == "!" and p.expression is self:
+                return True
+            if not (isinstance(p, AST_Binary) and (p.operator == "&&" or p.operator == "||")):
+                return False
+            self = p
+    ,
+    loopcontrol_target: def(label):
+        stack = this.stack
+        if label:
+            for i in range(stack.length, -1, -1):
+                x = stack[i]
+                if isinstance(x, AST_LabeledStatement) and x.label.name == label.name:
+                    return x.body
+        else:
+            for i in range(stack.length, -1, -1):
+                x = stack[i]
+                if isinstance(x, AST_Switch) or isinstance(x, AST_ForIn) or isinstance(x, AST_DWLoop):
+                    return x
+}
