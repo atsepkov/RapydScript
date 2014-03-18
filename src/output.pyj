@@ -1,0 +1,2294 @@
+"""
+**********************************************************************
+
+  A RapydScript to JavaScript compiler.
+  https://github.com/atsepkov/RapydScript2
+
+  -------------------------------- (C) ---------------------------------
+
+                       Author: Alexander Tsepkov
+                         <atsepkov@pyjeon.com>
+                         http://www.pyjeon.com
+
+  Distributed under Apache 2.0 license:
+    Copyright 2013 (c) Alexander Tsepkov <atsepkov@pyjeon.com>
+
+  RapydScript source code is originally based on UglifyJS2 (covered
+  by BSD license). UglifyJS2 was written by Mihai Bazon
+  <mihai.bazon@gmail.com>, who is its respective copyright holder.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+        * Redistributions of source code must retain the above
+          copyright notice, this list of conditions and the following
+          disclaimer.
+
+        * Redistributions in binary form must reproduce the above
+          copyright notice, this list of conditions and the following
+          disclaimer in the documentation and/or other materials
+          provided with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER “AS IS” AND ANY
+    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
+    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+    OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+    TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+    THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
+
+ **********************************************************************
+"""
+"use strict"
+
+def OutputStream(options):
+    options = defaults(options, {
+        indent_start: 0,
+        indent_level: 4,
+        quote_keys: False,
+        space_colon: True,
+        ascii_only: False,
+        inline_script: False,
+        width: 80,
+        max_line_len: 32000,
+        ie_proof: True,
+        beautify: False,
+        source_map: None,
+        bracketize: False,
+        semicolons: True,
+        comments: False,
+        preserve_line: False,
+        namespace_imports: False,
+        omit_baselib: False,
+        private_scope: True,
+        screw_old_browsers: False,
+        auto_bind: False
+    }, True)
+    indentation = 0
+    current_col = 0
+    current_line = 1
+    current_pos = 0
+    OUTPUT = ""
+    IMPORTED = {}
+    def to_ascii(str_, identifier):
+        return str_.replace(/[\u0080-\uffff]/g, def(ch):
+            code = ch.charCodeAt(0).toString(16)
+            if code.length <= 2 and not identifier:
+                while code.length < 2:
+                    code = "0" + code
+
+                return "\\x" + code
+            else:
+                while code.length < 4:
+                    code = "0" + code
+
+                return "\\u" + code
+
+        )
+
+    def make_string(str_):
+        dq = 0
+        sq = 0
+        str_ = str_.replace(/[\\\b\f\n\r\t\x22\x27\u2028\u2029\0]/g, def(s):
+            tmp_ = s
+            if tmp_ == "\\":
+                return "\\\\"
+            elif tmp_ == "\b":
+                return "\\b"
+            elif tmp_ == "\f":
+                return "\\f"
+            elif tmp_ == "\n":
+                return "\\n"
+            elif tmp_ == "	":
+                return "\\t"
+            elif tmp_ == "\r":
+                return "\\r"
+            elif tmp_ == "\u2028":
+                return "\\u2028"
+            elif tmp_ == "\u2029":
+                return "\\u2029"
+            elif tmp_ == '"':
+                dq += 1
+                return '"'
+            elif tmp_ == "'":
+                sq += 1
+                return "'"
+            elif tmp_ == "\0":
+                return "\\0"
+            
+            return s
+        )
+        if options.ascii_only:
+            str_ = to_ascii(str_)
+
+        if dq > sq:
+            return "'" + str_.replace(/\x27/g, "\\'") + "'"
+        else:
+            return '"' + str_.replace(/\x22/g, '\\"') + '"'
+
+    def encode_string(str_):
+        ret = make_string(str_)
+        if options.inline_script:
+            ret = ret.replace(/<\x2fscript([>\/\t\n\f\r ])/gi, "<\\/script$1")
+
+        return ret
+
+    def make_name(name):
+        name = name.toString()
+        if options.ascii_only:
+            name = to_ascii(name, True)
+
+        return name
+
+    def make_indent(back):
+        return repeat_string(" ", options.indent_start + indentation - back * options.indent_level)
+
+    """ -----[ beautification/minification ]----- """
+    might_need_space = False
+    might_need_semicolon = False
+    last = None
+    def last_char():
+        return last.charAt(last.length - 1)
+
+    def maybe_newline():
+        if options.max_line_len and current_col > options.max_line_len:
+            print("\n")
+
+
+    requireSemicolonChars = makePredicate("( [ + * / - , .")
+    def print(str_):
+        str_ = String(str_)
+        ch = str_.charAt(0)
+        if might_need_semicolon:
+            if (not ch or ";}".indexOf(ch) < 0) and not /[;]$/.test(last):
+                if options.semicolons or requireSemicolonChars(ch):
+                    OUTPUT += ";"
+                    current_col += 1
+                    current_pos += 1
+                else:
+                    OUTPUT += "\n"
+                    current_pos += 1
+                    current_line += 1
+                    current_col = 0
+
+                if not options.beautify:
+                    might_need_space = False
+
+
+            might_need_semicolon = False
+            maybe_newline()
+
+        if not options.beautify and options.preserve_line and stack[stack.length - 1]:
+            target_line = stack[stack.length - 1].start.line
+            while current_line < target_line:
+                OUTPUT += "\n"
+                current_pos += 1
+                current_line += 1
+                current_col = 0
+                might_need_space = False
+
+
+        if might_need_space:
+            prev = last_char()
+            if is_identifier_char(prev) and (is_identifier_char(ch) or ch == "\\") or /^[\+\-\/]$/.test(ch) and ch == prev:
+                OUTPUT += " "
+                current_col += 1
+                current_pos += 1
+
+            might_need_space = False
+
+        a = str_.split(/\r?\n/)
+        n = a.length - 1
+        current_line += n
+        if n == 0:
+            current_col += a[n].length
+        else:
+            current_col = a[n].length
+
+        current_pos += str_.length
+        last = str_
+        OUTPUT += str_
+
+    space = (options.beautify ? def():
+        print(" ")
+ : def():
+        might_need_space = True
+)
+    indent = (options.beautify ? def(half):
+        if options.beautify:
+            print(make_indent((half ? 0.5 : 0)))
+
+ : noop)
+    with_indent = (options.beautify ? def(col, cont):
+        if col is True:
+            col = next_indent()
+
+        save_indentation = indentation
+        indentation = col
+        ret = cont()
+        indentation = save_indentation
+        return ret
+ : def(col, cont):
+        return cont()
+)
+    newline = (options.beautify ? def():
+        print("\n")
+ : noop)
+    semicolon = (options.beautify ? def():
+        print(";")
+ : def():
+        might_need_semicolon = True
+)
+    def force_semicolon():
+        might_need_semicolon = False
+        print(";")
+
+    def next_indent():
+        return indentation + options.indent_level
+
+    def with_block(cont):
+        print("{")
+        newline()
+        with_indent(next_indent(), def():
+            ret = cont()
+        )
+        indent()
+        print("}")
+        return ret
+
+    def with_parens(cont):
+        print("(")
+        #XXX: still nice to have that for argument lists
+        #var ret = with_indent(current_col, cont);
+        ret = cont()
+        print(")")
+        return ret
+
+    def with_square(cont):
+        print("[")
+        #var ret = with_indent(current_col, cont);
+        ret = cont()
+        print("]")
+        return ret
+
+    def comma():
+        print(",")
+        space()
+
+    def colon():
+        print(":")
+        if options.space_colon:
+            space()
+
+
+    add_mapping = (options.source_map ? def(token, name):
+        try:
+            if token:
+                options.source_map.add(token.file or "?", current_line, current_col, token.line, token.col, (not name and token.type == "name" ? token.value : name))
+        except as ex:
+            AST_Node.warn("Couldn't figure out mapping for {file}:{line},{col} → {cline},{ccol} [{name}]", {
+                file: token.file,
+                line: token.line,
+                col: token.col,
+                cline: current_line,
+                ccol: current_col,
+                name: name or ""
+            })
+
+ : noop)
+    def dump_baselib(key):
+        # --- generator functions help us simplify the lib-creating logic ---
+        stmt_gen = def(item, i):
+            if i and not item.call:
+                space()
+
+            if typeof item is "string":
+                print(item)
+            elif item.parens:
+                with_parens(def():
+                    item.parens.forEach(stmt_gen)
+                )
+            elif item.call:
+                with_parens(def():
+                    item.call.forEach(stmt_gen)
+                )
+            elif item.square:
+                with_square(def():
+                    item.square.forEach(stmt_gen)
+                )
+            elif item.block:
+                with_block(def():
+                    item.block.forEach(line_gen)
+                )
+            elif item.sequence:
+                item.sequence.forEach(def(elem, i):
+                    if i:
+                        comma()
+
+                    print(elem)
+                )
+
+
+        line_gen = def(item, i):
+            indent()
+            item.forEach(stmt_gen)
+            if not item.slice(-1)[0].block or item[0] == "=" or item[0] == "return":
+                semicolon()
+
+            newline()
+
+        func_gen = def(name, data):
+            indent()
+            print("function " + name)
+            with_parens(def():
+                data.args.forEach(def(arg, i):
+                    if i:
+                        comma()
+
+                    print(arg)
+                )
+            )
+            space()
+            with_block(def():
+                data.body.forEach(line_gen)
+            )
+            newline()
+
+        # --- actual lib-creating logic ---
+        lib = {
+            abs: def():
+                #function abs(n){
+                #  return Math.abs(n);
+                #}
+                return func_gen("abs", {
+                    args: [ "n" ],
+                    body: [ [ "return", "Math.abs", {
+                        call: [ {
+                            sequence: [ "n" ]
+                        } ]
+                    } ] ]
+                })
+            ,
+            bind: def():
+                #function _$rapyd$_bind(fn, thisArg){
+                #  if (fn.orig) fn = fn.orig;
+                #  if (thisArg === false) return fn;
+                #  var ret = function(){
+                #    return fn.apply(thisArg, arguments);
+                #  };
+                #  ret.orig = fn;
+                #  return ret;
+                #};
+                return func_gen("_$rapyd$_bind", {
+                    args: [ "fn", "thisArg" ],
+                    body: [ [ "if", {
+                        parens: [ "fn._orig" ]
+                    }, "fn", "=", "fn._orig" ], [ "if", {
+                        parens: [ "thisArg", "===", "false" ]
+                    }, "return", "fn" ], [ "var", "ret", "=", "fn.bind", {
+                        call: [ {
+                            sequence: [ "thisArg" ]
+                        } ]
+                    } ], [ "ret._orig", "=", "fn" ], [ "return", "ret" ] ]
+                })
+            ,
+            rebind_all: def():
+                #function _$rapyd$_rebindAll(thisArg, rebind) {
+                #  if (typeof rebind === "undefined") rebind = true;
+                #  for (var p in thisArg) {
+                #    if (thisArg[p] && thisArg[p].orig) {
+                #      if (rebind) thisArg[p] = _$rapyd$_bind(thisArg[p], thisArg);
+                #      else thisArg[p] = thisArg[p].orig;
+                #    }
+                #  }
+                #}
+                return func_gen("_$rapyd$_rebindAll", {
+                    args: [ "thisArg", "rebind" ],
+                    body: [ [ "if", {
+                        parens: [ "typeof", "rebind", "===", '"undefined"' ]
+                    }, "rebind", "=", "true" ], [ "for", {
+                        parens: [ "var", "p", "in", "thisArg" ]
+                    }, {
+                        block: [ [ "if", {
+                            parens: [ "thisArg[p]", "&&", "thisArg[p]._orig" ]
+                        }, {
+                            block: [ [ "if", {
+                                parens: [ "rebind" ]
+                            }, "thisArg[p]", "=", "_$rapyd$_bind", {
+                                call: [ {
+                                    sequence: [ "thisArg[p]", "thisArg" ]
+                                } ]
+                            } ], [ "else", "thisArg[p]", "=", "thisArg[p]._orig" ] ]
+                        } ] ]
+                    } ] ]
+                })
+            ,
+            dir: def():
+                return func_gen("dir", {
+                    args: [ "item" ],
+                    body: [ [ "var", "arr", "=", "[]" ], [ "for", {
+                        parens: [ "var", "i", "in", "item" ]
+                    }, {
+                        block: [ [ "arr.push", {
+                            call: [ "i" ]
+                        } ] ]
+                    } ], [ "return", "arr" ] ]
+                })
+            ,
+            enumerate: def():
+                return func_gen("enumerate", {
+                    args: [ "item" ],
+                    body: [ [ "var", "arr", "=", "[]" ], [ "for", {
+                        parens: [ "var", "i", "=", "0;", "i", "<", "item.length;", "i++" ]
+                    }, {
+                        block: [ [ "arr[arr.length]", "=", {
+                            square: [ {
+                                sequence: [ "i", "item[i]" ]
+                            } ]
+                        } ] ]
+                    } ], [ "return", "arr" ] ]
+                })
+            ,
+            "extends": def():
+                # regular:
+                #
+                # function _$rapyd$_extends(child, parent) {
+                #  child.prototype = new parent;
+                #  child.prototype.constructor = child;
+                #  _$rapyd$_rebindAll(child.prototype);
+                # }
+                #
+                # screw_old_browsers:
+                #
+                # function _$rapyd$_extends(child, parent) {
+                #  child.prototype = Object.create(parent.prototype)
+                #  child.prototype.constructor = child;
+                # }
+                if options.screw_old_browsers:
+                    return func_gen("_$rapyd$_extends", {
+                        args: [ "child", "parent" ],
+                        body: [ [ "child.prototype", "=", "Object.create", {
+                            call: [ "parent.prototype" ]
+                        } ], [ "child.prototype.constructor", "=", "child" ] ]
+                    })
+                else:
+                    body = [ [ "child.prototype", "=", "new", "parent" ], [ "child.prototype.constructor", "=", "child" ] ]
+                    if options.auto_bind:
+                        body.push([ "_$rapyd$_rebindAll", {
+                            call: [ "child.prototype" ]
+                        } ])
+
+                    return func_gen("_$rapyd$_extends", {
+                        args: [ "child", "parent" ],
+                        body: body
+                    })
+
+            ,
+            "in": def():
+                # NOTE: we're using a for loop instead of 'val in arr' check because the loop allows us to perform the check in any
+                # iterable element, whereas the later only works with hashes
+                #function _$rapyd$_in(val, arr){
+                #  if (arr instanceof Array || typeof obj === 'string') return arr.indexOf(val) != -1;
+                #  else {
+                #    for (i in arr) {
+                #      if (arr.hasOwnProperty(i) && i === val) return true;
+                #    }
+                #    return false;
+                #  }
+                #}
+                return func_gen("_$rapyd$_in", {
+                    args: [ "val", "arr" ],
+                    body: [ [ "if", {
+                        parens: [ "arr", "instanceof", "Array", "||", "typeof", "arr", "===", '"string"' ]
+                    }, "return", "arr.indexOf(val)", "!=", "-1" ], [ "else", {
+                        block: [ [ "for", {
+                            parens: [ "i", "in", "arr" ]
+                        }, {
+                            block: [ [ "if", {
+                                parens: [ "arr.hasOwnProperty(i)", "&&", "i", "===", "val" ]
+                            }, "return", "true" ] ]
+                        } ], [ "return", "false" ] ]
+                    } ] ]
+                })
+            ,
+            len_: def():
+                #function len(obj) {
+                #  if (obj instanceof Array || typeof obj === 'string') return obj.length;
+                #  else {
+                #    var count = 0;
+                #    for (var i in obj) {
+                #      if (obj.hasOwnProperty(i)) count++;
+                #    }
+                #    return count;
+                #  }
+                #}
+                return func_gen("len", {
+                    args: [ "obj" ],
+                    body: [ [ "if", {
+                        parens: [ "obj", "instanceof", "Array", "||", "typeof", "obj", "===", '"string"' ]
+                    }, "return", "obj.length" ], [ "else", {
+                        block: [ [ "var", "count", "=", "0" ], [ "for", {
+                            parens: [ "var", "i", "in", "obj" ]
+                        }, {
+                            block: [ [ "if", {
+                                parens: [ "obj.hasOwnProperty(i)" ]
+                            }, "count++" ] ]
+                        } ], [ "return", "count" ] ]
+                    } ] ]
+                })
+            ,
+            mixin: def():
+                #function _$rapyd$_mixin(target, source, overwrite) {
+                #  for (var i in source) {
+                #    if (source.hasOwnProperty(i) && (overwrite || typeof target[i] === "undefined")) target[i] = source[i];
+                #  }
+                #}
+                return func_gen("_$rapyd$_mixin", {
+                    args: [ "target", "source", "overwrite" ],
+                    body: [ [ "for", {
+                        parens: [ "var", "i", "in", "source" ]
+                    }, {
+                        block: [ [ "if", {
+                            parens: [ "source.hasOwnProperty(i)", "&&", {
+                                parens: [ "overwrite", "||", "typeof", "taget[i]", "===", '"undefined"' ]
+                            } ]
+                        }, "target[i]", "=", "source[i]" ] ]
+                    } ] ]
+                })
+            ,
+            print: def():
+                # TODO: JSON.stringify will fail in older versions of IE, we
+                # could either ignore this, force-import our own implementation
+                # like stdlib already does, or find an alternative (String()
+                # isn't good enough because it will not traverse nested objects)
+                #function _$rapyd$_print() {
+                #  var args, output;
+                #  args = [].slice.call(arguments, 0);
+                #  output = JSON.stringify(args);
+                #  if ("console" in window) console.log(output.substr(1, output.length-2));
+                #}
+                return func_gen("_$rapyd$_print", {
+                    args: [],
+                    body: [ [ "var", {
+                        sequence: [ "args", "output" ]
+                    } ], [ "args", "=", "[].slice.call", {
+                        call: [ {
+                            sequence: [ "arguments", "0" ]
+                        } ]
+                    } ], [ "output", "=", "JSON.stringify(args)" ], [ "if", {
+                        parens: [ '"console"', "in", "window" ]
+                    }, "console.log", {
+                        call: [ "output.substr", {
+                            call: [ {
+                                sequence: [ "1", "output.length-2" ]
+                            } ]
+                        } ]
+                    } ] ]
+                })
+            ,
+            range: def():
+                #function range(start, stop, step) {
+                #  if (arguments.length <= 1) {
+                #    stop = start || 0;
+                #    start = 0;
+                #  }
+                #  step = arguments[2] || 1;
+                #
+                #  var length = Math.max(Math.ceil((stop - start) / step), 0);
+                #  var idx = 0;
+                #  var range = new Array(length);
+                #
+                #  while(idx < length) {
+                #    range[idx++] = start;
+                #    start += step;
+                #  }
+                #
+                #  return range;
+                #}
+                return func_gen("range", {
+                    args: [ "start", "stop", "step" ],
+                    body: [ [ "if", {
+                        parens: [ "arguments.length", "<=", "1" ]
+                    }, {
+                        block: [ [ "stop", "=", "start", "||", "0" ], [ "start", "=", "0" ] ]
+                    } ], [ "step", "=", "arguments[2]", "||", "1" ], [ "var", "length", "=", "Math.max", {
+                        parens: [ "Math.ceil", {
+                            parens: [ {
+                                parens: [ "stop", "-", "start" ]
+                            }, "/", "step" ]
+                        }, ",", "0" ]
+                    } ], [ "var", "idx", "=", "0" ], [ "var", "range", "=", "new", "Array(length)" ], [ "while", {
+                        parens: [ "idx", "<", "length" ]
+                    }, {
+                        block: [ [ "range[idx++]", "=", "start" ], [ "start", "+=", "step" ] ]
+                    } ], [ "return", "range" ] ]
+                })
+            ,
+            reversed: def():
+                return func_gen("reversed", {
+                    args: [ "arr" ],
+                    body: [ [ "var", "tmp", "=", "[]" ], [ "for", {
+                        parens: [ "var", "i", "=", "arr.length", "-", "1;", "i", ">=", "0;", "i--" ]
+                    }, {
+                        block: [ [ "tmp.push", {
+                            call: [ "arr[i]" ]
+                        } ] ]
+                    } ], [ "return", "tmp" ] ]
+                })
+            ,
+            getattr: def():
+                return func_gen("getattr", {
+                    args: [ "obj", "name" ],
+                    body: [ [ "return", "obj[name]" ] ]
+                })
+            ,
+            setattr: def():
+                return func_gen("setattr", {
+                    args: [ "obj", "name", "value" ],
+                    body: [ [ "obj[name]", "=", "value" ] ]
+                })
+            ,
+            hasattr: def():
+                return func_gen("hasattr", {
+                    args: [ "obj", "name" ],
+                    body: [ [ "return", "name", "in", "obj" ] ]
+                })
+
+        }
+        lib[key]()
+
+    # any code that should appear before the main body
+    def prologue(module_):
+        if not options.omit_baselib:
+            for lib in dir(module_.baselib):
+                dump_baselib(lib)
+
+
+
+    def get():
+        return OUTPUT
+
+    def assign_var(name):
+        if typeof name is "string":
+            print(name)
+        else:
+            name.print(this)
+        space()
+        print("=")
+        space()
+
+    stack = []
+    return {
+        get: get,
+        toString: get,
+        indent: indent,
+        indentation: def():
+            return indentation
+        ,
+        current_width: def():
+            return current_col - indentation
+        ,
+        should_break: def():
+            return options.width and this.current_width() >= options.width
+        ,
+        newline: newline,
+        print: print,
+        space: space,
+        comma: comma,
+        colon: colon,
+        last: def():
+            return last
+        ,
+        semicolon: semicolon,
+        force_semicolon: force_semicolon,
+        to_ascii: to_ascii,
+        print_name: def(name):
+            print(make_name(name))
+        ,
+        print_string: def(str_):
+            print(encode_string(str_))
+        ,
+        next_indent: next_indent,
+        with_indent: with_indent,
+        with_block: with_block,
+        with_parens: with_parens,
+        with_square: with_square,
+        add_mapping: add_mapping,
+        assign: assign_var,
+        prologue: prologue,
+        "import": def(module_):
+            key = ""
+            while isinstance(module_, AST_Dot):
+                key = "." + module_.property + key
+                module_ = module_.expression
+
+            key = module_.name + key
+            should_import = not IMPORTED[key]
+            IMPORTED[key] = True
+            return should_import
+        ,
+        is_main: def():
+            return OUTPUT.length == 0
+        ,
+        option: def(opt):
+            return options[opt]
+        ,
+        line: def():
+            return current_line
+        ,
+        col: def():
+            return current_col
+        ,
+        pos: def():
+            return current_pos
+        ,
+        push_node: def(node):
+            stack.push(node)
+        ,
+        pop_node: def():
+            return stack.pop()
+        ,
+        stack: def():
+            return stack
+        ,
+        parent: def(n):
+            return stack[stack.length - 2 - (n or 0)]
+
+    }
+
+
+""" -----[ code generators ]----- """
+(def():
+    """ -----[ utils ]----- """
+    SPECIAL_METHODS = {
+        bind: "_$rapyd$_bind",
+        rebind_all: "_$rapyd$_rebindAll",
+        bool: "!!",
+        "float": "parseFloat",
+        "int": "parseInt",
+        mixin: "_$rapyd$_mixin",
+        print: "_$rapyd$_print"
+    }
+    INDEX_COUNTER = 0
+    def DEFPRINT(nodetype, generator):
+        nodetype.DEFMETHOD("_codegen", generator)
+
+    AST_Node.DEFMETHOD("print", def(stream, force_parens):
+        self = this
+        generator = self._codegen
+        stream.push_node(self)
+        if force_parens or self.needs_parens(stream):
+            stream.with_parens(def():
+                self.add_comments(stream)
+                self.add_source_map(stream)
+                generator(self, stream)
+            )
+        else:
+            self.add_comments(stream)
+            self.add_source_map(stream)
+            generator(self, stream)
+
+        stream.pop_node()
+    )
+    AST_Node.DEFMETHOD("print_to_string", def(options):
+        s = OutputStream(options)
+        this.print(s)
+        return s.get()
+    )
+    """ -----[ comments ]----- """
+    AST_Node.DEFMETHOD("add_comments", def(output):
+        c = output.option("comments")
+        self = this
+        if c:
+            start = self.start
+            if start and not start._comments_dumped:
+                start._comments_dumped = True
+                comments = start.comments_before
+                # XXX: ugly fix for https://github.com/mishoo/RapydScript2/issues/112
+                #      if this node is `return` or `throw`, we cannot allow comments before
+                #      the returned or thrown value.
+                if isinstance(self, AST_Exit) and self.value and self.value.start.comments_before.length > 0:
+                    comments = (comments or []).concat(self.value.start.comments_before)
+                    self.value.start.comments_before = []
+
+                if c.test:
+                    comments = comments.filter(def(comment):
+                        return c.test(comment.value)
+                    )
+                elif typeof c == "function":
+                    comments = comments.filter(def(comment):
+                        return c(self, comment)
+                    )
+
+                comments.forEach(def(c):
+                    if c.type == "comment1":
+                        output.print("//" + c.value + "\n")
+                        output.indent()
+                    elif c.type == "comment2":
+                        output.print("/*" + c.value + "*/")
+                        if start.nlb:
+                            output.print("\n")
+                            output.indent()
+                        else:
+                            output.space()
+
+
+                )
+
+
+    )
+    """ -----[ PARENTHESES ]----- """
+    def PARENS(nodetype, func):
+        nodetype.DEFMETHOD("needs_parens", func)
+
+    PARENS(AST_Node, def():
+        return False
+    )
+    # a function expression needs parens around it when it's provably
+    # the first token to appear in a statement.
+    PARENS(AST_Function, def(output):
+        return first_in_statement(output)
+    )
+    # same goes for an object literal, because otherwise it would be
+    # interpreted as a block of code.
+    PARENS(AST_Object, def(output):
+        return first_in_statement(output)
+    )
+    PARENS(AST_Unary, def(output):
+        p = output.parent()
+        return isinstance(p, AST_PropAccess) and p.expression is this
+    )
+    PARENS(AST_Seq, def(output):
+        p = output.parent()
+        return isinstance(p, AST_Unary) or isinstance(p, AST_VarDef) or isinstance(p, AST_Dot) or isinstance(p, AST_ObjectProperty) or isinstance(p, AST_Conditional)
+    )
+    PARENS(AST_Binary, def(output):
+        p = output.parent()
+        # (foo && bar)()
+        if isinstance(p, AST_BaseCall) and p.expression is this:
+            return True
+
+        # typeof (foo && bar)
+        if isinstance(p, AST_Unary):
+            return True
+
+        # (foo && bar)["prop"], (foo && bar).prop
+        if isinstance(p, AST_PropAccess) and p.expression is this:
+            return True
+
+        # this deals with precedence: 3 * (2 + 1)
+        if isinstance(p, AST_Binary):
+            po = p.operator
+            pp = PRECEDENCE[po]
+            so = this.operator
+            sp = PRECEDENCE[so]
+            if pp > sp or pp == sp and this is p.right and not (so == po and (so == "*" or so == "&&" or so == "||")):
+                return True
+    )
+    PARENS(AST_PropAccess, def(output):
+        p = output.parent()
+        if isinstance(p, AST_New) and p.expression is this:
+            # i.e. new (foo.bar().baz)
+            #
+            # if there's one call into this subtree, then we need
+            # parens around it too, otherwise the call will be
+            # interpreted as passing the arguments to the upper New
+            # expression.
+            try:
+                this.walk(new TreeWalker(def(node):
+                    if isinstance(node, AST_BaseCall):
+                        raise p
+                ))
+            except as ex:
+                if ex is not p:
+                    raise ex
+                return True
+    )
+    PARENS(AST_BaseCall, def(output):
+        p = output.parent()
+        return isinstance(p, AST_New) and p.expression is this
+    )
+    PARENS(AST_New, def(output):
+        p = output.parent()
+        if no_constructor_parens(this, output) and (isinstance(p, AST_PropAccess) or isinstance(p, AST_BaseCall) and p.expression is this):
+            # (new foo)(bar)
+            return True
+    )
+    PARENS(AST_Number, def(output):
+        p = output.parent()
+        if this.getValue() < 0 and isinstance(p, AST_PropAccess) and p.expression is this:
+            return True
+    )
+    PARENS(AST_NaN, def(output):
+        p = output.parent()
+        if isinstance(p, AST_PropAccess) and p.expression is this:
+            return True
+    )
+    def assign_and_conditional_paren_rules(output):
+        p = output.parent()
+        # !(a = false) → true
+        if isinstance(p, AST_Unary):
+            return True
+
+        # 1 + (a = 2) + 3 → 6, side effect setting a = 2
+        if isinstance(p, AST_Binary) and not (isinstance(p, AST_Assign)):
+            return True
+
+        # (a = func)() —or— new (a = Object)()
+        if isinstance(p, AST_BaseCall) and p.expression is this:
+            return True
+
+        # (a = foo) ? bar : baz
+        if isinstance(p, AST_Conditional) and p.condition is this:
+            return True
+
+        # (a = foo)["prop"] —or— (a = foo).prop
+        if isinstance(p, AST_PropAccess) and p.expression is this:
+            return True
+
+    PARENS(AST_Assign, assign_and_conditional_paren_rules)
+    PARENS(AST_Conditional, assign_and_conditional_paren_rules)
+    """ -----[ PRINTERS ]----- """
+    DEFPRINT(AST_Directive, def(self, output):
+        output.print_string(self.value)
+        output.semicolon()
+    )
+    DEFPRINT(AST_Debugger, def(self, output):
+        output.print("debugger")
+        output.semicolon()
+    )
+    """ -----[ statements ]----- """
+    def display_body(body, is_toplevel, output):
+        last = body.length - 1
+        body.forEach(def(stmt, i):
+            if not (isinstance(stmt, AST_EmptyStatement)) and not (isinstance(stmt, AST_Definitions)):
+                output.indent()
+                stmt.print(output)
+                if not (i == last and is_toplevel):
+                    output.newline()
+        )
+
+    def bind_methods(methods, output):
+        # bind the methods
+        for arg in dir(methods):
+            output.indent()
+            output.print("this.")
+            output.assign(arg)
+            output.print("_$rapyd$_bind")
+            output.with_parens(def():
+                output.print("this.")
+                output.print(arg)
+                output.comma()
+                output.print("this")
+            )
+            output.semicolon()
+            output.newline()
+
+    def display_complex_body(node, is_toplevel, output):
+        offset = 0
+        # argument offset
+        # this is a method, add 'var self = this'
+        if isinstance(node, AST_Defun) and not node.static:
+            output.indent()
+            output.print("var")
+            output.space()
+            output.assign(node.argnames[0])
+            output.print("this")
+            output.semicolon()
+            output.newline()
+            offset += 1
+
+        if isinstance(node, AST_Scope):
+            # if function takes any arguments
+            if node.argnames:
+                # if *args is set, declare function differently
+                if node.argnames.starargs:
+                    node.argnames.forEach(def(arg, i):
+                        if i >= offset:
+                            output.indent()
+                            output.print("var")
+                            output.space()
+                            output.assign(arg)
+                            output.print("arguments")
+                            output.with_square(def():
+                                output.print(i - offset)
+                            )
+                            output.semicolon()
+                            output.newline()
+                    )
+                    output.indent()
+                    output.print("var")
+                    output.space()
+                    output.assign(node.argnames.starargs)
+                    output.print("[].slice.call")
+                    output.with_parens(def():
+                        output.print("arguments")
+                        output.comma()
+                        output.print(node.argnames.length - offset)
+                    )
+                    output.semicolon()
+                    output.newline()
+
+                # initialize default function arguments, if any
+                for arg in dir(node.argnames.defaults):
+                    output.indent()
+                    output.print("if")
+                    output.space()
+                    output.with_parens(def():
+                        output.print("typeof " + arg)
+                        output.space()
+                        output.print("===")
+                        output.space()
+                        output.print('"undefined"')
+                    )
+                    output.space()
+                    output.assign(arg)
+                    force_statement(node.argnames.defaults[arg], output)
+                    output.semicolon()
+                    output.newline()
+
+            # rebind parent's methods and bind own methods
+            # for now we'll make a naive assumption that a function
+            # named __init__ will only occur inside a class
+            if output.option("auto_bind") and node.name and node.name.name == "__init__":
+                output.indent()
+                output.print("_$rapyd$_rebindAll")
+                output.with_parens(def():
+                    output.print("this")
+                    output.comma()
+                    output.print("true")
+                )
+                output.semicolon()
+                output.newline()
+                bind_methods(node.bound, output)
+
+            # declare all variables as local, unless explictly set otherwise
+            if node.localvars.length:
+                output.indent()
+                output.print("var")
+                output.space()
+                node.localvars.forEach(def(arg, i):
+                    if i:
+                        output.comma()
+
+                    arg.print(output)
+                )
+                output.semicolon()
+                output.newline()
+
+        elif isinstance(node, AST_Except):
+            if node.argname:
+                output.indent()
+                output.print("var")
+                output.space()
+                output.assign(node.argname)
+                output.print("_$rapyd$_Exception")
+                output.semicolon()
+                output.newline()
+
+        display_body(node.body, is_toplevel, output)
+
+    def unpack_tuple(tuple, output, in_statement):
+        tuple.elements.forEach(def(elem, i):
+            output.indent()
+            output.assign(elem)
+            output.print("_$rapyd$_Unpack")
+            output.with_square(def():
+                output.print(i)
+            )
+            if not in_statement or i < tuple.elements.length - 1:
+                output.semicolon()
+                output.newline()
+        )
+
+    AST_StatementWithBody.DEFMETHOD("_do_print_body", def(output):
+        force_statement(this.body, output)
+    )
+    DEFPRINT(AST_Statement, def(self, output):
+        self.body.print(output)
+        output.semicolon()
+    )
+    DEFPRINT(AST_Toplevel, def(self, output):
+        if output.option("private_scope") and output.is_main():
+            output.with_parens(def():
+                output.print("function()")
+                output.with_block(def():
+                    output.prologue(self)
+                    display_complex_body(self, True, output)
+                    output.newline()
+                )
+            )
+            output.print("();")
+            output.print("")
+        else:
+            if output.is_main():
+                output.prologue(self)
+
+            display_body(self.body, True, output)
+
+    )
+    def print_module(self, name, variables, output):
+        def print_var(name):
+            if typeof name is "string":
+                output.print(name)
+            else:
+                name.print(output)
+
+        output.print("var")
+        output.space()
+        output.assign(name)
+        output.with_parens(def():
+            output.print("function()")
+            output.with_block(def():
+                # dump the logic of this module
+                display_complex_body(self, False, output)
+                # expose local variables to the outside via a hash
+                output.newline()
+                output.indent()
+                output.print("return")
+                output.with_block(def():
+                    self.variables.forEach(def(arg, i):
+                        output.indent()
+                        print_var(arg)
+                        output.print(":")
+                        output.space()
+                        print_var(arg)
+                        if i < self.variables.length - 1:
+                            output.comma()
+
+                        output.newline()
+                    )
+                )
+                output.semicolon()
+                output.newline()
+            )
+        )
+        output.print("()")
+        output.semicolon()
+        output.newline()
+
+    DEFPRINT(AST_Import, def(self, output):
+        if output.import(self.module):
+            if not output.option("namespace_imports"):
+                self.body.print(output)
+            else:
+                print_module(self.body, self.module, self.variables, output)
+
+        if output.option("namespace_imports") and self.argnames:
+            self.variables.forEach(def(arg):
+                output.print("var")
+                output.space()
+                output.assign(arg)
+                self.module.print(output)
+                output.print(".")
+                arg.print(output)
+                output.semicolon()
+                output.newline()
+            )
+    )
+    DEFPRINT(AST_LabeledStatement, def(self, output):
+        self.label.print(output)
+        output.colon()
+        self.body.print(output)
+    )
+    DEFPRINT(AST_SimpleStatement, def(self, output):
+        if not (isinstance(self.body, AST_EmptyStatement)):
+            self.body.print(output)
+            output.semicolon()
+    )
+    def print_bracketed(node, output, complex):
+        if node.body.length > 0:
+            output.with_block(def():
+                if complex:
+                    display_complex_body(node, False, output)
+                else:
+                    display_body(node.body, False, output)
+            )
+        else:
+            output.print("{}")
+
+    DEFPRINT(AST_BlockStatement, def(self, output):
+        print_bracketed(self, output)
+    )
+    DEFPRINT(AST_EmptyStatement, def(self, output):
+        pass
+    )
+    DEFPRINT(AST_Do, def(self, output):
+        output.print("do")
+        output.space()
+        self._do_print_body(output)
+        output.space()
+        output.print("while")
+        output.space()
+        output.with_parens(def():
+            self.condition.print(output)
+        )
+        output.semicolon()
+    )
+    DEFPRINT(AST_While, def(self, output):
+        output.print("while")
+        output.space()
+        output.with_parens(def():
+            self.condition.print(output)
+        )
+        output.space()
+        self._do_print_body(output)
+    )
+    def is_simple_for(self):
+        # returns true if this loop can be simplified into a basic for loop
+        if isinstance(self.object, AST_BaseCall) and isinstance(self.object.expression, AST_SymbolRef) and self.object.expression.name == "range" and not (isinstance(self.init, AST_Array)) and (self.object.args.length < 3 or (isinstance(self.object.args.slice(-1)[0], AST_Number) or isinstance(self.object.args.slice(-1)[0], AST_Unary) and self.object.args.slice(-1)[0].operator == "-" and isinstance(self.object.args.slice(-1)[0].expression, AST_Number))):
+            return True
+        return False
+
+    AST_ForIn.DEFMETHOD("_do_print_body", def(output):
+        self = this
+        output.with_block(def():
+            if not is_simple_for(self):
+                # if we're using multiple iterators, unpack them
+                output.indent()
+                if isinstance(self.init, AST_Array):
+                    output.assign("_$rapyd$_Unpack")
+                    output.print("_$rapyd$_Iter" + INDEX_COUNTER + "[_$rapyd$_Index" + INDEX_COUNTER + "];")
+                    output.newline()
+                    unpack_tuple(self.init, output)
+                else:
+                    output.assign(self.init)
+                    output.print("_$rapyd$_Iter" + INDEX_COUNTER + "[_$rapyd$_Index" + INDEX_COUNTER + "];")
+                    output.newline()
+
+                INDEX_COUNTER += 1
+
+            self.body.body.forEach(def(stmt, i):
+                output.indent()
+                stmt.print(output)
+                output.newline()
+            )
+        )
+    )
+    DEFPRINT(AST_ForIn, def(self, output):
+        if is_simple_for(self):
+            # optimize range() to simple for loop
+            increment = None
+            args = self.object.args
+            tmp_ = args.length
+            if tmp_ == 1:
+                start = 0
+                end = args[0]
+            elif tmp_ == 2:
+                start = args[0]
+                end = args[1]
+            elif tmp_ == 3:
+                start = args[0]
+                end = args[1]
+                increment = args[2]
+            
+            output.print("for")
+            output.space()
+            output.with_parens(def():
+                output.assign(self.init)
+                (start.print ? start.print(output) : output.print(start))
+                output.semicolon()
+                output.space()
+                self.init.print(output)
+                output.space()
+                (isinstance(increment, AST_Unary) ? output.print(">") : output.print("<"))
+                output.space()
+                end.print(output)
+                output.semicolon()
+                output.space()
+                self.init.print(output)
+                if increment and (not (isinstance(increment, AST_Unary)) or increment.expression.value != "1"):
+                    if isinstance(increment, AST_Unary):
+                        output.print("-=")
+                        increment.expression.print(output)
+                    else:
+                        output.print("+=")
+                        increment.print(output)
+                else:
+                    if isinstance(increment, AST_Unary):
+                        output.print("--")
+                    else:
+                        output.print("++")
+            )
+        else:
+            output.assign("var _$rapyd$_Iter" + INDEX_COUNTER)
+            self.object.print(output)
+            output.semicolon()
+            output.newline()
+            output.indent()
+            output.print("for")
+            output.space()
+            output.with_parens(def():
+                output.print("var")
+                output.space()
+                output.assign("_$rapyd$_Index" + INDEX_COUNTER)
+                output.print("0")
+                output.semicolon()
+                output.space()
+                output.print("_$rapyd$_Index" + INDEX_COUNTER)
+                output.space()
+                output.print("<")
+                output.space()
+                output.print("_$rapyd$_Iter" + INDEX_COUNTER + ".length")
+                output.semicolon()
+                output.space()
+                output.print("_$rapyd$_Index" + INDEX_COUNTER + "++")
+            )
+
+        output.space()
+        self._do_print_body(output)
+    )
+    DEFPRINT(AST_ListComprehension, def(self, output):
+        output.with_parens(def():
+            output.print("function")
+            output.print("()")
+            output.space()
+            output.with_block(def():
+                output.indent()
+                output.assign("var _$rapyd$_Iter")
+                self.object.print(output)
+                output.comma()
+                output.assign("_$rapyd$_Result")
+                output.print("[]")
+                # make sure to locally scope loop variables
+                if isinstance(self.init, AST_Array):
+                    self.init.elements.forEach(def(i):
+                        output.comma()
+                        i.print(output)
+                    )
+                else:
+                    output.comma()
+                    self.init.print(output)
+
+                output.semicolon()
+                output.newline()
+                output.indent()
+                output.print("for")
+                output.space()
+                output.with_parens(def():
+                    output.print("var")
+                    output.space()
+                    output.assign("_$rapyd$_Index")
+                    output.print("0")
+                    output.semicolon()
+                    output.space()
+                    output.print("_$rapyd$_Index")
+                    output.space()
+                    output.print("<")
+                    output.space()
+                    output.print("_$rapyd$_Iter.length")
+                    output.semicolon()
+                    output.space()
+                    output.print("_$rapyd$_Index++")
+                )
+                output.space()
+                output.with_block(def():
+                    output.indent()
+                    if isinstance(self.init, AST_Array):
+                        output.assign("_$rapyd$_Unpack")
+                        output.print("_$rapyd$_Iter[_$rapyd$_Index];")
+                        output.newline()
+                        unpack_tuple(self.init, output)
+                    else:
+                        output.assign(self.init)
+                        output.print("_$rapyd$_Iter[_$rapyd$_Index];")
+                        output.newline()
+
+                    add_to_list = def():
+                        output.indent()
+                        output.print("_$rapyd$_Result.push")
+                        output.with_parens(def():
+                            self.statement.print(output)
+                        )
+                        output.semicolon()
+                        output.newline()
+
+                    if self.condition:
+                        output.indent()
+                        output.print("if")
+                        output.space()
+                        output.with_parens(def():
+                            self.condition.print(output)
+                        )
+                        output.space()
+                        output.with_block(def():
+                            add_to_list()
+                        )
+                        output.newline()
+                    else:
+                        add_to_list()
+                )
+                output.newline()
+                output.indent()
+                output.print("return _$rapyd$_Result")
+                output.semicolon()
+                output.newline()
+            )
+        )
+        output.print("()")
+    )
+    DEFPRINT(AST_With, def(self, output):
+        output.print("with")
+        output.space()
+        output.with_parens(def():
+            self.expression.print(output)
+        )
+        output.space()
+        self._do_print_body(output)
+    )
+
+    """ -----[ functions ]----- """
+    def decorate(node, output, prefix):
+        if node.decorators and node.decorators.length:
+            output.indent()
+            if prefix:
+                output.print(prefix)
+
+            output.assign(node.name)
+            wrap = def(d):
+                if d.length:
+                    output.print(d.slice(0)[0].name)
+                    output.with_parens(def():
+                        wrap(d.slice(1))
+                    )
+                else:
+                    if prefix:
+                        output.print(prefix)
+
+                    node.name.print(output)
+
+
+            wrap(node.decorators)
+            output.semicolon()
+            output.newline()
+
+
+    AST_Lambda.DEFMETHOD("_do_print", def(output, nokeyword):
+        self = this
+        if not nokeyword:
+            output.print("function")
+
+        if self.name:
+            output.space()
+            self.name.print(output)
+
+        output.with_parens(def():
+            if not self.argnames.starargs:
+                self.argnames.forEach(def(arg, i):
+                    if i:
+                        output.comma()
+
+                    arg.print(output)
+                )
+        )
+        output.space()
+        print_bracketed(self, output, True)
+        decorate(self, output)
+    )
+    DEFPRINT(AST_Lambda, def(self, output):
+        self._do_print(output)
+    )
+    """ -----[ classes ]----- """
+    AST_Class.DEFMETHOD("_do_print", def(output):
+        self = this
+        if self.external:
+            return
+
+        class_def = def(method):
+            output.indent()
+            self.name.print(output)
+            if method and self.static.indexOf(method) != -1:
+                output.assign("." + method)
+            else:
+                output.assign(".prototype" + ((method ? "." + method : "")))
+
+        class_fun_def = def(stmt):
+            name = stmt.name.name
+            if name == "__init__":
+                stmt.bound = self.bound
+                output.print("function")
+                output.space()
+                self.name.print(output)
+            else:
+                output.newline()
+                class_def(name)
+                output.print("function")
+                output.space()
+                output.print(name)
+
+            output.with_parens(def():
+                if not stmt.argnames.starargs:
+                    stmt.argnames.forEach(def(arg, i):
+                        # only strip first argument if the method isn't static
+                        if self.static.indexOf(name) != -1:
+                            i += 1
+                        if i > 1:
+                            output.comma()
+                        if i:
+                            arg.print(output)
+                    )
+            )
+            print_bracketed(stmt, output, True)
+            output.semicolon()
+            output.newline()
+            decorate(stmt, output, self.name.name + ".prototype.")
+
+        # generate constructor
+        if self.init:
+            class_fun_def(self.init, self.name.name)
+        elif self.parent:
+            # init method doesn't exist, default to parent's init
+            output.print("function")
+            output.space()
+            self.name.print(output)
+            output.print("()")
+            output.space()
+            output.with_block(def():
+                bind_methods(self.bound, output)
+                output.indent()
+                self.parent.print(output)
+                output.print(".prototype.constructor.apply")
+                output.with_parens(def():
+                    output.print("this")
+                    output.comma()
+                    output.print("arguments")
+                )
+                output.semicolon()
+                output.newline()
+            )
+        else:
+            # no init method or parent, create empty init
+            output.print("function")
+            output.space()
+            self.name.print(output)
+            output.print("()")
+            output.space()
+            output.with_block(def():
+                bind_methods(self.bound, output)
+            )
+
+        output.newline()
+        # inheritance
+        if self.parent:
+            output.indent()
+            output.print("_$rapyd$_extends")
+            output.with_parens(def():
+                self.name.print(output)
+                output.comma()
+                self.parent.print(output)
+            )
+            output.semicolon()
+            output.newline()
+
+        # actual methods
+        self.body.forEach(def(stmt, i):
+            if isinstance(stmt, AST_Defun):
+                if stmt.name.name != "__init__":
+                    class_fun_def(stmt)
+
+            elif isinstance(stmt, AST_Class):
+                output.indent()
+                self.name.print(output)
+                output.print(".")
+                stmt.print(output)
+                output.newline()
+        )
+        decorate(self, output)
+    )
+    DEFPRINT(AST_Class, def(self, output):
+        self._do_print(output)
+    )
+
+    """ -----[ modules ]----- """
+    AST_Module.DEFMETHOD("_do_print", def(output):
+        self = this
+        if self.external:
+            return
+
+        print_module(self, self.name, self.variables, output)
+        decorate(self, output)
+    )
+    DEFPRINT(AST_Module, def(self, output):
+        self._do_print(output)
+    )
+
+    """ -----[ exits ]----- """
+    AST_Exit.DEFMETHOD("_do_print", def(output, kind):
+        self = this
+        output.print(kind)
+        if self.value:
+            output.space()
+            self.value.print(output)
+
+        output.semicolon()
+    )
+    DEFPRINT(AST_Return, def(self, output):
+        self._do_print(output, "return")
+    )
+    DEFPRINT(AST_Throw, def(self, output):
+        self._do_print(output, "throw")
+    )
+
+    """ -----[ loop control ]----- """
+    AST_LoopControl.DEFMETHOD("_do_print", def(output, kind):
+        output.print(kind)
+        if this.label:
+            output.space()
+            this.label.print(output)
+
+        output.semicolon()
+    )
+    DEFPRINT(AST_Break, def(self, output):
+        self._do_print(output, "break")
+    )
+    DEFPRINT(AST_Continue, def(self, output):
+        self._do_print(output, "continue")
+    )
+
+    """ -----[ if ]----- """
+    def make_then(self, output):
+        if output.option("bracketize"):
+            make_block(self.body, output)
+            return
+
+        # The squeezer replaces "block"-s that contain only a single
+        # statement with the statement itself; technically, the AST
+        # is correct, but this can create problems when we output an
+        # IF having an ELSE clause where the THEN clause ends in an
+        # IF *without* an ELSE block (then the outer ELSE would refer
+        # to the inner IF).  This function checks for this case and
+        # adds the block brackets if needed.
+        if not self.body:
+            return output.force_semicolon()
+
+        if isinstance(self.body, AST_Do) and output.option("ie_proof"):
+            # https://github.com/mishoo/RapydScript/issues/#issue/57 IE
+            # croaks with "syntax error" on code like this: if (foo)
+            # do ... while(cond); else ...  we need block brackets
+            # around do/while
+            make_block(self.body, output)
+            return
+
+        b = self.body
+        while True:
+            if isinstance(b, AST_If):
+                if not b.alternative:
+                    make_block(self.body, output)
+                    return
+
+                b = b.alternative
+            elif isinstance(b, AST_StatementWithBody):
+                b = b.body
+            else:
+                break
+
+        force_statement(self.body, output)
+
+    DEFPRINT(AST_If, def(self, output):
+        output.print("if")
+        output.space()
+        output.with_parens(def():
+            self.condition.print(output)
+        )
+        output.space()
+        if self.alternative:
+            make_then(self, output)
+            output.space()
+            output.print("else")
+            output.space()
+            force_statement(self.alternative, output)
+        else:
+            self._do_print_body(output)
+
+    )
+
+    """ -----[ switch ]----- """
+    DEFPRINT(AST_Switch, def(self, output):
+        output.print("switch")
+        output.space()
+        output.with_parens(def():
+            self.expression.print(output)
+        )
+        output.space()
+        if self.body.length > 0:
+            output.with_block(def():
+                self.body.forEach(def(stmt, i):
+                    if i:
+                        output.newline()
+
+                    output.indent(True)
+                    stmt.print(output)
+                )
+            )
+        else:
+            output.print("{}")
+    )
+    AST_SwitchBranch.DEFMETHOD("_do_print_body", def(output):
+        if this.body.length > 0:
+            output.newline()
+            this.body.forEach(def(stmt):
+                output.indent()
+                stmt.print(output)
+                output.newline()
+            )
+    )
+    DEFPRINT(AST_Default, def(self, output):
+        output.print("default:")
+        self._do_print_body(output)
+    )
+    DEFPRINT(AST_Case, def(self, output):
+        output.print("case")
+        output.space()
+        self.expression.print(output)
+        output.print(":")
+        self._do_print_body(output)
+    )
+
+    """ -----[ exceptions ]----- """
+    DEFPRINT(AST_Try, def(self, output):
+        output.print("try")
+        output.space()
+        print_bracketed(self, output)
+        if self.bcatch:
+            output.space()
+            self.bcatch.print(output)
+
+        if self.bfinally:
+            output.space()
+            self.bfinally.print(output)
+    )
+    DEFPRINT(AST_Catch, def(self, output):
+        output.print("catch")
+        output.space()
+        output.with_parens(def():
+            output.print("_$rapyd$_Exception")
+        )
+        output.space()
+        #        print_bracketed(self, output);
+        if self.body.length > 1 or self.body[0].errors.length:
+            output.with_block(def():
+                output.indent()
+                no_default = True
+                self.body.forEach(def(exception, i):
+                    if i:
+                        output.print("else ")
+
+                    if exception.errors.length:
+                        output.print("if")
+                        output.space()
+                        output.with_parens(def():
+                            exception.errors.forEach(def(err, i):
+                                if i:
+                                    output.newline()
+                                    output.indent()
+                                    output.print("||")
+                                    output.space()
+
+                                output.print("_$rapyd$_Exception")
+                                output.space()
+                                output.print("instanceof")
+                                output.space()
+                                err.print(output)
+                            )
+                        )
+                        output.space()
+                    else:
+                        no_default = False
+                    print_bracketed(exception, output, True)
+                    output.space()
+                )
+                if no_default:
+                    output.print("else")
+                    output.space()
+                    output.with_block(def():
+                        output.indent()
+                        output.print("throw")
+                        output.space()
+                        output.print("_$rapyd$_Exception")
+                        output.semicolon()
+                        output.newline()
+                    )
+                output.newline()
+            )
+        else:
+            print_bracketed(self.body[0], output, True)
+    )
+    DEFPRINT(AST_Finally, def(self, output):
+        output.print("finally")
+        output.space()
+        print_bracketed(self, output)
+    )
+
+    """ -----[ var/const ]----- """
+    AST_Definitions.DEFMETHOD("_do_print", def(output, kind):
+        output.print(kind)
+        output.space()
+        this.definitions.forEach(def(def_, i):
+            if i:
+                output.comma()
+            def_.print(output)
+        )
+        p = output.parent()
+        in_for = isinstance(p, AST_ForIn)
+        avoid_semicolon = in_for and p.init is this
+        if not avoid_semicolon:
+            output.semicolon()
+    )
+    DEFPRINT(AST_Var, def(self, output):
+        self._do_print(output, "var")
+    )
+    DEFPRINT(AST_Const, def(self, output):
+        self._do_print(output, "const")
+    )
+    def parenthesize_for_noin(node, output, noin):
+        if not noin:
+            node.print(output)
+        else:
+            try:
+                # need to take some precautions here:
+                #    https://github.com/mishoo/RapydScript2/issues/60
+                node.walk(new TreeWalker(def(node):
+                    if isinstance(node, AST_Binary) and node.operator == "in":
+                        raise output
+                ))
+                node.print(output)
+            except as ex:
+                if ex is not output:
+                    raise ex
+                node.print(output, True)
+
+    DEFPRINT(AST_VarDef, def(self, output):
+        self.name.print(output)
+        if self.value:
+            output.assign("")
+            #            output.space();
+            #            output.print("=");
+            #            output.space();
+            p = output.parent(1)
+            noin = isinstance(p, AST_ForIn)
+            parenthesize_for_noin(self.value, output, noin)
+    )
+
+    """ -----[ other expressions ]----- """
+    DEFPRINT(AST_BaseCall, def(self, output):
+        if isinstance(self, AST_ClassCall):
+            if self.static:
+                self.class_.print(output)
+                output.print(".")
+                output.print(self.method)
+            else:
+                self.class_.print(output)
+                output.print(".prototype.")
+                output.print(self.method)
+                output.print(".call")
+        else:
+            rename = SPECIAL_METHODS.hasOwnProperty(self.expression.name) ? SPECIAL_METHODS[self.expression.name] : undefined
+            if rename:
+                output.print(rename)
+            else:
+                self.expression.print(output)
+
+        if isinstance(self, AST_New) and no_constructor_parens(self, output):
+            return
+
+        if self.args.starargs:
+            obj = (self.expression.expression ? self.expression.expression.name : "this")
+            last = self.args.length - 1
+            output.print(".apply")
+            output.with_parens(def():
+                output.print(obj)
+                output.comma()
+                output.with_square(def():
+                    self.args.forEach(def(expr, i):
+                        if i != last:
+                            if i:
+                                output.comma()
+                            expr.print(output)
+                    )
+                )
+                output.print(".concat")
+                output.with_parens(def():
+                    self.args[last].print(output)
+                )
+            )
+        else:
+            output.with_parens(def():
+                self.args.forEach(def(expr, i):
+                    if i:
+                        output.comma()
+                    expr.print(output)
+                )
+            )
+    )
+    DEFPRINT(AST_New, def(self, output):
+        output.print("new")
+        output.space()
+        AST_BaseCall.prototype._codegen(self, output)
+    )
+    AST_Seq.DEFMETHOD("_do_print", def(output):
+        self = this
+        p = output.parent()
+        print_seq = def():
+            self.car.print(output)
+            if self.cdr:
+                output.comma()
+                if output.should_break():
+                    output.newline()
+                    output.indent()
+                self.cdr.print(output)
+
+        # this will effectively convert tuples to arrays
+        if isinstance(p, AST_Binary)
+        or isinstance(p, AST_Return)
+        or isinstance(p, AST_Array)
+        or isinstance(p, AST_BaseCall)
+        or isinstance(p, AST_SimpleStatement):
+            output.with_square(print_seq)
+        else:
+            print_seq()
+    )
+    DEFPRINT(AST_Seq, def(self, output):
+        self._do_print(output)
+    )
+    DEFPRINT(AST_Dot, def(self, output):
+        expr = self.expression
+        expr.print(output)
+        if isinstance(expr, AST_Number) and expr.getValue() >= 0:
+            if not /[xa-f.]/i.test(output.last()):
+                output.print(".")
+        output.print(".")
+        # the name after dot would be mapped about here.
+        output.add_mapping(self.end)
+        output.print_name(self.property)
+    )
+    DEFPRINT(AST_Sub, def(self, output):
+        self.expression.print(output)
+        output.print("[")
+        # parse negative constants into len-constant
+        if isinstance(self.property, AST_Unary) and self.property.operator == "-"
+        and isinstance(self.property.expression, AST_Number):
+            # TODO: this might parse incorrectly if expression is a
+            # function call that might not return the same result
+            # when called repeatedly. We might eventually want to
+            # save the return to a temporary variable and use that
+            # instead if expression is a function. Or we could just
+            # throw an error if negative indices are used with a
+            # type that's not AST_SymbolVar
+            self.expression.print(output)
+            output.print(".length")
+
+        self.property.print(output)
+        output.print("]")
+    )
+    DEFPRINT(AST_UnaryPrefix, def(self, output):
+        op = self.operator
+        output.print(op)
+        if /^[a-z]/i.test(op):
+            output.space()
+        self.expression.print(output)
+    )
+    DEFPRINT(AST_UnaryPostfix, def(self, output):
+        self.expression.print(output)
+        output.print(self.operator)
+    )
+    DEFPRINT(AST_Binary, def(self, output):
+        comparators = {
+            "<": True,
+            ">": True,
+            "<=": True,
+            ">=": True,
+            "==": True,
+            "!=": True
+        }
+        if self.operator == "in":
+            output.print("_$rapyd$_in")
+            output.with_parens(def():
+                self.left.print(output)
+                output.comma()
+                self.right.print(output)
+            )
+        elif comparators[self.operator] and isinstance(self.left, AST_Binary) and comparators[self.left.operator]:
+            if isinstance(self.left.right, AST_Symbol):
+                # left side compares against a regular variable,
+                # no caching needed
+                self.left.print(output)
+                leftvar = self.left.right.name
+            else:
+                # some logic is being performed, let's cache it
+                self.left.left.print(output)
+                output.space()
+                output.print(self.left.operator)
+                output.space()
+                output.with_parens(def():
+                    output.assign("_$rapyd$_Temp")
+                    self.left.right.print(output)
+                    leftvar = "_$rapyd$_Temp"
+                )
+
+            output.space()
+            output.print("&&")
+            output.space()
+            output.print(leftvar)
+            output.space()
+            output.print(self.operator)
+            output.space()
+            self.right.print(output)
+        else:
+            self.left.print(output)
+            output.space()
+            output.print(self.operator)
+            output.space()
+            self.right.print(output)
+    )
+    DEFPRINT(AST_Assign, def(self, output):
+        if isinstance(self.left, AST_Array):
+            output.print("_$rapyd$_Unpack")
+        else:
+            self.left.print(output)
+        output.space()
+        output.print(self.operator)
+        output.space()
+        #        if (self.right instanceof AST_Seq && self.right.cdr)
+        #            output.with_square(function(){
+        #                // render sequences as packed tuples
+        #                self.right.print(output);
+        #            });
+        #        else self.right.print(output);
+        self.right.print(output)
+        if isinstance(self.left, AST_Array):
+            output.semicolon()
+            output.newline()
+            unpack_tuple(self.left, output, True)
+    )
+    DEFPRINT(AST_Conditional, def(self, output):
+        self.condition.print(output)
+        output.space()
+        output.print("?")
+        output.space()
+        self.consequent.print(output)
+        output.space()
+        output.colon()
+        self.alternative.print(output)
+    )
+
+    """ -----[ literals ]----- """
+    DEFPRINT(AST_Array, def(self, output):
+        output.with_square(def():
+            a = self.elements
+            len_ = a.length
+            if len_ > 0:
+                output.space()
+            a.forEach(def(exp, i):
+                if i:
+                    output.comma()
+                exp.print(output)
+            )
+            if len_ > 0:
+                output.space()
+        )
+    )
+    DEFPRINT(AST_Object, def(self, output):
+        if self.properties.length > 0:
+            output.with_block(def():
+                self.properties.forEach(def(prop, i):
+                    if i:
+                        output.print(",")
+                        output.newline()
+                    output.indent()
+                    prop.print(output)
+                )
+                output.newline()
+            )
+        else:
+            output.print("{}")
+    )
+    DEFPRINT(AST_ObjectKeyVal, def(self, output):
+        key = self.key
+        #        if (output.option("quote_keys")) {
+        if self.quoted:
+            output.print_string(key + "")
+        elif (typeof key == "number" or not output.option("beautify") and +key + "" == key) and parseFloat(key) >= 0:
+            output.print(make_num(key))
+        elif not is_identifier(key):
+            output.print_string(key)
+        else:
+            output.print_name(key)
+        output.colon()
+        self.value.print(output)
+    )
+    DEFPRINT(AST_ObjectSetter, def(self, output):
+        output.print("set")
+        self.value._do_print(output, True)
+    )
+    DEFPRINT(AST_ObjectGetter, def(self, output):
+        output.print("get")
+        self.value._do_print(output, True)
+    )
+    AST_Symbol.DEFMETHOD("definition", def():
+        return this.thedef
+    )
+    DEFPRINT(AST_Symbol, def(self, output):
+        def_ = self.definition()
+        output.print_name((def_ ? def_.mangled_name or def_.name : self.name))
+    )
+    DEFPRINT(AST_Undefined, def(self, output):
+        output.print("void 0")
+    )
+    DEFPRINT(AST_Hole, noop)
+    DEFPRINT(AST_Infinity, def(self, output):
+        output.print("1/0")
+    )
+    DEFPRINT(AST_NaN, def(self, output):
+        output.print("0/0")
+    )
+    DEFPRINT(AST_This, def(self, output):
+        output.print("this")
+    )
+    DEFPRINT(AST_Constant, def(self, output):
+        output.print(self.getValue())
+    )
+    DEFPRINT(AST_String, def(self, output):
+        output.print_string(self.getValue())
+    )
+    DEFPRINT(AST_Verbatim, def(self, output):
+        output.print(self.getValue())
+    )
+    DEFPRINT(AST_Number, def(self, output):
+        output.print(make_num(self.getValue()))
+    )
+    DEFPRINT(AST_RegExp, def(self, output):
+        str_ = self.getValue().toString()
+        if output.option("ascii_only"):
+            str_ = output.to_ascii(str_)
+        output.print(str_)
+        p = output.parent()
+        if isinstance(p, AST_Binary) and /^in/.test(p.operator) and p.left is self:
+            output.print(" ")
+    )
+    def force_statement(stat, output):
+        if output.option("bracketize"):
+            if not stat or isinstance(stat, AST_EmptyStatement):
+                output.print("{}")
+            elif isinstance(stat, AST_BlockStatement):
+                stat.print(output)
+            else:
+                output.with_block(def():
+                    output.indent()
+                    stat.print(output)
+                    output.newline()
+                )
+        else:
+            if not stat or isinstance(stat, AST_EmptyStatement):
+                output.force_semicolon()
+            else:
+                stat.print(output)
+
+    # return true if the node at the top of the stack (that means the
+    # innermost node in the current output) is lexically the first in
+    # a statement.
+    def first_in_statement(output):
+        a = output.stack()
+        i = a.length
+        node = a[i -= 1]
+        p = a[i -= 1]
+        while i > 0:
+            if isinstance(p, AST_Statement) and p.body is node:
+                return True
+            if isinstance(p, AST_Seq) and p.car is node
+            or isinstance(p, AST_BaseCall) and p.expression is node
+            or isinstance(p, AST_Dot) and p.expression is node
+            or isinstance(p, AST_Sub) and p.expression is node
+            or isinstance(p, AST_Conditional) and p.condition is node
+            or isinstance(p, AST_Binary) and p.left is node
+            or isinstance(p, AST_UnaryPostfix) and p.expression is node:
+                node = p
+                p = a[i -= 1]
+            else:
+                return False
+
+    # self should be AST_New.  decide if we want to show parens or not.
+    def no_constructor_parens(self, output):
+        return self.args.length == 0 and not output.option("beautify")
+
+    def best_of(a):
+        best = a[0]
+        len_ = best.length
+        for i in range(1, a.length):
+            if a[i].length < len_:
+                best = a[i]
+                len_ = best.length
+        return best
+
+    def make_num(num):
+        str_ = num.toString(10)
+        a = [ str_.replace(/^0\./, ".").replace("e+", "e") ]
+        
+        if Math.floor(num) is num:
+            if num >= 0:
+                a.push("0x" + num.toString(16).toLowerCase(), # probably pointless
+                "0" + num.toString(8))
+            else:
+                a.push("-0x" + (-num).toString(16).toLowerCase(), # probably pointless
+                "-0" + (-num).toString(8))
+
+            if m = /^(.*?)(0+)$/.exec(num):
+                a.push(m[1] + "e" + m[2].length)
+
+        elif m = /^0?\.(0+)(.*)$/.exec(num):
+            a.push(m[2] + "e-" + (m[1].length + m[2].length), str_.substr(str_.indexOf(".")))
+
+        return best_of(a)
+
+    def make_block(stmt, output):
+        if isinstance(stmt, AST_BlockStatement):
+            stmt.print(output)
+            return
+
+        output.with_block(def():
+            output.indent()
+            stmt.print(output)
+            output.newline()
+        )
+
+    """ -----[ source map generators ]----- """
+    def DEFMAP(nodetype, generator):
+        nodetype.DEFMETHOD("add_source_map", def(stream):
+            generator(this, stream)
+        )
+
+    # We could easily add info for ALL nodes, but it seems to me that
+    # would be quite wasteful, hence this noop in the base class.
+    DEFMAP(AST_Node, noop)
+    def basic_sourcemap_gen(self, output):
+        output.add_mapping(self.start)
+
+    # XXX: I'm not exactly sure if we need it for all of these nodes,
+    # or if we should add even more.
+    DEFMAP(AST_Directive, basic_sourcemap_gen)
+    DEFMAP(AST_Debugger, basic_sourcemap_gen)
+    DEFMAP(AST_Symbol, basic_sourcemap_gen)
+    DEFMAP(AST_Jump, basic_sourcemap_gen)
+    DEFMAP(AST_StatementWithBody, basic_sourcemap_gen)
+    DEFMAP(AST_LabeledStatement, noop)
+    # since the label symbol will mark it
+    DEFMAP(AST_Lambda, basic_sourcemap_gen)
+    DEFMAP(AST_Switch, basic_sourcemap_gen)
+    DEFMAP(AST_SwitchBranch, basic_sourcemap_gen)
+    DEFMAP(AST_BlockStatement, basic_sourcemap_gen)
+    DEFMAP(AST_Toplevel, noop)
+    DEFMAP(AST_New, basic_sourcemap_gen)
+    DEFMAP(AST_Try, basic_sourcemap_gen)
+    DEFMAP(AST_Catch, basic_sourcemap_gen)
+    DEFMAP(AST_Finally, basic_sourcemap_gen)
+    DEFMAP(AST_Definitions, basic_sourcemap_gen)
+    DEFMAP(AST_Constant, basic_sourcemap_gen)
+    DEFMAP(AST_ObjectProperty, def(self, output):
+        output.add_mapping(self.start, self.key)
+    )
+)()
