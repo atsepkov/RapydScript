@@ -49,7 +49,7 @@
 
 def array_to_hash(a):
     ret = Object.create(None)
-    for i in range(a.length):
+    for i in range(len(a)):
         ret[a[i]] = True
     return ret
 
@@ -60,13 +60,13 @@ def characters(str_):
     return str_.split("")
 
 def member(name, array):
-    for i in range(array.length, -1, -1):
+    for i in range(array.length-1, -1, -1):
         if array[i] == name:
             return True
     return False
 
 def find_if(func, array):
-    for i in range(n):
+    for i in range(len(array)):
         if func(array[i]):
             return array[i]
 
@@ -133,13 +133,13 @@ MAP = def():
 
         if isinstance(a, Array):
             if backwards:
-                for i in range(a.length, -1, -1):
+                for i in range(a.length-1, -1, -1):
                     if doit():
                         break
                 ret.reverse()
                 top.reverse()
             else:
-                for i in range(a.length):
+                for i in range(len(a)):
                     if doit():
                         break
         else:
@@ -179,7 +179,7 @@ def string_template(text, props):
     )
 
 def remove(array, el):
-    for i in range(array.length, -1, -1):
+    for i in range(array.length-1, -1, -1):
         if array[i] is el:
             array.splice(i, 1)
 
@@ -193,7 +193,13 @@ def mergeSort(array, cmp):
         bi = 0
         i = 0
         while ai < a.length and bi < b.length:
-            (cmp(a[ai], b[bi]) <= 0 ? r[i += 1] = a[ai += 1] : r[i += 1] = b[bi += 1])
+            if cmp(a[ai], b[bi]) <= 0:
+                r[i] = a[ai]
+                ai += 1
+            else:
+                r[i] = b[bi]
+                bi += 1
+            i += 1
         if ai < a.length:
             r.push.apply(r, a.slice(ai))
         if bi < b.length:
@@ -229,9 +235,9 @@ def makePredicate(words):
 
     f = ""
     cats = []
-    for i in range(words.length):
+    for i in range(len(words)):
         skip = False
-        for j in range(cats.length):
+        for j in range(len(cats)):
             if cats[j][0].length == words[i].length:
                 cats[j].push(words[i])
                 skip = True
@@ -240,11 +246,12 @@ def makePredicate(words):
             cats.push([ words[i] ])
 
     def compareTo(arr):
+        nonlocal f
         if arr.length == 1:
             return f += "return str === " + JSON.stringify(arr[0]) + ";"
 
         f += "switch(str){"
-        for i in range(arr.length):
+        for i in range(arr.len(arr)):
             f += "case " + JSON.stringify(arr[i]) + ":"
         f += "return true}return false;"
 
@@ -255,7 +262,7 @@ def makePredicate(words):
             return b.length - a.length
         )
         f += "switch(str.length){"
-        for i in range(cats.length):
+        for i in range(len(cats)):
             cat = cats[i]
             f += "case " + cat[0].length + ":"
             compareTo(cat)

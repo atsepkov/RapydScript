@@ -121,7 +121,6 @@ def OutputStream(options):
                 return "'"
             elif tmp_ == "\0":
                 return "\\0"
-            
             return s
         )
         if options.ascii_only:
@@ -158,12 +157,13 @@ def OutputStream(options):
 
     def maybe_newline():
         if options.max_line_len and current_col > options.max_line_len:
-            print("\n")
+            print_("\n")
 
 
     requireSemicolonChars = makePredicate("( [ + * / - , .")
-    def print(str_):
-        str_ = String(str_)
+    def print_(str_):
+        nonlocal might_need_space, last, current_line, current_pos, current_col, OUTPUT
+        str_ = JS("String(str_)")
         ch = str_.charAt(0)
         if might_need_semicolon:
             if (not ch or ";}".indexOf(ch) < 0) and not /[;]$/.test(last):
@@ -196,7 +196,8 @@ def OutputStream(options):
 
         if might_need_space:
             prev = last_char()
-            if is_identifier_char(prev) and (is_identifier_char(ch) or ch == "\\") or /^[\+\-\/]$/.test(ch) and ch == prev:
+            if is_identifier_char(prev) and (is_identifier_char(ch) or ch == "\\")
+            or /^[\+\-\/]$/.test(ch) and ch == prev:
                 OUTPUT += " "
                 current_col += 1
                 current_pos += 1
@@ -215,17 +216,18 @@ def OutputStream(options):
         last = str_
         OUTPUT += str_
 
-    space = (options.beautify ? def():
-        print(" ")
- : def():
+    space = options.beautify ? def(): print_(" ")
+    : def():
+        nonlocal might_need_space
         might_need_space = True
-)
-    indent = (options.beautify ? def(half):
-        if options.beautify:
-            print(make_indent((half ? 0.5 : 0)))
 
- : noop)
-    with_indent = (options.beautify ? def(col, cont):
+    indent = options.beautify ? def(half):
+        if options.beautify:
+            print_(make_indent((half ? 0.5 : 0)))
+    : noop
+
+    with_indent = options.beautify ? def(col, cont):
+        nonlocal indentation
         if col is True:
             col = next_indent()
 
@@ -234,55 +236,60 @@ def OutputStream(options):
         ret = cont()
         indentation = save_indentation
         return ret
- : def(col, cont):
+    : def(col, cont):
         return cont()
-)
-    newline = (options.beautify ? def():
-        print("\n")
- : noop)
-    semicolon = (options.beautify ? def():
-        print(";")
- : def():
+
+    newline = options.beautify ? def():
+        print_("\n")
+    : noop
+
+    semicolon = options.beautify ? def():
+        print_(";")
+    : def():
+        nonlocal might_need_semicolon
         might_need_semicolon = True
-)
+
     def force_semicolon():
+        nonlocal might_need_semicolon
         might_need_semicolon = False
-        print(";")
+        print_(";")
 
     def next_indent():
         return indentation + options.indent_level
 
     def with_block(cont):
-        print("{")
+        ret = None
+        print_("{")
         newline()
         with_indent(next_indent(), def():
+            nonlocal ret
             ret = cont()
         )
         indent()
-        print("}")
+        print_("}")
         return ret
 
     def with_parens(cont):
-        print("(")
+        print_("(")
         #XXX: still nice to have that for argument lists
         #var ret = with_indent(current_col, cont);
         ret = cont()
-        print(")")
+        print_(")")
         return ret
 
     def with_square(cont):
-        print("[")
+        print_("[")
         #var ret = with_indent(current_col, cont);
         ret = cont()
-        print("]")
+        print_("]")
         return ret
 
     def comma():
-        print(",")
+        print_(",")
         space()
 
     def colon():
-        print(":")
+        print_(":")
         if options.space_colon:
             space()
 
@@ -309,7 +316,7 @@ def OutputStream(options):
                 space()
 
             if typeof item is "string":
-                print(item)
+                print_(item)
             elif item.parens:
                 with_parens(def():
                     item.parens.forEach(stmt_gen)
@@ -331,7 +338,7 @@ def OutputStream(options):
                     if i:
                         comma()
 
-                    print(elem)
+                    print_(elem)
                 )
 
 
@@ -345,13 +352,13 @@ def OutputStream(options):
 
         func_gen = def(name, data):
             indent()
-            print("function " + name)
+            print_("function " + name)
             with_parens(def():
                 data.args.forEach(def(arg, i):
                     if i:
                         comma()
 
-                    print(arg)
+                    print_(arg)
                 )
             )
             space()
@@ -517,7 +524,7 @@ def OutputStream(options):
                     } ] ]
                 })
             ,
-            len_: def():
+            len: def():
                 #function len(obj) {
                 #  if (obj instanceof Array || typeof obj === 'string') return obj.length;
                 #  else {
@@ -676,11 +683,11 @@ def OutputStream(options):
 
     def assign_var(name):
         if typeof name is "string":
-            print(name)
+            print_(name)
         else:
             name.print(this)
         space()
-        print("=")
+        print_("=")
         space()
 
     stack = []
@@ -698,7 +705,7 @@ def OutputStream(options):
             return options.width and this.current_width() >= options.width
         ,
         newline: newline,
-        print: print,
+        print: print_,
         space: space,
         comma: comma,
         colon: colon,
@@ -709,10 +716,10 @@ def OutputStream(options):
         force_semicolon: force_semicolon,
         to_ascii: to_ascii,
         print_name: def(name):
-            print(make_name(name))
+            print_(make_name(name))
         ,
         print_string: def(str_):
-            print(encode_string(str_))
+            print_(encode_string(str_))
         ,
         next_indent: next_indent,
         with_indent: with_indent,
@@ -1249,6 +1256,7 @@ def OutputStream(options):
     AST_ForIn.DEFMETHOD("_do_print_body", def(output):
         self = this
         output.with_block(def():
+            nonlocal INDEX_COUNTER
             if not is_simple_for(self):
                 # if we're using multiple iterators, unpack them
                 output.indent()
@@ -1287,7 +1295,7 @@ def OutputStream(options):
                 start = args[0]
                 end = args[1]
                 increment = args[2]
-            
+
             output.print("for")
             output.space()
             output.with_parens(def():
@@ -1879,11 +1887,11 @@ def OutputStream(options):
     DEFPRINT(AST_BaseCall, def(self, output):
         if isinstance(self, AST_ClassCall):
             if self.static:
-                self.class_.print(output)
+                self.class.print(output)
                 output.print(".")
                 output.print(self.method)
             else:
-                self.class_.print(output)
+                self.class.print(output)
                 output.print(".prototype.")
                 output.print(self.method)
                 output.print(".call")
@@ -2026,6 +2034,7 @@ def OutputStream(options):
                 output.print(self.left.operator)
                 output.space()
                 output.with_parens(def():
+                    nonlocal leftvar
                     output.assign("_$rapyd$_Temp")
                     self.left.right.print(output)
                     leftvar = "_$rapyd$_Temp"
@@ -2228,7 +2237,8 @@ def OutputStream(options):
     def make_num(num):
         str_ = num.toString(10)
         a = [ str_.replace(/^0\./, ".").replace("e+", "e") ]
-        
+        m = None
+
         if Math.floor(num) is num:
             if num >= 0:
                 a.push("0x" + num.toString(16).toLowerCase(), # probably pointless

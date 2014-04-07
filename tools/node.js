@@ -22,6 +22,7 @@ function load_global(file) {
 };
 
 var FILES = exports.FILES = [
+    "../lib/baselib.js",
     "../lib/utils.js",
     "../lib/ast.js",
     "../lib/parse.js",

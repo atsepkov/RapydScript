@@ -43,7 +43,7 @@
     THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
     SUCH DAMAGE.
 
-**********************************************************************
+ **********************************************************************
 """
 "use strict"
 
@@ -61,15 +61,15 @@ def DEFNODE(type, props, methods, base):
         props = props.concat(base.PROPS)
 
     code = "return function AST_" + type + "(props){ if (props) { "
-    for i in range(props.length, -1, -1):
+    for i in range(props.length-1, -1, -1):
         code += "this." + props[i] + " = props." + props[i] + ";"
 
-    proto = base and base()
+    proto = base and new base()
     if proto and proto.initialize or methods and methods.initialize:
         code += "this.initialize();"
 
     code += "}}"
-    ctor = Function(code)()
+    ctor = new Function(code)()
     if proto:
         ctor.prototype = proto
         ctor.BASE = base
@@ -91,6 +91,7 @@ def DEFNODE(type, props, methods, base):
                     ctor[i.substr(1)] = methods[i]
                 else:
                     ctor.prototype[i] = methods[i]
+
     ctor.DEFMETHOD = def(name, method):
         this.prototype[name] = method
 
@@ -100,7 +101,7 @@ AST_Token = DEFNODE("Token", "type value line col pos endpos nlb comments_before
 
 AST_Node = DEFNODE("Node", "start end", {
     clone: def():
-        return this.CTOR(this)
+        return new this.CTOR(this)
     ,
     $documentation: "Base class of all AST nodes",
     $propdoc: {
@@ -288,7 +289,7 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports", {
         )
         wrapped_tl = "(function(" + parameters.join(",") + "){ '$ORIG'; })(" + args.join(",") + ")"
         wrapped_tl = parse(wrapped_tl)
-        wrapped_tl = wrapped_tl.transform(TreeTransformer(def before(node):
+        wrapped_tl = wrapped_tl.transform(new TreeTransformer(def before(node):
             if isinstance(node, AST_Directive) and node.value == "$ORIG":
                 return MAP.splice(self.body)
         ))
@@ -299,7 +300,7 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports", {
         to_export = []
         if export_all:
             self.figure_out_scope()
-            self.walk(TreeWalker(def(node):
+            self.walk(new TreeWalker(def(node):
                 if isinstance(node, AST_SymbolDeclaration) and node.definition().global:
                     if not find_if(def(n):
                         return n.name == node.name
@@ -308,28 +309,28 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports", {
             ))
         wrapped_tl = "(function(exports, global){ global['" + name + "'] = exports; '$ORIG'; '$EXPORTS'; }({}, (function(){return this}())))"
         wrapped_tl = parse(wrapped_tl)
-        wrapped_tl = wrapped_tl.transform(TreeTransformer(def before(node):
+        wrapped_tl = wrapped_tl.transform(new TreeTransformer(def before(node):
             if isinstance(node, AST_SimpleStatement):
                 node = node.body
                 if isinstance(node, AST_String):
-                    val = node.getValue()
-                    if val == "$ORIG":
+                    tmp_ = node.getValue()
+                    if tmp_ == "$ORIG":
                         return MAP.splice(self.body)
-                    elif val == "$EXPORTS":
+                    elif tmp_ == "$EXPORTS":
                         body = []
                         to_export.forEach(def(sym):
-                            body.push(AST_SimpleStatement({
-                                body: AST_Assign({
-                                    left: AST_Sub({
-                                        expression: AST_SymbolRef({
+                            body.push(new AST_SimpleStatement({
+                                body: new AST_Assign({
+                                    left: new AST_Sub({
+                                        expression: new AST_SymbolRef({
                                             name: "exports"
                                         }),
-                                        property: AST_String({
+                                        property: new AST_String({
                                             value: sym.name
                                         })
                                     }),
                                     operator: "=",
-                                    right: AST_SymbolRef(sym)
+                                    right: new AST_SymbolRef(sym)
                                 })
                             }))
                         )
@@ -644,7 +645,7 @@ AST_Seq = DEFNODE("Seq", "car cdr", {
         cdr: "[AST_Node] second element in sequence"
     },
     $cons: def(x, y):
-        seq = AST_Seq(x)
+        seq = new AST_Seq(x)
         seq.car = x
         seq.cdr = y
         return seq
@@ -657,7 +658,7 @@ AST_Seq = DEFNODE("Seq", "car cdr", {
             return array[0].clone()
 
         list = None
-        for i in range(array.length, -1, -1):
+        for i in range(array.length-1, -1, -1):
             list = AST_Seq.cons(array[i], list)
 
         p = list
@@ -1011,7 +1012,7 @@ TreeWalker.prototype = {
     ,
     find_parent: def(type):
         stack = this.stack
-        for i in range(stack.length, -1, -1):
+        for i in range(stack.length-1, -1, -1):
             x = stack[i]
             if isinstance(x, type):
                 return x
@@ -1034,12 +1035,12 @@ TreeWalker.prototype = {
     loopcontrol_target: def(label):
         stack = this.stack
         if label:
-            for i in range(stack.length, -1, -1):
+            for i in range(stack.length-1, -1, -1):
                 x = stack[i]
                 if isinstance(x, AST_LabeledStatement) and x.label.name == label.name:
                     return x.body
         else:
-            for i in range(stack.length, -1, -1):
+            for i in range(stack.length-1, -1, -1):
                 x = stack[i]
                 if isinstance(x, AST_Switch) or isinstance(x, AST_ForIn) or isinstance(x, AST_DWLoop):
                     return x
