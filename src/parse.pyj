@@ -995,19 +995,25 @@ def parse($TEXT, options):
             elif tmp_ == "if":
                 return if_()
             elif tmp_ == "pass":
+                semicolon()
                 return new AST_EmptyStatement()
             elif tmp_ == "return":
                 if S.in_function == 0:
                     croak("'return' outside of function")
 
                 return new AST_Return({
-                    value: (is_("punc", ";") ? (next(), None) : (can_insert_semicolon() ? None
-                        : def():
-                            tmp = expression(True)
+                    value: (is_("punc", ";") ?
+                        def():
                             semicolon()
-                            return tmp
-                        .call(this)
-                    ))
+                            return None
+                        .call(this) : (can_insert_semicolon() ? None
+                            : def():
+                                tmp = expression(True)
+                                semicolon()
+                                return tmp
+                            .call(this)
+                        )
+                    )
                 })
             elif tmp_ == "switch":
                 return new AST_Switch({
