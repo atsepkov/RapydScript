@@ -251,7 +251,7 @@ def makePredicate(words):
             return f += "return str === " + JSON.stringify(arr[0]) + ";"
 
         f += "switch(str){"
-        for i in range(arr.len(arr)):
+        for i in range(len(arr)):
             f += "case " + JSON.stringify(arr[i]) + ":"
         f += "return true}return false;"
 

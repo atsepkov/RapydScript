@@ -271,12 +271,13 @@ AST_Scope = DEFNODE("Scope", "directives variables localvars functions uses_with
     }
 }, AST_Block)
 
-AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports", {
+AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict", {
     $documentation: "The toplevel scope",
     $propdoc: {
         globals: "[Object/S] a map of name -> SymbolDef for all undeclared names",
         baselib: "[Object/s] a collection of used parts of baselib",
-        imports: "[AST_Import*] a collection of all imported modules"
+        imports: "[AST_Import*] a collection of all imported modules",
+        strict: "[boolean/S] true if strict directive is in scope"
     },
     wrap_enclose: def(arg_parameter_pairs):
         self = this

@@ -148,7 +148,7 @@ def OutputStream(options):
     def make_indent(back):
         return repeat_string(" ", options.indent_start + indentation - back * options.indent_level)
 
-    """ -----[ beautification/minification ]----- """
+    # -----[ beautification/minification ]-----
     might_need_space = False
     might_need_semicolon = False
     last = None
@@ -162,7 +162,7 @@ def OutputStream(options):
 
     requireSemicolonChars = makePredicate("( [ + * / - , .")
     def print_(str_):
-        nonlocal might_need_space, last, current_line, current_pos, current_col, OUTPUT
+        nonlocal might_need_space, might_need_semicolon, last, current_line, current_pos, current_col, OUTPUT
         str_ = JS("String(str_)")
         ch = str_.charAt(0)
         if might_need_semicolon:
@@ -311,6 +311,8 @@ def OutputStream(options):
  : noop)
     def dump_baselib(key):
         # --- generator functions help us simplify the lib-creating logic ---
+
+        # generates a single statement
         stmt_gen = def(item, i):
             if i and not item.call:
                 space()
@@ -341,7 +343,7 @@ def OutputStream(options):
                     print_(elem)
                 )
 
-
+        # helper function for generating a single line
         line_gen = def(item, i):
             indent()
             item.forEach(stmt_gen)
@@ -350,6 +352,7 @@ def OutputStream(options):
 
             newline()
 
+        # helper function so that our function generation logic doesn't look ridiculously repetitive
         func_gen = def(name, data):
             indent()
             print_("function " + name)
@@ -369,7 +372,7 @@ def OutputStream(options):
 
         # --- actual lib-creating logic ---
         lib = {
-            abs: def():
+            "abs": def():
                 #function abs(n){
                 #  return Math.abs(n);
                 #}
@@ -382,7 +385,7 @@ def OutputStream(options):
                     } ] ]
                 })
             ,
-            bind: def():
+            "bind": def():
                 #function _$rapyd$_bind(fn, thisArg){
                 #  if (fn.orig) fn = fn.orig;
                 #  if (thisArg === false) return fn;
@@ -405,7 +408,7 @@ def OutputStream(options):
                     } ], [ "ret._orig", "=", "fn" ], [ "return", "ret" ] ]
                 })
             ,
-            rebind_all: def():
+            "rebind_all": def():
                 #function _$rapyd$_rebindAll(thisArg, rebind) {
                 #  if (typeof rebind === "undefined") rebind = true;
                 #  for (var p in thisArg) {
@@ -436,7 +439,14 @@ def OutputStream(options):
                     } ] ]
                 })
             ,
-            dir: def():
+            "dir": def():
+                #function dir(item) {
+                #  var arr = [];
+                #  for (var i in item) {
+                #    arr.push(i);
+                #  }
+                #  return arr;
+                #}
                 return func_gen("dir", {
                     args: [ "item" ],
                     body: [ [ "var", "arr", "=", "[]" ], [ "for", {
@@ -448,7 +458,14 @@ def OutputStream(options):
                     } ], [ "return", "arr" ] ]
                 })
             ,
-            enumerate: def():
+            "enumerate": def():
+                #function enumerate(item) {
+                #  var arr = [];
+                #  for (var i = 0; i < item.length; i++) {
+                #    arr[arr.length] = [i, item[i]];
+                #  }
+                #  return arr;
+                #}
                 return func_gen("enumerate", {
                     args: [ "item" ],
                     body: [ [ "var", "arr", "=", "[]" ], [ "for", {
@@ -524,7 +541,7 @@ def OutputStream(options):
                     } ] ]
                 })
             ,
-            len: def():
+            "len": def():
                 #function len(obj) {
                 #  if (obj instanceof Array || typeof obj === 'string') return obj.length;
                 #  else {
@@ -550,7 +567,7 @@ def OutputStream(options):
                     } ] ]
                 })
             ,
-            mixin: def():
+            "mixin": def():
                 #function _$rapyd$_mixin(target, source, overwrite) {
                 #  for (var i in source) {
                 #    if (source.hasOwnProperty(i) && (overwrite || typeof target[i] === "undefined")) target[i] = source[i];
@@ -569,7 +586,7 @@ def OutputStream(options):
                     } ] ]
                 })
             ,
-            print: def():
+            "print": def():
                 # TODO: JSON.stringify will fail in older versions of IE, we
                 # could either ignore this, force-import our own implementation
                 # like stdlib already does, or find an alternative (String()
@@ -599,7 +616,7 @@ def OutputStream(options):
                     } ] ]
                 })
             ,
-            range: def():
+            "range": def():
                 #function range(start, stop, step) {
                 #  if (arguments.length <= 1) {
                 #    stop = start || 0;
@@ -637,7 +654,7 @@ def OutputStream(options):
                     } ], [ "return", "range" ] ]
                 })
             ,
-            reversed: def():
+            "reversed": def():
                 return func_gen("reversed", {
                     args: [ "arr" ],
                     body: [ [ "var", "tmp", "=", "[]" ], [ "for", {
@@ -649,19 +666,19 @@ def OutputStream(options):
                     } ], [ "return", "tmp" ] ]
                 })
             ,
-            getattr: def():
+            "getattr": def():
                 return func_gen("getattr", {
                     args: [ "obj", "name" ],
                     body: [ [ "return", "obj[name]" ] ]
                 })
             ,
-            setattr: def():
+            "setattr": def():
                 return func_gen("setattr", {
                     args: [ "obj", "name", "value" ],
                     body: [ [ "obj[name]", "=", "value" ] ]
                 })
             ,
-            hasattr: def():
+            "hasattr": def():
                 return func_gen("hasattr", {
                     args: [ "obj", "name" ],
                     body: [ [ "return", "name", "in", "obj" ] ]
@@ -676,11 +693,10 @@ def OutputStream(options):
             for lib in dir(module_.baselib):
                 dump_baselib(lib)
 
-
-
     def get():
         return OUTPUT
 
+    # generates: '[name] = '
     def assign_var(name):
         if typeof name is "string":
             print_(name)
@@ -770,9 +786,9 @@ def OutputStream(options):
     }
 
 
-""" -----[ code generators ]----- """
+# -----[ code generators ]-----
 (def():
-    """ -----[ utils ]----- """
+    # -----[ utils ]-----
     SPECIAL_METHODS = {
         bind: "_$rapyd$_bind",
         rebind_all: "_$rapyd$_rebindAll",
@@ -808,7 +824,7 @@ def OutputStream(options):
         this.print(s)
         return s.get()
     )
-    """ -----[ comments ]----- """
+    # -----[ comments ]-----
     AST_Node.DEFMETHOD("add_comments", def(output):
         c = output.option("comments")
         self = this
@@ -850,7 +866,7 @@ def OutputStream(options):
 
 
     )
-    """ -----[ PARENTHESES ]----- """
+    # -----[ PARENTHESES ]-----
     def PARENS(nodetype, func):
         nodetype.DEFMETHOD("needs_parens", func)
 
@@ -961,7 +977,7 @@ def OutputStream(options):
 
     PARENS(AST_Assign, assign_and_conditional_paren_rules)
     PARENS(AST_Conditional, assign_and_conditional_paren_rules)
-    """ -----[ PRINTERS ]----- """
+    # -----[ PRINTERS ]-----
     DEFPRINT(AST_Directive, def(self, output):
         output.print_string(self.value)
         output.semicolon()
@@ -970,7 +986,7 @@ def OutputStream(options):
         output.print("debugger")
         output.semicolon()
     )
-    """ -----[ statements ]----- """
+    # -----[ statements ]-----
     def display_body(body, is_toplevel, output):
         last = body.length - 1
         body.forEach(def(stmt, i):
@@ -1075,19 +1091,7 @@ def OutputStream(options):
                 output.newline()
                 bind_methods(node.bound, output)
 
-            # declare all variables as local, unless explictly set otherwise
-            if node.localvars.length:
-                output.indent()
-                output.print("var")
-                output.space()
-                node.localvars.forEach(def(arg, i):
-                    if i:
-                        output.comma()
-
-                    arg.print(output)
-                )
-                output.semicolon()
-                output.newline()
+            declare_vars(node.localvars, output)
 
         elif isinstance(node, AST_Except):
             if node.argname:
@@ -1100,6 +1104,21 @@ def OutputStream(options):
                 output.newline()
 
         display_body(node.body, is_toplevel, output)
+
+    def declare_vars(vars, output):
+        # declare all variables as local, unless explictly set otherwise
+        if vars.length:
+            output.indent()
+            output.print("var")
+            output.space()
+            vars.forEach(def(arg, i):
+                if i:
+                    output.comma()
+
+                arg.print(output)
+            )
+            output.semicolon()
+            output.newline()
 
     def unpack_tuple(tuple, output, in_statement):
         tuple.elements.forEach(def(elem, i):
@@ -1136,6 +1155,9 @@ def OutputStream(options):
         else:
             if output.is_main():
                 output.prologue(self)
+
+            if self.strict:
+                declare_vars(self.localvars, output)
 
             display_body(self.body, True, output)
 
@@ -1249,7 +1271,18 @@ def OutputStream(options):
     )
     def is_simple_for(self):
         # returns true if this loop can be simplified into a basic for loop
-        if isinstance(self.object, AST_BaseCall) and isinstance(self.object.expression, AST_SymbolRef) and self.object.expression.name == "range" and not (isinstance(self.init, AST_Array)) and (self.object.args.length < 3 or (isinstance(self.object.args.slice(-1)[0], AST_Number) or isinstance(self.object.args.slice(-1)[0], AST_Unary) and self.object.args.slice(-1)[0].operator == "-" and isinstance(self.object.args.slice(-1)[0].expression, AST_Number))):
+        if isinstance(self.object, AST_BaseCall)
+        and isinstance(self.object.expression, AST_SymbolRef)
+        and self.object.expression.name == "range"
+        and not (isinstance(self.init, AST_Array))
+        and (
+            self.object.args.length < 3 or (
+                isinstance(self.object.args.slice(-1)[0], AST_Number)
+                or isinstance(self.object.args.slice(-1)[0], AST_Unary)
+                    and self.object.args.slice(-1)[0].operator == "-"
+                    and isinstance(self.object.args.slice(-1)[0].expression, AST_Number)
+            )
+        ):
             return True
         return False
 
@@ -1451,7 +1484,7 @@ def OutputStream(options):
         self._do_print_body(output)
     )
 
-    """ -----[ functions ]----- """
+    # -----[ functions ]-----
     def decorate(node, output, prefix):
         if node.decorators and node.decorators.length:
             output.indent()
@@ -1502,7 +1535,7 @@ def OutputStream(options):
     DEFPRINT(AST_Lambda, def(self, output):
         self._do_print(output)
     )
-    """ -----[ classes ]----- """
+    # -----[ classes ]-----
     AST_Class.DEFMETHOD("_do_print", def(output):
         self = this
         if self.external:
@@ -1613,7 +1646,7 @@ def OutputStream(options):
         self._do_print(output)
     )
 
-    """ -----[ modules ]----- """
+    # -----[ modules ]-----
     AST_Module.DEFMETHOD("_do_print", def(output):
         self = this
         if self.external:
@@ -1626,7 +1659,7 @@ def OutputStream(options):
         self._do_print(output)
     )
 
-    """ -----[ exits ]----- """
+    # -----[ exits ]-----
     AST_Exit.DEFMETHOD("_do_print", def(output, kind):
         self = this
         output.print(kind)
@@ -1643,7 +1676,7 @@ def OutputStream(options):
         self._do_print(output, "throw")
     )
 
-    """ -----[ loop control ]----- """
+    # -----[ loop control ]-----
     AST_LoopControl.DEFMETHOD("_do_print", def(output, kind):
         output.print(kind)
         if this.label:
@@ -1659,7 +1692,7 @@ def OutputStream(options):
         self._do_print(output, "continue")
     )
 
-    """ -----[ if ]----- """
+    # -----[ if ]-----
     def make_then(self, output):
         if output.option("bracketize"):
             make_block(self.body, output)
@@ -1716,7 +1749,7 @@ def OutputStream(options):
 
     )
 
-    """ -----[ switch ]----- """
+    # -----[ switch ]-----
     DEFPRINT(AST_Switch, def(self, output):
         output.print("switch")
         output.space()
@@ -1758,7 +1791,7 @@ def OutputStream(options):
         self._do_print_body(output)
     )
 
-    """ -----[ exceptions ]----- """
+    # -----[ exceptions ]-----
     DEFPRINT(AST_Try, def(self, output):
         output.print("try")
         output.space()
@@ -1833,7 +1866,7 @@ def OutputStream(options):
         print_bracketed(self, output)
     )
 
-    """ -----[ var/const ]----- """
+    # -----[ var/const ]-----
     AST_Definitions.DEFMETHOD("_do_print", def(output, kind):
         output.print(kind)
         output.space()
@@ -1883,7 +1916,7 @@ def OutputStream(options):
             parenthesize_for_noin(self.value, output, noin)
     )
 
-    """ -----[ other expressions ]----- """
+    # -----[ other expressions ]-----
     DEFPRINT(AST_BaseCall, def(self, output):
         if isinstance(self, AST_ClassCall):
             if self.static:
@@ -2063,12 +2096,6 @@ def OutputStream(options):
         output.space()
         output.print(self.operator)
         output.space()
-        #        if (self.right instanceof AST_Seq && self.right.cdr)
-        #            output.with_square(function(){
-        #                // render sequences as packed tuples
-        #                self.right.print(output);
-        #            });
-        #        else self.right.print(output);
         self.right.print(output)
         if isinstance(self.left, AST_Array):
             output.semicolon()
@@ -2086,7 +2113,7 @@ def OutputStream(options):
         self.alternative.print(output)
     )
 
-    """ -----[ literals ]----- """
+    # -----[ literals ]-----
     DEFPRINT(AST_Array, def(self, output):
         output.with_square(def():
             a = self.elements
@@ -2266,7 +2293,7 @@ def OutputStream(options):
             output.newline()
         )
 
-    """ -----[ source map generators ]----- """
+    # -----[ source map generators ]-----
     def DEFMAP(nodetype, generator):
         nodetype.DEFMETHOD("add_source_map", def(stream):
             generator(this, stream)

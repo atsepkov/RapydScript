@@ -338,7 +338,8 @@ def tokenizer($TEXT, filename):
     def read_while(pred):
         ret = ""
         i = 0
-        while (ch = peek()) and pred(ch, i += 1):
+        while (ch = peek()) and pred(ch, i):
+            i += 1
             ret += next()
         return ret
 
@@ -486,7 +487,7 @@ def tokenizer($TEXT, filename):
     def read_line_comment():
         next()
         i = find("\n")
-        
+
         if i == -1:
             ret = S.text.substr(S.pos)
             S.pos = S.text.length
@@ -517,7 +518,7 @@ def tokenizer($TEXT, filename):
         backslash = False
         name = ""
         escaped = False
-        
+
         while (ch = peek()) != None:
             if not backslash:
                 if ch == "\\":
@@ -546,7 +547,7 @@ def tokenizer($TEXT, filename):
 
     read_regexp = with_eof_error("Unterminated regular expression", def(regexp):
         prev_backslash = False
-        
+
         in_class = False
         while ch = next(True):
             if prev_backslash:
@@ -593,7 +594,7 @@ def tokenizer($TEXT, filename):
             S.comments_before.push(read_multiline_comment())
             S.regex_allowed = regex_allowed
             return next_token()
-        
+
         return (S.regex_allowed ? read_regexp("") : read_operator("/"))
 
     def handle_dot():
@@ -642,7 +643,7 @@ def tokenizer($TEXT, filename):
             return handle_dot()
         elif tmp_ == 47:
             return handle_slash()
-        
+
         if is_digit(code):
             return read_num()
 
@@ -723,6 +724,7 @@ def parse($TEXT, options):
         auto_bind: False,
         toplevel: None
     })
+
     S = {
         input: (typeof $TEXT == "string" ? tokenizer($TEXT, options.filename) : $TEXT),
         token: None,
@@ -739,6 +741,7 @@ def parse($TEXT, options):
         # tree describing the structure of modules and classes within them (module: {}, class: undefined)
         module_stack: []
     }
+
     S.token = next()
     def is_(type, value):
         return is_token(S.token, type, value)
@@ -762,7 +765,8 @@ def parse($TEXT, options):
 
     def croak(msg, line, col, pos):
         ctx = S.input.context()
-        js_error(msg, ctx.filename, (line != None ? line : ctx.tokline), (col != None ? col : ctx.tokcol), (pos != None ? pos : ctx.tokpos))
+        js_error(msg, ctx.filename, (line != None ? line : ctx.tokline),
+                 (col != None ? col : ctx.tokcol), (pos != None ? pos : ctx.tokpos))
 
     def token_error(token, msg):
         croak(msg, token.line, token.col)
@@ -770,14 +774,13 @@ def parse($TEXT, options):
     def unexpected(token):
         if token == None:
             token = S.token
-
         token_error(token, "Unexpected token: " + token.type + " «" + token.value + "»")
 
     def expect_token(type, val):
         if is_(type, val):
             return next()
-
-        token_error(S.token, "Unexpected token " + S.token.type + " «" + S.token.value + "»" + ", expected " + type + " «" + val + "»")
+        token_error(S.token, "Unexpected token " + S.token.type + " «" + S.token.value + "»" +
+                    ", expected " + type + " «" + val + "»")
 
     def expect(punc):
         return expect_token("punc", punc)
@@ -822,20 +825,21 @@ def parse($TEXT, options):
 
                     if opt and opt.operator == "=" and not (isinstance(opt.right, AST_Scope)):
                         vars = vars.concat(scan_for_local_vars(opt.right, is_module))
-
                 )
-                # pick up iterators from loops
-                if not is_module and isinstance(body[stmt], AST_ForIn):
-                    #                    vars.push("_$rapyd$_Iter");
-                    if isinstance(body[stmt].init, AST_Array):
-                        vars.push("_$rapyd$_Unpack")
-                        body[stmt].init.elements.forEach(def(elem):
-                            if vars.indexOf(elem.name) == -1:
-                                vars.push(elem.name)
 
-                        )
-                    elif vars.indexOf(body[stmt].init.name) == -1:
-                        vars.push(body[stmt].init.name)
+                # pick up iterators from loops
+                if not is_module:
+                    if isinstance(body[stmt], AST_ForIn):
+                        if isinstance(body[stmt].init, AST_Array):
+                            vars.push("_$rapyd$_Unpack")
+                            body[stmt].init.elements.forEach(def(elem):
+                                if vars.indexOf(elem.name) == -1:
+                                    vars.push(elem.name)
+                            )
+                        elif vars.indexOf(body[stmt].init.name) == -1:
+                            vars.push(body[stmt].init.name)
+                    elif isinstance(body[stmt], AST_DWLoop):
+                        vars = vars.concat(scan_for_local_vars(body[stmt], is_module))
 
         elif body.body:
             vars = vars.concat(scan_for_local_vars(body.body, is_module))
@@ -848,11 +852,9 @@ def parse($TEXT, options):
                 body.left.elements.forEach(def(elem):
                     if not (isinstance(elem, AST_PropAccess)) and vars.indexOf(elem.name) == -1:
                         vars.push(elem.name)
-
                 )
             elif body.left.name and vars.indexOf(body.left.name) == -1:
                 vars.push(body.left.name)
-
 
         return vars
 
@@ -1042,9 +1044,8 @@ def parse($TEXT, options):
                 })
             else:
                 unexpected()
-            
-        
     )
+
     def labeled_statement():
         label = as_symbol(AST_Label)
         if find_if(def(l):
@@ -1554,7 +1555,7 @@ def parse($TEXT, options):
         a = []
         cur = None
         branch = None
-        
+
         while not is_("punc", "}"):
             if is_("eof"):
                 unexpected()
@@ -1686,7 +1687,7 @@ def parse($TEXT, options):
         start = S.token
         expect_token("operator", "new")
         newexp = expr_atom(False)
-        
+
         if is_("punc", "("):
             next()
             args = expr_list(")")
@@ -1740,7 +1741,7 @@ def parse($TEXT, options):
                     start: tok,
                     end: tok
                 })
-        
+
         next()
         return ret
 
@@ -1762,7 +1763,7 @@ def parse($TEXT, options):
                 return subscripts(array_(), allow_calls)
             elif tmp_ == "{":
                 return subscripts(object_(), allow_calls)
-            
+
             unexpected()
 
         if is_("keyword", "class"):
@@ -2200,7 +2201,6 @@ def parse($TEXT, options):
             return True
         elif tmp_ == "name":
             return expr[1] != "this"
-        
 
     maybe_assign = def(no_in):
         start = S.token
@@ -2303,6 +2303,12 @@ def parse($TEXT, options):
             toplevel = new AST_Toplevel({
                 start: start,
                 body: body,
+                strict: def():
+                    for stmt in body:
+                        if isinstance(stmt, AST_Directive) and stmt.value == 'use strict':
+                            return True
+                    return False
+                .call(this),
                 end: end
             })
 
