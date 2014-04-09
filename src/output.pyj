@@ -1017,7 +1017,7 @@ def OutputStream(options):
         offset = 0
         # argument offset
         # this is a method, add 'var self = this'
-        if isinstance(node, AST_Defun) and not node.static:
+        if isinstance(node, AST_Method) and not node.static:
             output.indent()
             output.print("var")
             output.space()
@@ -1629,7 +1629,7 @@ def OutputStream(options):
 
         # actual methods
         self.body.forEach(def(stmt, i):
-            if isinstance(stmt, AST_Defun):
+            if isinstance(stmt, AST_Method):
                 if stmt.name.name != "__init__":
                     class_fun_def(stmt)
 
@@ -1918,7 +1918,9 @@ def OutputStream(options):
 
     # -----[ other expressions ]-----
     DEFPRINT(AST_BaseCall, def(self, output):
+
         if isinstance(self, AST_ClassCall):
+            # class methods are called through the prototype unless static
             if self.static:
                 self.class.print(output)
                 output.print(".")
@@ -1929,14 +1931,31 @@ def OutputStream(options):
                 output.print(self.method)
                 output.print(".call")
         else:
+            # regular function call
             rename = SPECIAL_METHODS.hasOwnProperty(self.expression.name) ? SPECIAL_METHODS[self.expression.name] : undefined
             if rename:
+                # this is a special baselib function
                 output.print(rename)
             else:
                 self.expression.print(output)
 
         if isinstance(self, AST_New) and no_constructor_parens(self, output):
             return
+
+        output_kwargs = def():
+            if self.args.kwargs and self.args.kwargs.length:
+                if self.args.length:
+                    output.comma()
+
+                output.print('{')
+                self.args.kwargs.forEach(def(pair, i):
+                    if i: output.comma()
+                    pair[0].print(output)
+                    output.print(':')
+                    output.space()
+                    pair[1].print(output)
+                )
+                output.print('}')
 
         if self.args.starargs:
             obj = (self.expression.expression ? self.expression.expression.name : "this")
@@ -1946,12 +1965,15 @@ def OutputStream(options):
                 output.print(obj)
                 output.comma()
                 output.with_square(def():
+                    # basic arguments
                     self.args.forEach(def(expr, i):
                         if i != last:
-                            if i:
-                                output.comma()
+                            if i: output.comma()
                             expr.print(output)
                     )
+
+                    # now kwargs
+                    output_kwargs()
                 )
                 output.print(".concat")
                 output.with_parens(def():
@@ -1960,11 +1982,15 @@ def OutputStream(options):
             )
         else:
             output.with_parens(def():
+                # normal args
                 self.args.forEach(def(expr, i):
                     if i:
                         output.comma()
                     expr.print(output)
                 )
+
+                # kwargs as hash
+                output_kwargs()
             )
     )
     DEFPRINT(AST_New, def(self, output):

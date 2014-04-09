@@ -414,7 +414,7 @@ AST_Module = DEFNODE("Module", "name external decorators", {
     }
 }, AST_Scope)
 
-AST_Defun = DEFNODE("Defun", "static", {
+AST_Method = DEFNODE("Defun", "static", {
     $documentation: "A class method definition",
     $propdoc: {
         "static": "[boolean] true if method is static"

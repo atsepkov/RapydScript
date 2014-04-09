@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+nodejs bin/rapydscript src/lib/baselib_gen.pyj -o src/baselib.js -b -p
+nodejs bin/rapydscript src/utils.pyj -o src/utils.js -b -p -m
+nodejs bin/rapydscript src/ast.pyj -o src/ast.js -b -p -m
+nodejs bin/rapydscript src/parse.pyj -o src/parse.js -b -p -m
+nodejs bin/rapydscript src/output.pyj -o src/output.js -b -p -m
+
+mv src/*.js lib/

@@ -1422,7 +1422,7 @@ def parse($TEXT, options):
         # find the constructor
         for i in dir(definition.body):
             stmt = definition.body[i]
-            if isinstance(stmt, AST_Defun) and stmt.name.name == "__init__":
+            if isinstance(stmt, AST_Method) and stmt.name.name == "__init__":
                 definition.init = stmt
                 break
         return definition
@@ -1446,12 +1446,13 @@ def parse($TEXT, options):
 
         expect("(")
         if not ctor:
-            ctor = in_class ? AST_Defun : AST_Function
+            ctor = in_class ? AST_Method : AST_Function
 
         definition = new ctor({
             name: name,
-            argnames: def(first, a):
+            argnames: def(a):
                 defaults = {}
+                first = True
                 while not is_("punc", ")"):
                     if first:
                         first = False
@@ -1472,7 +1473,7 @@ def parse($TEXT, options):
                 next()
                 a.defaults = defaults
                 return a
-            .call(this, True, []),
+            .call(this, []),
             localvars: [],
             decorators: def():
                 d = []
@@ -1500,7 +1501,7 @@ def parse($TEXT, options):
                 return a
             .call(this, S.in_loop, S.labels)
         })
-        if isinstance(definition, AST_Defun):
+        if isinstance(definition, AST_Method):
             definition.static = staticmethod
 
         # detect local variables, strip function arguments
@@ -1791,7 +1792,7 @@ def parse($TEXT, options):
 
         unexpected()
 
-    def expr_list(closing, allow_trailing_comma, allow_empty, allow_starargs):
+    def expr_list(closing, allow_trailing_comma, allow_empty, func_call):
         first = True
         a = []
         saw_starargs = False
@@ -1806,7 +1807,7 @@ def parse($TEXT, options):
             if allow_trailing_comma and is_("punc", closing):
                 break
 
-            if is_("operator", "*") and allow_starargs:
+            if is_("operator", "*") and func_call:
                 saw_starargs = True
                 next()
 
@@ -1817,6 +1818,16 @@ def parse($TEXT, options):
                 }))
             else:
                 a.push(expression(False))
+
+        if func_call:
+            tmp = []
+            tmp.kwargs = []
+            for i, arg in enumerate(a):
+                if isinstance(arg, AST_Assign):
+                    tmp.kwargs.push([arg.left, arg.right])
+                else:
+                    tmp.push(arg)
+            a = tmp
 
         next()
         if saw_starargs:
