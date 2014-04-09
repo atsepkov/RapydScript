@@ -348,6 +348,30 @@ This is useful for cases where you have multiple elements inside a list, but don
 
 In this particular case, there is no advantage to using `*`, but if `args` gets passed in from outside, and we don't know its size, `*` becomes very handy. Likewise, if you're writing a function that can take variable number of arguments, it's cleaner to use `*args` rather than forcing the developer using it to pass in an array.
 
+Keyword Arguments (**kwargs)
+----------------------------
+RapydScript implementation of kwargs is not completely consistent with Python, this is to minimize overhead since 99% of the functions you write will not need this feature. First, let's cover function calls. The following calls are equivalent:
+
+	test('baz', foo=1, 99, bar=3)
+	test('baz', 99, {foo: 1, bar: 3})
+
+The first function call may be more convenient to those who spend a lot of time in Python. As far as the function itself is concerned, both of these just collect named arguments in a hash and pass them in the last argument. This means that a regular function in RapydScript will not see these arguments unless you explicitly tell it that they are in the last argument:
+
+	def test(foo, bar, kw):
+		print(foo)	# 'baz'
+		print(bar)	# 99
+		print(kw)	# {foo: 1. bar: 3}
+		print(kw.foo)	# 1
+
+Luckily, there is a `kwargs` decorator in `stdlib` that will simulate the expected Python behavior:
+
+	@kwargs
+	def test(foo, bar, kw):
+		print(foo)	# 1
+		print(bar)	# 3
+		print(kw)	# {foo: 1. bar: 3}
+		print(kw.foo)	# 1
+
 
 Inferred Tuple Packing/Unpacking
 --------------------------------
