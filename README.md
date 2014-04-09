@@ -1,7 +1,5 @@
 RapydScript
 ===========
-NOTE: This version of RapydScript is a complete rewrite of original and uses UglifyJS2 as a base. The compiler is now written in JavaScript rather than Python and has numerous advantages over the original. You can read <http://blog.pyjeon.com> for the details.
-
 
 What is RapydScript?
 --------------------
@@ -18,6 +16,7 @@ RapydScript allows to write your front-end in Python without the overhead that o
 - variable and object scoping that make sense (no need for repetitive 'var' or 'new' keywords)
 - ability to use both, Python's methods/functions and JavaScript's alternatives
 - similar to above, ability to use both, Python's and JavaScript's tutorials (as well as widgets)
+- it's self-hosting, that means the compiler is itself written in RapydScript and compiles into JavaScript
 
 Let's not waste any more time with the introductions, however. The best way to learn a new language/framework is to dive in.
 
