@@ -51,12 +51,12 @@ str = JSON.stringify
 
 # WARNING: when using this function decorator, you will not be able to use obfuscators that rename local variables
 def kwargs(f):
-    argNames = f.toString().match(/\(([^\)]+)/)[1];
-    argNames = argNames ? argNames.split(',').map(def(s): return s.trim();) : [];
+    argNames = f.toString().match(/\(([^\)]+)/)[1]
+    argNames = argNames ? argNames.split(',').map(def(s): return s.trim();) : []
     return def():
-        args = Array.from(arguments);
+        args = [].slice.call(arguments)
         if args.length and (args.length < f.length):
-            kw = args.pop();
+            kw = args.pop()
             if type(kw) == 'object':
                 for i in range(len(argNames)):
                     if argNames[i] in dir(kw):
