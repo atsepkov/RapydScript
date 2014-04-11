@@ -1245,9 +1245,11 @@ def OutputStream(options):
     DEFPRINT(AST_BlockStatement, def(self, output):
         print_bracketed(self, output)
     )
+
     DEFPRINT(AST_EmptyStatement, def(self, output):
         pass
     )
+
     DEFPRINT(AST_Do, def(self, output):
         output.print("do")
         output.space()
@@ -1260,6 +1262,7 @@ def OutputStream(options):
         )
         output.semicolon()
     )
+
     DEFPRINT(AST_While, def(self, output):
         output.print("while")
         output.space()
@@ -1269,6 +1272,15 @@ def OutputStream(options):
         output.space()
         self._do_print_body(output)
     )
+
+    def is_simple_for_in(self):
+        # return true if this loop can be simplified into a basic for (i in j) loop
+        if isinstance(self.object, AST_BaseCall)
+        and isinstance(self.object.expression, AST_SymbolRef)
+        and self.object.expression.name == "dir" and self.object.args.length == 1:
+            return True
+        return False
+
     def is_simple_for(self):
         # returns true if this loop can be simplified into a basic for loop
         if isinstance(self.object, AST_BaseCall)
@@ -1312,9 +1324,10 @@ def OutputStream(options):
             )
         )
     )
+
     DEFPRINT(AST_ForIn, def(self, output):
         if is_simple_for(self):
-            # optimize range() to simple for loop
+            # optimize range() into a simple for loop
             increment = None
             args = self.object.args
             tmp_ = args.length
@@ -1333,12 +1346,12 @@ def OutputStream(options):
             output.space()
             output.with_parens(def():
                 output.assign(self.init)
-                (start.print ? start.print(output) : output.print(start))
+                start.print ? start.print(output) : output.print(start)
                 output.semicolon()
                 output.space()
                 self.init.print(output)
                 output.space()
-                (isinstance(increment, AST_Unary) ? output.print(">") : output.print("<"))
+                isinstance(increment, AST_Unary) ? output.print(">") : output.print("<")
                 output.space()
                 end.print(output)
                 output.semicolon()
@@ -1357,7 +1370,19 @@ def OutputStream(options):
                     else:
                         output.print("++")
             )
+        elif is_simple_for_in(self):
+            # optimize dir() into a simple for in loop
+            output.print("for")
+            output.space()
+            output.with_parens(def():
+                self.init.print(output)
+                output.space()
+                output.print('in')
+                output.space()
+                self.object.args[0].print(output)
+            )
         else:
+            # regular loop
             output.assign("var _$rapyd$_Iter" + INDEX_COUNTER)
             self.object.print(output)
             output.semicolon()

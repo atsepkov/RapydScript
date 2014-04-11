@@ -31,8 +31,11 @@ I bundled a few demos with RapydScript itself, but several members of the commun
 <http://salvatore.pythonanywhere.com/RapydScript>  
 This includes the demos from RapydScript's `examples` directory, as well as a few others.
 
-<http://salvatore.pythonanywhere.com/RapydBox/editor>  
+<http://salvatore.pythonanywhere.com/RapydBox>  
 This is a collection of very cool demos, showcasing RapydScript's similarity to real Python and at the same time its ability to work with other JavaScript. It relies on a JavaScript port of NodeBox (which was originally written in Python). NodeBox was ported from Python to JavaScript to allow cross-platform compatibility. Ironically, the original demos from Python version of NodeBox now work with JavaScript version of NodeBox with few changes (and sometimes none at all) by using RapydScript.
+
+<http://salvatore.pythonanywhere.com/RapydGlow>
+RapydScript making use of GlowScript, another project done by a member of our community
 
 
 Installation

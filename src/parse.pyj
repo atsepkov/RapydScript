@@ -2090,9 +2090,19 @@ def parse($TEXT, options):
                     }), True)
                 elif isinstance(expr, AST_SymbolRef):
                     tmp_ = expr.name
-                    if tmp_ == "abs" or tmp_ == "bind" or tmp_ == "rebind_all" or tmp_ == "dir"
-                    or tmp_ == "enumerate" or tmp_ == "len" or tmp_ == "mixin" or tmp_ == "print"
-                    or tmp_ == "range" or tmp_ == "reversed" or tmp_ == "getattr" or tmp_ == "setattr" or tmp_ == "hasattr":
+                    if tmp_ == "abs"
+                    or tmp_ == "bind"
+                    or tmp_ == "rebind_all"
+                    or tmp_ == "dir"
+                    or tmp_ == "enumerate"
+                    or tmp_ == "len"
+                    or tmp_ == "mixin"
+                    or tmp_ == "print"
+                    or tmp_ == "range"
+                    or tmp_ == "reversed"
+                    or tmp_ == "getattr"
+                    or tmp_ == "setattr"
+                    or tmp_ == "hasattr":
                         BASELIB[expr.name] = True
                         # NOTE: there is intentionally no return here, we want these functions to go through regular logic
                         # after they trigger the appropriate baselib flag
