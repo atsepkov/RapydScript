@@ -50,12 +50,6 @@ From NPM for programmatic use:
 
 	npm install rapydscript
 
-From Mercurial:
-
-	hg clone https://bitbucket.org/pyjeon/rapydscript
-	cd rapydscript
-	npm link .
-
 From Git:
 
 	git clone git://github.com/atsepkov/RapydScript.git

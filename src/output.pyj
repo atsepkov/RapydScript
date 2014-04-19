@@ -1302,7 +1302,7 @@ def OutputStream(options):
         self = this
         output.with_block(def():
             nonlocal INDEX_COUNTER
-            if not is_simple_for(self):
+            if not (is_simple_for(self) or is_simple_for_in(self)):
                 # if we're using multiple iterators, unpack them
                 output.indent()
                 if isinstance(self.init, AST_Array):
