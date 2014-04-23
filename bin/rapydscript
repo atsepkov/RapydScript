@@ -24,6 +24,8 @@ instead of concatenating them [experimental].")
 instead of using @bound decorator [experimental].")
     .describe("p", "Prettify output/specify output options.")
     .describe("m", "Omit baselib functions (use this if you have a different way of ensuring they're imported, such as including baselib.js).")
+    .describe("amd", "Use AMD to import modules.")
+    .describe("py", "Use .py instead of .pyj file extension.")
     .describe("t", "Run RapydScript tests")
 
     .describe("comments", "Preserve copyright comments in the output. \
@@ -94,10 +96,21 @@ var NAMESPACE_IMPORTS = getOptions("n", false);
 var AUTO_BIND = getOptions("i", false);
 var OMIT_BASELIB = getOptions("m", false);
 
+var AMD = ARGS.amd ? true : false
+
+var PY_EXT = ARGS.py ? ARGS.py : ".pyj";
+    
+var PYTHONPATH = []
+
+if (process.env.PYTHONPATH) {
+    PYTHONPATH = process.env.PYTHONPATH.split(":")
+}
+
 var OUTPUT_OPTIONS = {
     beautify: BEAUTIFY ? true : false,
     private_scope: NO_MODULE_WRAPPER ? false : true,
     namespace_imports: NAMESPACE_IMPORTS ? true : false,
+    amd: AMD,
     auto_bind: AUTO_BIND ? true : false,
     omit_baselib: OMIT_BASELIB ? true : false,
     screw_old_browsers: ARGS.screw_ie8 ? true : false
@@ -121,8 +134,11 @@ if (ARGS.t || ARGS.test) {
         try {
             ast = RapydScript.parse(fs.readFileSync(filepath, "utf-8"), {
                 filename: file,
+                py_ext: PY_EXT,
+                amd: AMD,
                 toplevel: ast,
                 readfile: fs.readFileSync,
+                search_paths: PYTHONPATH,
 				basedir: path.normalize(
                     path.join(
                         path.dirname(module.filename),
@@ -237,12 +253,19 @@ async.eachLimit(files, 1, function (file, cb) {
 //        if (ARGS.p != null) {
 //            file = file.replace(/^\/+/, "").split(/\/+/).slice(ARGS.p).join("/");
 //        }
+        var basedir = path.dirname(file)
+        var search_paths = new Array(PYTHONPATH)
+        search_paths.unshift(basedir)
         time_it("parse", function(){
             TOPLEVEL = RapydScript.parse(code, {
                 filename: file,
+                py_ext: PY_EXT,
+                amd: AMD,
                 toplevel: TOPLEVEL,
                 readfile: fs.readFileSync,
-                basedir: path.dirname(file),
+                fs: fs,
+                search_paths: search_paths,
+                basedir: basedir,
                 auto_bind: AUTO_BIND ? true : false,
                 libdir: path.normalize(
                     path.join(

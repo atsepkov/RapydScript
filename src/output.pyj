@@ -65,6 +65,7 @@ def OutputStream(options):
         comments: False,
         preserve_line: False,
         namespace_imports: False,
+        amd: False,
         omit_baselib: False,
         private_scope: True,
         screw_old_browsers: False,
@@ -1140,18 +1141,107 @@ def OutputStream(options):
         self.body.print(output)
         output.semicolon()
     )
-    DEFPRINT(AST_Toplevel, def(self, output):
-        if output.option("private_scope") and output.is_main():
-            output.with_parens(def():
-                output.print("function()")
-                output.with_block(def():
-                    output.prologue(self)
-                    display_complex_body(self, True, output)
-                    output.newline()
-                )
+
+    def print_private_scope(self, output):
+        output.with_parens(def():
+            output.print("function()")
+            output.with_block(def():
+                output.prologue(self)
+                display_complex_body(self, True, output)
+                output.newline()
             )
-            output.print("();")
-            output.print("")
+        )
+        output.print("();")
+        output.print("")
+
+    def print_return_map_var(output, name, j):
+        output.newline()
+        if j > 0:
+            output.comma()
+        output.indent()
+        output.indent()
+        output.print( name + ': ' + name)
+        return j + 1
+        
+    def print_amd(self, output):
+        imports = []
+        output.print("define('")
+        module_name = self.start.file[:-3]
+        output.print(module_name)
+        output.print("'")
+        output.comma()
+        output.newline()
+        
+        i = len(module_name) - module_name.lastIndexOf('/') + 1
+        if i > 0:
+            package_name = module_name[:(-1*i)] + '/'
+        else:
+            package_name = ''
+        
+        output.print("[")
+        j = 0
+        self.body.forEach(def(node):
+            if node.TYPE is not "Import":
+                return
+            
+            output.newline()
+            output.print('"' + node.path + '"')
+            if j > 0:
+                output.comma()
+            imports.push(node)
+            j += 1
+        )              
+        output.newline()
+        output.print("],")
+        
+        output.newline()
+        output.print("function(")
+        j = 0
+        imports.forEach(def(node, i):
+            output.print(node.path.replace("/", "_"))
+            if j > 0:
+                output.comma()
+            j += 1
+        )
+        output.print(")")
+        
+        output.with_block(def():
+            output.prologue(self)
+            display_complex_body(self, True, output)
+            output.newline()
+
+            output.indent()
+            output.print("return {")
+            j = 0
+            self.body.forEach(def(node):
+                nonlocal j
+                if node.TYPE not in ["Function", "Class", "Var", "Const", "Import"]:
+                    return
+                
+                if node.TYPE is "Import":
+                    if not node.argnames:
+                        return
+                    for name in node.argnames:
+                        j = print_return_map_var(output, name.name, j)
+                    return
+
+                name = node.name.name
+                j = print_return_map_var(output, name, j)
+            )              
+            output.newline()
+            output.indent()
+            output.print("};")
+            output.newline()
+        )
+        
+        output.print(");")
+        output.print("")
+    
+    DEFPRINT(AST_Toplevel, def(self, output):
+        if output.option("amd") and output.is_main():
+            print_amd(self, output)
+        elif output.option("private_scope") and output.is_main():
+            print_private_scope(self, output)
         else:
             if output.is_main():
                 output.prologue(self)
@@ -1160,8 +1250,8 @@ def OutputStream(options):
                 declare_vars(self.localvars, output)
 
             display_body(self.body, True, output)
-
     )
+    
     def print_module(self, name, variables, output):
         def print_var(name):
             if typeof name is "string":
@@ -1182,6 +1272,8 @@ def OutputStream(options):
                 output.indent()
                 output.print("return")
                 output.with_block(def():
+                    if not self.variables:
+                        return;
                     self.variables.forEach(def(arg, i):
                         output.indent()
                         print_var(arg)
@@ -1203,18 +1295,18 @@ def OutputStream(options):
         output.newline()
 
     DEFPRINT(AST_Import, def(self, output):
-        if output.import(self.module):
+        if output.import(self.module) and not output.option("amd"):
             if not output.option("namespace_imports"):
                 self.body.print(output)
-            else:
+            elif output.option("namespace_imports"):
                 print_module(self.body, self.module, self.variables, output)
 
-        if output.option("namespace_imports") and self.argnames:
-            self.variables.forEach(def(arg):
+        if output.option("amd") and self.argnames:
+            self.argnames.forEach(def(arg):
                 output.print("var")
                 output.space()
                 output.assign(arg)
-                self.module.print(output)
+                output.print(self.path.replace("/", "_"))
                 output.print(".")
                 arg.print(output)
                 output.semicolon()

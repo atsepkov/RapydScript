@@ -718,6 +718,7 @@ ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ]
 
 # -----[ Parser ]-----
 def parse($TEXT, options):
+
     options = defaults(options, {
         strict: False,
         filename: None,
@@ -888,12 +889,13 @@ def parse($TEXT, options):
         return vars
 
     def finalize_import(imp):
-        classes = scan_for_classes(imp.body.body)
-        for c in dir(classes):
-            if isinstance(classes[c], ModuleTreeNode):
-                S.module_tree[c] = classes[c]
-            else:
-                S.classes[0][c] = classes[c]
+        if imp.body:
+            classes = scan_for_classes(imp.body.body)
+            for c in dir(classes):
+                if isinstance(classes[c], ModuleTreeNode):
+                    S.module_tree[c] = classes[c]
+                else:
+                    S.classes[0][c] = classes[c]
 
         key = ""
         while isinstance(imp, AST_Dot):
@@ -1212,46 +1214,78 @@ def parse($TEXT, options):
                     current_scope.pop()
         return False
 
-    import_ = def():
-        tmp = name = expression(False)
-        file = ".pyj"
-        while isinstance(tmp, AST_Dot):
-            file = "/" + tmp.property + file
-            tmp = tmp.expression
+    def module_pathname(name):
+        file_ = ""
+        while isinstance(name, AST_Dot):
+            file_ = "/" + name.property + file_
+            name = name.expression
+            
+        return name.name + file_
 
-        file = tmp.name + file
+    find_module_realpath = def(name):
+        file = name
+        search_paths = options.search_paths;
+        for path in search_paths:
+            if path and path != "":
+                module_name = 
+                fullpath = path + "/" + file
+            else:
+                fullpath = options.basedir + "/" + file
+
+            if options.fs.existsSync(fullpath + options.py_ext):
+                sys.log(options.basedir + "] Exists: " + fullpath)
+                return fullpath
+
+        raise Error("Cannot import: " + name)
+
+    read_module_contents = def(name):
+        file = name + options.py_ext
+
+        sys.log("amd: " + options.amd + " import: " + file)
+
         contents = None
-        try:
-            contents = parse(options.readfile(options.basedir + "/" + file, "utf-8"), {
-                filename: file,
-                toplevel: contents,
-                readfile: options.readfile,
-                basedir: options.basedir,
-                libdir: options.libdir
-            })
-        except as e:
-            if not e.message.search("no such file or directory"):
-                raise
-
+        search_paths = options.search_paths;
+        options_ = {
+            filename: file,
+            toplevel: contents,
+            readfile: options.readfile,
+            basedir: options.basedir,
+            libdir: options.libdir,
+            py_ext: options.py_ext,
+            amd: options.amd,
+            search_paths: search_paths
+        }
+        last_e = None
+        for path in search_paths:
             try:
-                contents = parse(options.readfile(options.libdir + "/" + file, "utf-8"), {
-                    # didn't find it in local directory, check libs
-                    filename: file,
-                    toplevel: contents,
-                    readfile: options.readfile,
-                    basedir: options.libdir,
-                    libdir: options.libdir
-                })
-            except as e:
-                if e.message.search("no such file or directory"):
-                    raise "Failed Import: '" + tmp.name + "' module doesn't exist in either '" + options.basedir + "' or '" + options.libdir + "'"
+                if path and path != "":
+                    fullpath = path + "/" + file
                 else:
-                    raise
+                    fullpath = file
 
+                contents = parse(options.fs.readfile(fullpath, "utf-8"), options_)
+                sys.log("Read: " + fullpath)
+            except as e:
+                sys.error("Not found: " + fullpath)
+                last_e = e
+                continue;
+                
+        if not contents:
+            raise last_e
+            
+        return contents
 
+    import_ = def():
+        name = expression(False)
+        path = module_pathname(name)
+        contents = None
+        fullpath = find_module_realpath(path)
+        if !options.amd:
+            contents = read_module_contents(fullpath)
 
         return new AST_Import({
             module: name,
+            path: fullpath,
             argnames: None,
             body: contents,
             variables: def():
@@ -1264,42 +1298,24 @@ def parse($TEXT, options):
 
     from_import_ = def():
         name = expression(False)
-        file = ".pyj"
-        while isinstance(name, AST_Dot):
-            file = "/" + name.property + file
-            name = name.expression
-
-        file = name.name + file
         expect_token("keyword", "import")
-        contents = None
-        try:
-            contents = parse(options.readfile(options.basedir + "/" + file, "utf-8"), {
-                filename: file,
-                toplevel: contents,
-                readfile: options.readfile,
-                basedir: options.basedir,
-                libdir: options.libdir
-            })
-        except:
-            contents = parse(options.readfile(options.libdir + "/" + file, "utf-8"), {
-                # didn't find it in local directory, check libs
-                filename: file,
-                toplevel: contents,
-                readfile: options.readfile,
-                basedir: options.libdir,
-                libdir: options.libdir
-            })
+        path = module_pathname(name)
+        body = None
+        fullpath = find_module_realpath(path)
+        if !options.amd:          
+            body = read_module_contents(fullpath)
 
         return new AST_Import({
             module: name,
+            path: fullpath,
+            body: body,
             argnames: def(a):
                 a.push(as_symbol(AST_SymbolVar))
                 while is_("punc", ","):
                     next()
                     a.push(as_symbol(AST_SymbolVar))
                 return a
-            .call(this, []),
-            body: contents
+            .call(this, [])
         })
 
     ModuleTreeNode = def():
@@ -2350,5 +2366,6 @@ def parse($TEXT, options):
         toplevel.baselib = BASELIB
         return toplevel
     .call(this)
+
 
 
