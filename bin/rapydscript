@@ -24,8 +24,9 @@ instead of concatenating them [experimental].")
 instead of using @bound decorator [experimental].")
     .describe("p", "Prettify output/specify output options.")
     .describe("m", "Omit baselib functions (use this if you have a different way of ensuring they're imported, such as including baselib.js).")
-    .describe("amd", "Use AMD to import modules.")
-    .describe("py", "Use .py instead of .pyj file extension.")
+    .describe("amd-imports", "Use (requires) AMD to define and import modules.")
+    .describe("javascript-imports", "Colon separated list of javascript modules that can be imported.")
+    .describe("ext", "Specify file extension to use. Default is .pyj.")
     .describe("t", "Run RapydScript tests")
 
     .describe("comments", "Preserve copyright comments in the output. \
@@ -96,11 +97,12 @@ var NAMESPACE_IMPORTS = getOptions("n", false);
 var AUTO_BIND = getOptions("i", false);
 var OMIT_BASELIB = getOptions("m", false);
 
-var AMD = ARGS.amd ? true : false
+var AMD = ARGS.amd_imports ? true : false;
+var JS_IMPORTS = ARGS.javascript_imports ? ARGS.javascript_imports : "";
 
-var PY_EXT = ARGS.py ? ARGS.py : ".pyj";
-    
-var PYTHONPATH = []
+var EXT = ARGS.ext ? ARGS.ext : ".pyj";
+
+var PYTHONPATH = [];
 
 if (process.env.PYTHONPATH) {
     PYTHONPATH = process.env.PYTHONPATH.split(":")
@@ -134,8 +136,9 @@ if (ARGS.t || ARGS.test) {
         try {
             ast = RapydScript.parse(fs.readFileSync(filepath, "utf-8"), {
                 filename: file,
-                py_ext: PY_EXT,
+                ext: EXT,
                 amd: AMD,
+                js_imports: JS_IMPORTS,
                 toplevel: ast,
                 readfile: fs.readFileSync,
                 search_paths: PYTHONPATH,
@@ -259,8 +262,9 @@ async.eachLimit(files, 1, function (file, cb) {
         time_it("parse", function(){
             TOPLEVEL = RapydScript.parse(code, {
                 filename: file,
-                py_ext: PY_EXT,
+                ext: EXT,
                 amd: AMD,
+                js_imports: JS_IMPORTS,
                 toplevel: TOPLEVEL,
                 readfile: fs.readFileSync,
                 fs: fs,

@@ -842,7 +842,7 @@ def parse($TEXT, options):
                     elif isinstance(body[stmt], AST_DWLoop):
                         vars = vars.concat(scan_for_local_vars(body[stmt], is_module))
 
-        elif body.body:
+        elif body and body.body:
             vars = vars.concat(scan_for_local_vars(body.body, is_module))
             if body.alternative:
                 vars = vars.concat(scan_for_local_vars(body.alternative, is_module))
@@ -1224,7 +1224,11 @@ def parse($TEXT, options):
 
     find_module_realpath = def(name):
         file = name
-        search_paths = options.search_paths;
+        
+        if name in options.js_imports:
+            return name # No need to validate module exists in search path
+
+        search_paths = options.search_paths
         for path in search_paths:
             if path and path != "":
                 module_name = 
@@ -1232,16 +1236,18 @@ def parse($TEXT, options):
             else:
                 fullpath = options.basedir + "/" + file
 
-            if options.fs.existsSync(fullpath + options.py_ext):
+            if options.fs.existsSync(fullpath + options.ext):
                 sys.log(options.basedir + "] Exists: " + fullpath)
                 return fullpath
 
         raise Error("Cannot import: " + name)
 
     read_module_contents = def(name):
-        file = name + options.py_ext
-
-        sys.log("amd: " + options.amd + " import: " + file)
+    
+        if name in options.js_imports:
+            return None # Cannot read a Javascript module
+            
+        file = name + options.ext
 
         contents = None
         search_paths = options.search_paths;
@@ -1251,8 +1257,9 @@ def parse($TEXT, options):
             readfile: options.readfile,
             basedir: options.basedir,
             libdir: options.libdir,
-            py_ext: options.py_ext,
+            ext: options.ext,
             amd: options.amd,
+            js_imports: options.js_imports,
             search_paths: search_paths
         }
         last_e = None
@@ -1264,9 +1271,7 @@ def parse($TEXT, options):
                     fullpath = file
 
                 contents = parse(options.fs.readfile(fullpath, "utf-8"), options_)
-                sys.log("Read: " + fullpath)
             except as e:
-                sys.error("Not found: " + fullpath)
                 last_e = e
                 continue;
                 

@@ -1164,7 +1164,8 @@ def OutputStream(options):
         return j + 1
         
     def print_amd(self, output):
-        imports = []
+        imports = {}
+        import_paths = []
         output.print("define('")
         module_name = self.start.file[:-3]
         output.print(module_name)
@@ -1177,29 +1178,43 @@ def OutputStream(options):
             package_name = module_name[:(-1*i)] + '/'
         else:
             package_name = ''
-        
-        output.print("[")
-        j = 0
+
+        # Find all unique imports        
         self.body.forEach(def(node):
+            nonlocal j
             if node.TYPE is not "Import":
                 return
             
+            if node.path in imports:
+                return
+
+            imports[node.path] = node
+            import_paths.push(node.path)
+        )
+        
+        output.print("[")
+        j = 0
+        n = import_paths.length - 1
+        import_paths.forEach(def(path):
+            nonlocal j
             output.newline()
-            output.print('"' + node.path + '"')
-            if j > 0:
+            output.print('"' + path + '"')
+            if j < n:
                 output.comma()
-            imports.push(node)
             j += 1
-        )              
+        )
+        
         output.newline()
         output.print("],")
         
         output.newline()
         output.print("function(")
         j = 0
-        imports.forEach(def(node, i):
-            output.print(node.path.replace("/", "_"))
-            if j > 0:
+        n = import_paths.length - 1
+        import_paths.forEach(def(path):
+            nonlocal j
+            output.print(path.replace("/", "_"))
+            if j < n:
                 output.comma()
             j += 1
         )
