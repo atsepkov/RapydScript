@@ -1154,14 +1154,16 @@ def OutputStream(options):
         output.print("();")
         output.print("")
 
-    def print_return_map_var(output, name, j):
-        output.newline()
+    def print_return_map_var(output, name, exported, j):
+        if name in exported:
+            return;
+        exported[name] = True
         if j > 0:
             output.comma()
+        output.newline()
         output.indent()
         output.indent()
         output.print( name + ': ' + name)
-        return j + 1
         
     def print_amd(self, output):
         imports = {}
@@ -1193,15 +1195,12 @@ def OutputStream(options):
         )
         
         output.print("[")
-        j = 0
         n = import_paths.length - 1
-        import_paths.forEach(def(path):
-            nonlocal j
+        import_paths.forEach(def(path, j):
+            if j > 0:
+                output.comma()
             output.newline()
             output.print('"' + path + '"')
-            if j < n:
-                output.comma()
-            j += 1
         )
         
         output.newline()
@@ -1209,19 +1208,16 @@ def OutputStream(options):
         
         output.newline()
         output.print("function(")
-        j = 0
-        n = import_paths.length - 1
-        import_paths.forEach(def(path):
-            nonlocal j, imports
+        import_paths.forEach(def(path, j):
+            nonlocal imports
+            if j > 0:
+                output.comma()
             node = imports[path]
             if node.as:
                 param = node.as.name
             else:
                 param = path.replace(/(\/|-)/g, "_")
             output.print(param)
-            if j < n:
-                output.comma()
-            j += 1
         )
         output.print(")")
         
@@ -1232,9 +1228,9 @@ def OutputStream(options):
 
             output.indent()
             output.print("return {")
-            j = 0
-            self.body.forEach(def(node):
-                nonlocal j
+            exported = {}
+            self.body.forEach(def(node, j):
+                nonlocal exported
                 if node.TYPE not in ["Function", "Class", "Var", "Const", "Import"]:
                     return
                 
@@ -1242,11 +1238,11 @@ def OutputStream(options):
                     if not node.argnames:
                         return
                     for name in node.argnames:
-                        j = print_return_map_var(output, name.name, j)
+                        print_return_map_var(output, name.name, exported, j)
                     return
 
                 name = node.name.name
-                j = print_return_map_var(output, name, j)
+                print_return_map_var(output, name, exported, j)
             )              
             output.newline()
             output.indent()
