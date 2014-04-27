@@ -102,7 +102,7 @@ var JS_IMPORTS = ARGS.javascript_imports ? ARGS.javascript_imports : "";
 
 var EXT = ARGS.ext ? ARGS.ext : ".pyj";
 
-var PYTHONPATH = [];
+var PYTHONPATH = [""];
 
 if (process.env.PYTHONPATH) {
     PYTHONPATH = process.env.PYTHONPATH.split(":")
@@ -121,12 +121,11 @@ var OUTPUT_OPTIONS = {
 if (ARGS.t || ARGS.test) {
     // run all tests and exit
     var assert = require("assert");
-    var test_dir = path.normalize(
-        path.join(
-            path.dirname(module.filename),
-            "../test"
-        )
-    );
+    var dirname = path.dirname(module.filename);
+    var test_dir = path.normalize(path.join(dirname, "../test" ));
+    
+    PYTHONPATH.push(path.normalize(path.join(dirname,"../src/lib")));
+                        
     var files = fs.readdirSync(test_dir).filter(function(name){
         return /^[^_].*\.pyj$/.test(name);
     });
@@ -141,6 +140,7 @@ if (ARGS.t || ARGS.test) {
                 js_imports: JS_IMPORTS,
                 toplevel: ast,
                 readfile: fs.readFileSync,
+                fs: fs,
                 search_paths: PYTHONPATH,
 				basedir: path.normalize(
                     path.join(
@@ -148,12 +148,6 @@ if (ARGS.t || ARGS.test) {
                         "../test"
                     )
                 ),
-                libdir: path.normalize(
-                    path.join(
-                        path.dirname(module.filename),
-                        "../src/lib"
-                    )
-                )
             });
         } catch(ex) {
 //            if (ex instanceof RapydScript.JS_Parse_Error) {
@@ -271,12 +265,6 @@ async.eachLimit(files, 1, function (file, cb) {
                 search_paths: search_paths,
                 basedir: basedir,
                 auto_bind: AUTO_BIND ? true : false,
-                libdir: path.normalize(
-                    path.join(
-                        path.dirname(module.filename),
-                        "../src/lib"
-                    )
-                )
             });
         });
         cb();

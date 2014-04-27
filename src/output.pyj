@@ -1212,8 +1212,13 @@ def OutputStream(options):
         j = 0
         n = import_paths.length - 1
         import_paths.forEach(def(path):
-            nonlocal j
-            output.print(path.replace("/", "_"))
+            nonlocal j, imports
+            node = imports[path]
+            if node.as:
+                param = node.as.name
+            else:
+                param = path.replace(/(\/|-)/g, "_")
+            output.print(param)
             if j < n:
                 output.comma()
             j += 1
@@ -1321,7 +1326,7 @@ def OutputStream(options):
                 output.print("var")
                 output.space()
                 output.assign(arg)
-                output.print(self.path.replace("/", "_"))
+                output.print(self.path.replace(/(\/|-)/g, "_"))
                 output.print(".")
                 arg.print(output)
                 output.semicolon()

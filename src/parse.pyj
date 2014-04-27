@@ -47,7 +47,7 @@
 """
 "use strict"
 
-KEYWORDS = "as break case class const continue debugger default def del do elif else except finally for from if import in instanceof is module new nonlocal pass raise return switch til to try typeof var void while with or and not"
+KEYWORDS = "as break case class const continue debugger default def del do elif else except finally for from if import require in instanceof is module new nonlocal pass raise return switch til to try typeof var void while with or and not"
 
 KEYWORDS_ATOM = "False None True"
 
@@ -973,6 +973,8 @@ def parse($TEXT, options):
                 return finalize_import(from_import_())
             elif tmp_ == "import":
                 return finalize_import(import_())
+            elif tmp_ == "require":
+                return require_()
             elif tmp_ == "class":
                 BASELIB["extends"] = True
                 if options.auto_bind:
@@ -1223,62 +1225,35 @@ def parse($TEXT, options):
         return name.name + file_
 
     find_module_realpath = def(name):
-        file = name
-        
         if name in options.js_imports:
             return name # No need to validate module exists in search path
 
         search_paths = options.search_paths
         for path in search_paths:
             if path and path != "":
-                module_name = 
-                fullpath = path + "/" + file
+                fullpath = path + "/" + name
             else:
-                fullpath = options.basedir + "/" + file
-
+                fullpath = options.basedir + "/" + name
+            
             if options.fs.existsSync(fullpath + options.ext):
-                sys.log(options.basedir + "] Exists: " + fullpath)
                 return fullpath
 
         raise Error("Cannot import: " + name)
 
-    read_module_contents = def(name):
+    read_module_contents = def(fullpath):
     
-        if name in options.js_imports:
-            return None # Cannot read a Javascript module
-            
-        file = name + options.ext
-
-        contents = None
-        search_paths = options.search_paths;
         options_ = {
-            filename: file,
-            toplevel: contents,
+            filename: fullpath,
+            toplevel: None,
             readfile: options.readfile,
+            fs: options.fs,
             basedir: options.basedir,
-            libdir: options.libdir,
             ext: options.ext,
             amd: options.amd,
             js_imports: options.js_imports,
-            search_paths: search_paths
+            search_paths: options.search_paths
         }
-        last_e = None
-        for path in search_paths:
-            try:
-                if path and path != "":
-                    fullpath = path + "/" + file
-                else:
-                    fullpath = file
-
-                contents = parse(options.fs.readfile(fullpath, "utf-8"), options_)
-            except as e:
-                last_e = e
-                continue;
-                
-        if not contents:
-            raise last_e
-            
-        return contents
+        return parse(options.readfile(fullpath + options.ext, "utf-8"), options_)
 
     import_ = def():
         name = expression(False)
@@ -1323,6 +1298,24 @@ def parse($TEXT, options):
             .call(this, [])
         })
 
+    require_ = def():
+        next_node = peek()
+        node = expression(False)
+        if not isinstance(node, AST_String):
+            unexpected(node)
+          
+        as_name = None
+        if next_node.type is "keyword" and next_node.value is "as":
+            next()
+            as_name = as_symbol(AST_SymbolVar)
+            
+        path = node.value
+        return new AST_Import({
+            module: node,
+            path: path,
+            as: as_name
+        })
+     
     ModuleTreeNode = def():
         pass
     # this exists to allow 'instanceof' check from within get_class_in_scope()
