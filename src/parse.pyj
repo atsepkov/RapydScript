@@ -186,6 +186,17 @@ def js_error(message, filename, line, col, pos):
 def is_token(token, type, val):
     return token.type == type and (val == None or token.value == val)
 
+def reserved_decorator(s, decorator):
+    if not s.decorators:
+        return False
+        
+    index = s.decorators.indexOf(decorator)
+    found = index != -1
+    if found:
+        s.decorators.splice(index, 1)
+
+    return found
+    
 EX_EOF = {}
 
 def tokenizer($TEXT, filename):
@@ -1324,11 +1335,6 @@ def parse($TEXT, options):
         if not name:
             unexpected()
 
-        # detect external modules
-        externaldecorator = S.decorators.indexOf("external")
-        if externaldecorator != -1:
-            S.decorators.splice(externaldecorator, 1)
-
         definition = new AST_Module({
             name: name,
             body: def():
@@ -1344,7 +1350,7 @@ def parse($TEXT, options):
                 S.module_stack.pop()
                 return a
             .call(this),
-            external: externaldecorator != -1,
+            external: reserved_decorator(S, "external"), # detect external modules
             decorators: def():
                 d = []
                 S.decorators.forEach(def(decorator):
@@ -1374,11 +1380,7 @@ def parse($TEXT, options):
         if not name:
             unexpected()
 
-        # detect external classes
-        externaldecorator = S.decorators.indexOf("external")
-        if externaldecorator != -1:
-            S.decorators.splice(externaldecorator, 1)
-
+        
         class_details = {
             "static": [],
             bound: {}
@@ -1397,7 +1399,8 @@ def parse($TEXT, options):
             modules: S.module_stack.slice(),
             localvars: [],
             "static": class_details.static,
-            external: externaldecorator != -1,
+            external: reserved_decorator(S, "external"), # detect external classes
+            public:  reserved_decorator(S, "public"), # detect public classes
             bound: class_details.bound,
             decorators: def():
                 d = []
@@ -1448,12 +1451,14 @@ def parse($TEXT, options):
             unexpected()
 
         staticmethod = False
+        is_public = reserved_decorator(S, "public") # detect public functions
+#        if in_class and is_public:
+#            unexpected() # Do not support concept of non-public methods in a class
+
         if in_class:
-            staticloc = S.decorators.indexOf("staticmethod")
-            if staticloc != -1:
-                S.decorators.splice(staticloc, 1)
+            staticmethod = reserved_decorator(S, "staticmethod")
+            if staticmethod:
                 S.classes[S.classes.length - 2][in_class].static.push(name.name)
-                staticmethod = True
             elif name.name != "__init__" and options.auto_bind:
                 BASELIB["bind"] = True
                 S.classes[S.classes.length - 2][in_class].bound[name.name] = True
@@ -1517,6 +1522,9 @@ def parse($TEXT, options):
         })
         if isinstance(definition, AST_Method):
             definition.static = staticmethod
+            
+        if isinstance(definition, AST_Function):
+            definition.public = is_public
 
         # detect local variables, strip function arguments
         assignments = scan_for_local_vars(definition.body, False).filter(def(element, index, arr):
@@ -2149,9 +2157,11 @@ def parse($TEXT, options):
     maybe_unary = def(allow_calls):
         start = S.token
         if is_("operator") and UNARY_PREFIX(start.value):
+            t = peek()
             next()
             if start.value == "@":
-                if is_("name") and (peek().value == "@" or peek().value == "def" or peek().value == "class" or peek().value == "module"):
+                if is_("name") and (peek().value == "@" or peek().value == "def" or peek().value == "class" or peek().value == "module"
+                                    or t.value == "public" ):
                     S.decorators.push(S.token.value)
                     next()
                     return new AST_EmptyStatement()
@@ -2245,7 +2255,9 @@ def parse($TEXT, options):
 
     maybe_assign = def(no_in):
         start = S.token
+        is_public = reserved_decorator(S, "public")
         left = maybe_conditional(no_in)
+        left.public = is_public
         val = S.token.value
         if is_("operator") and ASSIGNMENT(val):
             if is_assignable(left):

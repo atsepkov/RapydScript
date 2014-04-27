@@ -1221,6 +1221,26 @@ def OutputStream(options):
         )
         output.print(")")
         
+        def output_exported(output, node, exported, j):
+            if node.TYPE not in ["Function", "Class", "SymbolRef", "Import"]:
+                return
+            
+            if node.TYPE is "Import":
+                if not node.argnames:
+                    return
+                for name in node.argnames:
+                    print_return_map_var(output, name.name, exported, j)
+                return
+
+            if not node.public:
+                return
+
+            name = node.name
+            if node.name.name:
+                name = node.name.name
+                
+            print_return_map_var(output, name, exported, j)
+        
         output.with_block(def():
             output.prologue(self)
             display_complex_body(self, True, output)
@@ -1231,18 +1251,16 @@ def OutputStream(options):
             exported = {}
             self.body.forEach(def(node, j):
                 nonlocal exported
-                if node.TYPE not in ["Function", "Class", "Var", "Const", "Import"]:
+                if node.TYPE is "SimpleStatement":
+                    i = 0
+                    node.walk(new TreeWalker(def(node):
+                        nonlocal output, exported, j, i
+                        if isinstance(node, AST_Assign):
+                            output_exported(output, node.left, exported, j+i)
+                        i += 1
+                    ))
                     return
-                
-                if node.TYPE is "Import":
-                    if not node.argnames:
-                        return
-                    for name in node.argnames:
-                        print_return_map_var(output, name.name, exported, j)
-                    return
-
-                name = node.name.name
-                print_return_map_var(output, name, exported, j)
+                output_exported(output, node, exported, j)
             )              
             output.newline()
             output.indent()
