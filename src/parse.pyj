@@ -196,7 +196,15 @@ def reserved_decorator(s, decorator):
         s.decorators.splice(index, 1)
 
     return found
-    
+
+def dirname(path):
+    length = path.length
+    if path[length-1] == '/':
+        length-= 1
+ 
+    i = path.lastIndexOf("/", length)
+    return i>0 ? path.slice(0, i) : ""    
+
 EX_EOF = {}
 
 def tokenizer($TEXT, filename):
@@ -1229,30 +1237,62 @@ def parse($TEXT, options):
 
     def module_pathname(name):
         file_ = ""
+        is_rel_path = False
+        if isinstance(name, AST_Dot) and name.property == ".":
+            is_rel_path = True
+            name = name.expression
+            
         while isinstance(name, AST_Dot):
             file_ = "/" + name.property + file_
             name = name.expression
-            
-        return name.name + file_
+
+        path = name.name + file_            
+        return is_rel_path ? "./" + path : path
 
     find_module_realpath = def(name):
         if name in options.js_imports:
-            return name # No need to validate module exists in search path
+            return {"dirname":"", "path": name} # No need to validate module exists in search path
 
+        # Relative path import from the current file being processed.
+        if name.indexOf("./") == 0:
+            module_dir = dirname(options.filename)
+            path = name.replace("./", module_dir+"/")
+#            if !options.fs.existsSync(path):
+            return {"dirname":"", "path": path}
+
+        # Absolute path import
         search_paths = options.search_paths
         for path in search_paths:
-            if path and path != "":
-                fullpath = path + "/" + name
-            else:
-                fullpath = options.basedir + "/" + name
+            fullpath = path + "/" + name
             
             if options.fs.existsSync(fullpath + options.ext):
-                return fullpath
-
+                return {"dirname":path, "path": name}
+                
+            
+            # Check to see if fullpath exists,
+            if !options.fs.existsSync(fullpath):
+                continue
+                
+            # is a directory and and an __init__.py file exists for the package.
+            stats = options.fs.statSync(fullpath)
+            init_file = fullpath + "/__init__"
+            if stats.isDirectory and options.fs.existsSync(init_file + options.ext):
+                return {"dirname":path, "path": name+"/__init__"}
+            else:
+                raise Error("Cannot import __init__ for package: " + name)
+        
+        # Maintain backard compatibility when not performing AMD imports and
+        # search for the import file from basedir.
+        if not options.amd:
+            fullpath = options.basedir + "/" + name
+            if options.fs.existsSync(fullpath + options.ext):
+                return {"dirname":options.basedir, "path": name}
+                
         raise Error("Cannot import: " + name)
 
     read_module_contents = def(fullpath):
-    
+        fullpath = fullpath["dirname"] + "/" + fullpath["path"]
+
         options_ = {
             filename: fullpath,
             toplevel: None,
@@ -1276,7 +1316,8 @@ def parse($TEXT, options):
 
         return new AST_Import({
             module: name,
-            path: fullpath,
+            dirname: fullpath["dirname"],
+            path: fullpath["path"],
             argnames: None,
             body: contents,
             variables: def():
@@ -1298,7 +1339,8 @@ def parse($TEXT, options):
 
         return new AST_Import({
             module: name,
-            path: fullpath,
+            dirname: fullpath["dirname"],
+            path: fullpath["path"],
             body: body,
             argnames: def(a):
                 a.push(as_symbol(AST_SymbolVar))
@@ -1324,7 +1366,7 @@ def parse($TEXT, options):
         return new AST_Import({
             module: node,
             path: path,
-            as: as_name
+            as: as_name ? as_name : node
         })
      
     ModuleTreeNode = def():
@@ -1792,6 +1834,17 @@ def parse($TEXT, options):
                 return subscripts(array_(), allow_calls)
             elif tmp_ == "{":
                 return subscripts(object_(), allow_calls)
+            elif tmp_ == "." and (S.prev.value == "from" or S.prev.value == "import"):
+#                console.log(JSON.stringify(S, null, " "));
+                next()
+                ex = expression(false)
+                dot = new AST_Dot({
+                   start: start,
+                   expression: ex,
+                   property: ".",
+                   end: S.token
+                })
+                return dot
 
             unexpected()
 
@@ -2377,5 +2430,58 @@ def parse($TEXT, options):
         return toplevel
     .call(this)
 
+def read_module_contents1(fullpath, options):
 
+    path = fullpath
+    
+    // Try to detect if fullpath points to a non-sysetm module that can be
+    // read.
+    if !options.fs.existsSync(fullpath + options.ext):
+        fullpath = options.basedir + "/" + fullpath
+        if !options.fs.existsSync(fullpath + options.ext):
+            return
+
+    options_ = {
+        filename: fullpath,
+        toplevel: None,
+        readfile: options.readfile,
+        fs: options.fs,
+        basedir: options.basedir,
+        ext: options.ext,
+        amd: options.amd,
+        js_imports: options.js_imports,
+        search_paths: options.search_paths
+    }
+    
+    return {"path" : path + ".js",
+            "ast"  : parse(options.readfile(fullpath + options.ext, "utf-8"), options_)}
+
+def get_import_ast(ast, options):
+
+    # Find all unique imports        
+    imports = {}
+    import_paths = []
+    ast.body.forEach(def(node):
+        node.walk(new TreeWalker(def(node):
+            nonlocal imports, import_paths
+            if node.TYPE is not "Import":
+                return
+            
+            if node.path in imports:
+                return
+
+            path = node.dirname ? node.dirname +"/" + node.path : node.path
+            imports[node.path] = node
+            import_paths.push(path)
+        ))
+
+    )
+
+    asts = []
+    for path in import_paths:
+        import_ast = read_module_contents1(path, options)
+        if import_ast:
+            asts.push(import_ast)
+
+    return asts
 

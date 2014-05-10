@@ -5,7 +5,7 @@ var sys = require("util");
 
 var RapydScript = vm.createContext({
     sys           : sys,
-    console       : console,
+    console       : console
 });
 
 function load_global(file) {
@@ -27,6 +27,7 @@ var FILES = exports.FILES = [
     "../lib/ast.js",
     "../lib/parse.js",
     "../lib/output.js",
+    "../lib/output_amd.js",
 ].map(function(file){
     return path.join(path.dirname(fs.realpathSync(__filename)), file);
 });
