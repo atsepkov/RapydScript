@@ -3,7 +3,7 @@
   "description": "RapydScript to JavaScript compiler",
   "homepage": "http://rapydscript.pyjeon.com",
   "main": "tools/node.js",
-  "version": "0.1.98",
+  "version": "0.1.99",
   "engines": {
     "node": ">=0.4.0"
   },
@@ -14,12 +14,10 @@
       "web": "http://rapydscript.pyjeon.com"
     }
   ],
-  "repositories": [
-    {
+  "repository": {
       "type": "git",
       "url": "https://github.com/atsepkov/RapydScript.git"
-    }
-  ],
+  },
   "dependencies": {
     "async": "~0.2.6",
     "optimist": "~0.3.5",
@@ -27,8 +25,5 @@
   },
   "bin": {
     "rapydscript": "bin/rapydscript"
-  },
-  "scripts": {
-    "test": "node test/run-tests.js"
   }
 }
