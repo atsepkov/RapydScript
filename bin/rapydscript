@@ -26,7 +26,6 @@ instead of using @bound decorator [experimental].")
     .describe("p", "Prettify output/specify output options.")
     .describe("m", "Omit baselib functions (use this if you have a different way of ensuring they're imported, such as including baselib.js).")
     .describe("amd-imports", "Use (requires) AMD to define and import modules.")
-    .describe("javascript-imports", "Colon separated list of javascript modules that can be imported.")
     .describe("ext", "Specify file extension to use. Default is .pyj.")
     .describe("t", "Run RapydScript tests")
 
@@ -99,7 +98,6 @@ var AUTO_BIND = getOptions("i", false);
 var OMIT_BASELIB = getOptions("m", false);
 
 var AMD = ARGS.amd_imports ? true : false;
-var JS_IMPORTS = ARGS.javascript_imports ? ARGS.javascript_imports : "";
 
 var EXT = ARGS.ext ? ARGS.ext : ".pyj";
 
@@ -130,12 +128,12 @@ if (ARGS.t || ARGS.test) {
                 readfile: fs.readFileSync,
                 fs: fs
     };
-    
+
     var test_dirs = [
         ["rapydscript/test","../test"],
         ["rapydscript/amd/test","../test_amd"]
     ];
-    
+
     var test_dir, test_module, tests;
     for (var i in test_dirs) {
         test_dir = test_dirs[i];
@@ -144,7 +142,7 @@ if (ARGS.t || ARGS.test) {
         tests = new test_module.Tests(test_dir[1], dirname, options);
         tests.run();
     }
-    
+
     process.exit(0);
 }
 
@@ -218,7 +216,6 @@ async.eachLimit(files, 1, function (file, cb) {
                 filename: file,
                 ext: EXT,
                 amd: AMD,
-                js_imports: JS_IMPORTS,
                 toplevel: TOPLEVEL,
                 readfile: fs.readFileSync,
                 fs: fs,
