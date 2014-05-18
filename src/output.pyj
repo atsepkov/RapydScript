@@ -580,7 +580,7 @@ def OutputStream(options):
                     }, {
                         block: [ [ "if", {
                             parens: [ "source.hasOwnProperty(i)", "&&", {
-                                parens: [ "overwrite", "||", "typeof", "taget[i]", "===", '"undefined"' ]
+                                parens: [ "overwrite", "||", "typeof", "target[i]", "===", '"undefined"' ]
                             } ]
                         }, "target[i]", "=", "source[i]" ] ]
                     } ] ]
