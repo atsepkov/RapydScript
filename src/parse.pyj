@@ -424,11 +424,12 @@ def tokenizer($TEXT, filename):
         quote = next()
         ret = ""
         if peek() == quote:
+            # two quotes in a row
             next(True)
             if peek() == quote:
-                # multiline string
+                # multiline string (3 quotes in a row)
                 next(True)
-                i = find(quote + quote + quote, True)
+                i = find(quote + quote + quote, True) # location of string terminator
                 if i != -1:
                     tmp = S.text.substring(S.pos, i)
                     S.pos = i + 3
@@ -444,6 +445,7 @@ def tokenizer($TEXT, filename):
                         else:
                             ret += tmp[0]
                             tmp = tmp.substr(1)
+                    S.line += ret.match(/\n/g).length
                     return token("string", ret)
             else:
                 return token("string", "")
