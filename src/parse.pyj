@@ -352,14 +352,15 @@ def tokenizer($TEXT, filename):
         has_x = False
         has_dot = prefix == "."
         num = read_while(def(ch, i):
+            nonlocal after_e
             code = ch.charCodeAt(0)
             tmp_ = code
             if tmp_ == 120 or tmp_ == 88:
                 # xX
-                return (has_x ? False : has_x = True)
+                return has_x ? False : has_x = True
             elif tmp_ == 101 or tmp_ == 69:
                 # eE
-                return (has_x ? True : (has_e ? False : has_e = after_e = True))
+                return has_x ? True : (has_e ? False : has_e = after_e = True)
             elif tmp_ == 45:
                 # -
                 return after_e or i == 0 and not prefix
@@ -369,7 +370,7 @@ def tokenizer($TEXT, filename):
             elif tmp_ == 46:
                 # .
                 after_e = False
-                return (not has_dot and not has_x and not has_e ? has_dot = True : False)
+                return not has_dot and not has_x and not has_e ? has_dot = True : False
             return is_alphanumeric_char(code)
         )
         if prefix:
