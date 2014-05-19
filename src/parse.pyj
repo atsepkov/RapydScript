@@ -1555,7 +1555,8 @@ def parse($TEXT, options):
         else:
             while not is_("punc", "}"):
                 if is_("eof"):
-                    unexpected()
+                    # end of file, terminate block automatically
+                    return a
                 a.push(statement())
             next()
         return a
