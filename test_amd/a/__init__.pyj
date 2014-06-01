@@ -1,0 +1,24 @@
+require "assert" as assert
+
+@public
+class Alpha:
+    def __init__(self):
+        self.name = 'Alpha'
+    def getName(self):
+        return self.name
+
+@external
+class Bravo:
+    @staticmethod
+    def setName(obj, name):
+        pass
+
+@public
+def testBravo(Bravo):
+    console.log("Calling testBravo")
+    b = Bravo()
+    assert.equal(b.getName(), "Bravo")
+    assert.equal(Bravo.getName(b), "Bravo")
+    Bravo.setName(b, "Charlie")
+    assert.equal(b.getName(), "Charlie")
+

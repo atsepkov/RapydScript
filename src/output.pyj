@@ -65,6 +65,7 @@ def OutputStream(options):
         comments: False,
         preserve_line: False,
         namespace_imports: False,
+        amd: False,
         omit_baselib: False,
         private_scope: True,
         screw_old_browsers: False,
@@ -1140,18 +1141,24 @@ def OutputStream(options):
         self.body.print(output)
         output.semicolon()
     )
-    DEFPRINT(AST_Toplevel, def(self, output):
-        if output.option("private_scope") and output.is_main():
-            output.with_parens(def():
-                output.print("function()")
-                output.with_block(def():
-                    output.prologue(self)
-                    display_complex_body(self, True, output)
-                    output.newline()
-                )
+
+    def print_private_scope(self, output):
+        output.with_parens(def():
+            output.print("function()")
+            output.with_block(def():
+                output.prologue(self)
+                display_complex_body(self, True, output)
+                output.newline()
             )
-            output.print("();")
-            output.print("")
+        )
+        output.print("();")
+        output.print("")
+
+    DEFPRINT(AST_Toplevel, def(self, output):
+        if output.option("amd") and output.is_main():
+            print_amd(self, output, display_complex_body)
+        elif output.option("private_scope") and output.is_main():
+            print_private_scope(self, output)
         else:
             if output.is_main():
                 output.prologue(self)
@@ -1160,8 +1167,8 @@ def OutputStream(options):
                 declare_vars(self.localvars, output)
 
             display_body(self.body, True, output)
-
     )
+    
     def print_module(self, name, variables, output):
         def print_var(name):
             if typeof name is "string":
@@ -1182,6 +1189,8 @@ def OutputStream(options):
                 output.indent()
                 output.print("return")
                 output.with_block(def():
+                    if not self.variables:
+                        return;
                     self.variables.forEach(def(arg, i):
                         output.indent()
                         print_var(arg)
@@ -1203,18 +1212,18 @@ def OutputStream(options):
         output.newline()
 
     DEFPRINT(AST_Import, def(self, output):
-        if output.import(self.module):
+        if output.import(self.module) and not output.option("amd"):
             if not output.option("namespace_imports"):
                 self.body.print(output)
-            else:
+            elif output.option("namespace_imports"):
                 print_module(self.body, self.module, self.variables, output)
 
-        if output.option("namespace_imports") and self.argnames:
-            self.variables.forEach(def(arg):
+        if output.option("amd") and self.argnames:
+            self.argnames.forEach(def(arg):
                 output.print("var")
                 output.space()
                 output.assign(arg)
-                self.module.print(output)
+                output.print(self.path.replace(/(\/|-)/g, "_"))
                 output.print(".")
                 arg.print(output)
                 output.semicolon()

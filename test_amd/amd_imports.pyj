@@ -1,0 +1,33 @@
+require "assert" as assert
+import a
+#import a.b
+#import a.b.c
+
+@external
+class Alpha:
+    pass
+
+Alpha = a.Alpha
+
+console.log("Alpha name: ")
+alpha = new a.Alpha()
+console.log("Alpha name: " + alpha.getName())
+assert.equal(alpha.getName(), "Alpha")
+console.log("Alpha.getName(alpha)=" + Alpha.getName(alpha))
+assert.equal(Alpha.getName(alpha), "Alpha")
+
+@public
+class Bravo(a.Alpha):
+    def __init__(self):
+        self.name = "Bravo"
+        
+    @staticmethod
+    def setName(obj, name):
+        obj.name = name
+
+a.testBravo(Bravo)
+
+#bar = foo.Bar()
+#assert.equal(bar.baz(), "foo bar baz")
+
+

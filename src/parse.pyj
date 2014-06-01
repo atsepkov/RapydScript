@@ -47,7 +47,7 @@
 """
 "use strict"
 
-KEYWORDS = "as break case class const continue debugger default def del do elif else except finally for from if import in instanceof is module new nonlocal pass raise return switch til to try typeof var void while with or and not"
+KEYWORDS = "as break case class const continue debugger default def del do elif else except finally for from if import require in instanceof is module new nonlocal pass raise return switch til to try typeof var void while with or and not"
 
 KEYWORDS_ATOM = "False None True"
 
@@ -185,6 +185,25 @@ def js_error(message, filename, line, col, pos):
 
 def is_token(token, type, val):
     return token.type == type and (val == None or token.value == val)
+
+def reserved_decorator(s, decorator):
+    if not s.decorators:
+        return False
+
+    index = s.decorators.indexOf(decorator)
+    found = index != -1
+    if found:
+        s.decorators.splice(index, 1)
+
+    return found
+
+def dirname(path):
+    length = path.length
+    if path[length-1] == '/':
+        length-= 1
+
+    i = path.lastIndexOf("/", length)
+    return i>0 ? path.slice(0, i) : ""
 
 EX_EOF = {}
 
@@ -394,7 +413,7 @@ def tokenizer($TEXT, filename):
         elif tmp_ == 114:
             return "\r"
         elif tmp_ == 116:
-            return "	"
+            return "    "
         elif tmp_ == 98:
             return "\b"
         elif tmp_ == 118:
@@ -721,6 +740,7 @@ ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ]
 
 # -----[ Parser ]-----
 def parse($TEXT, options):
+
     options = defaults(options, {
         strict: False,
         filename: None,
@@ -844,7 +864,7 @@ def parse($TEXT, options):
                     elif isinstance(body[stmt], AST_DWLoop):
                         vars = vars.concat(scan_for_local_vars(body[stmt], is_module))
 
-        elif body.body:
+        elif body and body.body:
             vars = vars.concat(scan_for_local_vars(body.body, is_module))
             if body.alternative:
                 vars = vars.concat(scan_for_local_vars(body.alternative, is_module))
@@ -891,12 +911,13 @@ def parse($TEXT, options):
         return vars
 
     def finalize_import(imp):
-        classes = scan_for_classes(imp.body.body)
-        for c in dir(classes):
-            if isinstance(classes[c], ModuleTreeNode):
-                S.module_tree[c] = classes[c]
-            else:
-                S.classes[0][c] = classes[c]
+        if imp.body:
+            classes = scan_for_classes(imp.body.body)
+            for c in dir(classes):
+                if isinstance(classes[c], ModuleTreeNode):
+                    S.module_tree[c] = classes[c]
+                else:
+                    S.classes[0][c] = classes[c]
 
         key = ""
         while isinstance(imp, AST_Dot):
@@ -974,6 +995,8 @@ def parse($TEXT, options):
                 return finalize_import(from_import_())
             elif tmp_ == "import":
                 return finalize_import(import_())
+            elif tmp_ == "require":
+                return require_()
             elif tmp_ == "class":
                 BASELIB["extends"] = True
                 if options.auto_bind:
@@ -1215,46 +1238,86 @@ def parse($TEXT, options):
                     current_scope.pop()
         return False
 
+    def module_pathname(name):
+        file_ = ""
+        is_rel_path = False
+        if isinstance(name, AST_Dot) and name.property == ".":
+            is_rel_path = True
+            name = name.expression
+
+        while isinstance(name, AST_Dot):
+            file_ = "/" + name.property + file_
+            name = name.expression
+
+        path = name.name + file_
+        return is_rel_path ? "./" + path : path
+
+    find_module_realpath = def(name):
+
+        # Relative path import from the current file being processed.
+        if name.indexOf("./") == 0:
+            module_dir = dirname(options.filename)
+            path = name.replace("./", module_dir+"/")
+#            if !options.fs.existsSync(path):
+            return {"dirname":"", "path": path}
+
+        # Absolute path import
+        search_paths = options.search_paths
+        for path in search_paths:
+            fullpath = path + "/" + name
+
+            if options.fs.existsSync(fullpath + options.ext):
+                return {"dirname":path, "path": name}
+
+
+            # Check to see if fullpath exists,
+            if !options.fs.existsSync(fullpath):
+                continue
+
+            # is a directory and and an __init__.py file exists for the package.
+            stats = options.fs.statSync(fullpath)
+            init_file = fullpath + "/__init__"
+            if stats.isDirectory and options.fs.existsSync(init_file + options.ext):
+                return {"dirname":path, "path": name+"/__init__"}
+            else:
+                raise Error("Cannot import __init__ for package: " + name)
+
+        # Maintain backard compatibility when not performing AMD imports and
+        # search for the import file from basedir.
+        if not options.amd:
+            fullpath = options.basedir + "/" + name
+            if options.fs.existsSync(fullpath + options.ext):
+                return {"dirname":options.basedir, "path": name}
+
+        raise Error("Cannot import: " + name)
+
+    read_module_contents = def(fullpath):
+        fullpath = fullpath["dirname"] + "/" + fullpath["path"]
+
+        options_ = {
+            filename: fullpath,
+            toplevel: None,
+            readfile: options.readfile,
+            fs: options.fs,
+            basedir: options.basedir,
+            ext: options.ext,
+            amd: options.amd,
+            search_paths: options.search_paths
+        }
+        return parse(options.readfile(fullpath + options.ext, "utf-8"), options_)
+
     import_ = def():
-        tmp = name = expression(False)
-        file = ".pyj"
-        while isinstance(tmp, AST_Dot):
-            file = "/" + tmp.property + file
-            tmp = tmp.expression
-
-        file = tmp.name + file
+        name = expression(False)
+        path = module_pathname(name)
         contents = None
-        try:
-            contents = parse(options.readfile(options.basedir + "/" + file, "utf-8"), {
-                filename: file,
-                toplevel: contents,
-                readfile: options.readfile,
-                basedir: options.basedir,
-                libdir: options.libdir
-            })
-        except as e:
-            if not e.message.search("no such file or directory"):
-                raise
-
-            try:
-                contents = parse(options.readfile(options.libdir + "/" + file, "utf-8"), {
-                    # didn't find it in local directory, check libs
-                    filename: file,
-                    toplevel: contents,
-                    readfile: options.readfile,
-                    basedir: options.libdir,
-                    libdir: options.libdir
-                })
-            except as e:
-                if e.message.search("no such file or directory"):
-                    raise "Failed Import: '" + tmp.name + "' module doesn't exist in either '" + options.basedir + "' or '" + options.libdir + "'"
-                else:
-                    raise
-
-
+        fullpath = find_module_realpath(path)
+        if !options.amd:
+            contents = read_module_contents(fullpath)
 
         return new AST_Import({
             module: name,
+            dirname: fullpath["dirname"],
+            path: fullpath["path"],
             argnames: None,
             body: contents,
             variables: def():
@@ -1267,42 +1330,43 @@ def parse($TEXT, options):
 
     from_import_ = def():
         name = expression(False)
-        file = ".pyj"
-        while isinstance(name, AST_Dot):
-            file = "/" + name.property + file
-            name = name.expression
-
-        file = name.name + file
         expect_token("keyword", "import")
-        contents = None
-        try:
-            contents = parse(options.readfile(options.basedir + "/" + file, "utf-8"), {
-                filename: file,
-                toplevel: contents,
-                readfile: options.readfile,
-                basedir: options.basedir,
-                libdir: options.libdir
-            })
-        except:
-            contents = parse(options.readfile(options.libdir + "/" + file, "utf-8"), {
-                # didn't find it in local directory, check libs
-                filename: file,
-                toplevel: contents,
-                readfile: options.readfile,
-                basedir: options.libdir,
-                libdir: options.libdir
-            })
+        path = module_pathname(name)
+        body = None
+        fullpath = find_module_realpath(path)
+        if !options.amd:
+            body = read_module_contents(fullpath)
 
         return new AST_Import({
             module: name,
+            dirname: fullpath["dirname"],
+            path: fullpath["path"],
+            body: body,
             argnames: def(a):
                 a.push(as_symbol(AST_SymbolVar))
                 while is_("punc", ","):
                     next()
                     a.push(as_symbol(AST_SymbolVar))
                 return a
-            .call(this, []),
-            body: contents
+            .call(this, [])
+        })
+
+    require_ = def():
+        next_node = peek()
+        node = expression(False)
+        if not isinstance(node, AST_String):
+            unexpected(node)
+
+        as_name = None
+        if next_node.type is "keyword" and next_node.value is "as":
+            next()
+            as_name = as_symbol(AST_SymbolVar)
+
+        path = node.value
+        return new AST_Import({
+            module: node,
+            path: path,
+            as: as_name ? as_name : node
         })
 
     ModuleTreeNode = def():
@@ -1312,11 +1376,6 @@ def parse($TEXT, options):
         name = use_name ? use_name : as_symbol(AST_SymbolDefun)
         if not name:
             unexpected()
-
-        # detect external modules
-        externaldecorator = S.decorators.indexOf("external")
-        if externaldecorator != -1:
-            S.decorators.splice(externaldecorator, 1)
 
         definition = new AST_Module({
             name: name,
@@ -1333,7 +1392,7 @@ def parse($TEXT, options):
                 S.module_stack.pop()
                 return a
             .call(this),
-            external: externaldecorator != -1,
+            external: reserved_decorator(S, "external"), # detect external modules
             decorators: def():
                 d = []
                 S.decorators.forEach(def(decorator):
@@ -1363,10 +1422,6 @@ def parse($TEXT, options):
         if not name:
             unexpected()
 
-        # detect external classes
-        externaldecorator = S.decorators.indexOf("external")
-        if externaldecorator != -1:
-            S.decorators.splice(externaldecorator, 1)
 
         class_details = {
             "static": [],
@@ -1386,7 +1441,8 @@ def parse($TEXT, options):
             modules: S.module_stack.slice(),
             localvars: [],
             "static": class_details.static,
-            external: externaldecorator != -1,
+            external: reserved_decorator(S, "external"), # detect external classes
+            public:  reserved_decorator(S, "public"), # detect public classes
             bound: class_details.bound,
             decorators: def():
                 d = []
@@ -1437,12 +1493,14 @@ def parse($TEXT, options):
             unexpected()
 
         staticmethod = False
+        is_public = reserved_decorator(S, "public") # detect public functions
+#        if in_class and is_public:
+#            unexpected() # Do not support concept of non-public methods in a class
+
         if in_class:
-            staticloc = S.decorators.indexOf("staticmethod")
-            if staticloc != -1:
-                S.decorators.splice(staticloc, 1)
+            staticmethod = reserved_decorator(S, "staticmethod")
+            if staticmethod:
                 S.classes[S.classes.length - 2][in_class].static.push(name.name)
-                staticmethod = True
             elif name.name != "__init__" and options.auto_bind:
                 BASELIB["bind"] = True
                 S.classes[S.classes.length - 2][in_class].bound[name.name] = True
@@ -1506,6 +1564,9 @@ def parse($TEXT, options):
         })
         if isinstance(definition, AST_Method):
             definition.static = staticmethod
+
+        if isinstance(definition, AST_Function):
+            definition.public = is_public
 
         # detect local variables, strip function arguments
         assignments = scan_for_local_vars(definition.body, False).filter(def(element, index, arr):
@@ -1774,6 +1835,17 @@ def parse($TEXT, options):
                 return subscripts(array_(), allow_calls)
             elif tmp_ == "{":
                 return subscripts(object_(), allow_calls)
+            elif tmp_ == "." and (S.prev.value == "from" or S.prev.value == "import"):
+#                console.log(JSON.stringify(S, null, " "));
+                next()
+                ex = expression(false)
+                dot = new AST_Dot({
+                   start: start,
+                   expression: ex,
+                   property: ".",
+                   end: S.token
+                })
+                return dot
 
             unexpected()
 
@@ -2139,9 +2211,11 @@ def parse($TEXT, options):
     maybe_unary = def(allow_calls):
         start = S.token
         if is_("operator") and UNARY_PREFIX(start.value):
+            t = peek()
             next()
             if start.value == "@":
-                if is_("name") and (peek().value == "@" or peek().value == "def" or peek().value == "class" or peek().value == "module"):
+                if is_("name") and (peek().value == "@" or peek().value == "def" or peek().value == "class" or peek().value == "module"
+                                    or t.value == "public" ):
                     S.decorators.push(S.token.value)
                     next()
                     return new AST_EmptyStatement()
@@ -2235,7 +2309,9 @@ def parse($TEXT, options):
 
     maybe_assign = def(no_in):
         start = S.token
+        is_public = reserved_decorator(S, "public")
         left = maybe_conditional(no_in)
+        left.public = is_public
         val = S.token.value
         if is_("operator") and ASSIGNMENT(val):
             if is_assignable(left):
@@ -2355,4 +2431,57 @@ def parse($TEXT, options):
         return toplevel
     .call(this)
 
+def read_module_contents1(fullpath, options):
+
+    path = fullpath
+
+    // Try to detect if fullpath points to a non-sysetm module that can be
+    // read.
+    if !options.fs.existsSync(fullpath + options.ext):
+        fullpath = options.basedir + "/" + fullpath
+        if !options.fs.existsSync(fullpath + options.ext):
+            return
+
+    options_ = {
+        filename: fullpath,
+        toplevel: None,
+        readfile: options.readfile,
+        fs: options.fs,
+        basedir: options.basedir,
+        ext: options.ext,
+        amd: options.amd,
+        search_paths: options.search_paths
+    }
+
+    return {"path" : path + ".js",
+            "ast"  : parse(options.readfile(fullpath + options.ext, "utf-8"), options_)}
+
+def get_import_ast(ast, options):
+
+    # Find all unique imports
+    imports = {}
+    import_paths = []
+    ast.body.forEach(def(node):
+        node.walk(new TreeWalker(def(node):
+            nonlocal imports, import_paths
+            if node.TYPE is not "Import":
+                return
+
+            if node.path in imports:
+                return
+
+            path = node.dirname ? node.dirname +"/" + node.path : node.path
+            imports[node.path] = node
+            import_paths.push(path)
+        ))
+
+    )
+
+    asts = []
+    for path in import_paths:
+        import_ast = read_module_contents1(path, options)
+        if import_ast:
+            asts.push(import_ast)
+
+    return asts
 

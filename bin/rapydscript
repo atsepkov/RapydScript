@@ -9,6 +9,7 @@ var optimist = require("optimist");
 var fs = require("fs");
 var async = require("async");
 var path = require("path");
+
 var ARGS = optimist
     .usage("$0 input1.js [input2.js ...] [options]\n\
 Use a single dash to read input from the standard input.\
@@ -24,6 +25,8 @@ instead of concatenating them [experimental].")
 instead of using @bound decorator [experimental].")
     .describe("p", "Prettify output/specify output options.")
     .describe("m", "Omit baselib functions (use this if you have a different way of ensuring they're imported, such as including baselib.js).")
+    .describe("amd-imports", "Use (requires) AMD to define and import modules.")
+    .describe("ext", "Specify file extension to use. Default is .pyj.")
     .describe("t", "Run RapydScript tests")
 
     .describe("comments", "Preserve copyright comments in the output. \
@@ -94,10 +97,21 @@ var NAMESPACE_IMPORTS = getOptions("n", false);
 var AUTO_BIND = getOptions("i", false);
 var OMIT_BASELIB = getOptions("m", false);
 
+var AMD = ARGS.amd_imports ? true : false;
+
+var EXT = ARGS.ext ? ARGS.ext : ".pyj";
+
+var PYTHONPATH = [];
+
+if (process.env.PYTHONPATH) {
+    PYTHONPATH = process.env.PYTHONPATH.split(":");
+}
+
 var OUTPUT_OPTIONS = {
     beautify: BEAUTIFY ? true : false,
     private_scope: NO_MODULE_WRAPPER ? false : true,
     namespace_imports: NAMESPACE_IMPORTS ? true : false,
+    amd: AMD,
     auto_bind: AUTO_BIND ? true : false,
     omit_baselib: OMIT_BASELIB ? true : false,
     screw_old_browsers: ARGS.screw_ie8 ? true : false
@@ -105,71 +119,30 @@ var OUTPUT_OPTIONS = {
 
 if (ARGS.t || ARGS.test) {
     // run all tests and exit
-    var assert = require("assert");
-    var test_dir = path.normalize(
-        path.join(
-            path.dirname(module.filename),
-            "../test"
-        )
-    );
-    var files = fs.readdirSync(test_dir).filter(function(name){
-        return /^[^_].*\.pyj$/.test(name);
-    });
-    files.forEach(function(file){
-        var ast;
-        var filepath = path.join(test_dir, file);
-        try {
-            ast = RapydScript.parse(fs.readFileSync(filepath, "utf-8"), {
-                filename: file,
-                toplevel: ast,
+    var dirname = path.dirname(module.filename);
+    PYTHONPATH.push(path.normalize(path.join(dirname,"../src/lib")));
+    var options = {
+                ext: EXT,
+                amd: AMD,
+                search_paths: PYTHONPATH,
                 readfile: fs.readFileSync,
-				basedir: path.normalize(
-                    path.join(
-                        path.dirname(module.filename),
-                        "../test"
-                    )
-                ),
-                libdir: path.normalize(
-                    path.join(
-                        path.dirname(module.filename),
-                        "../src/lib"
-                    )
-                )
-            });
-        } catch(ex) {
-//            if (ex instanceof RapydScript.JS_Parse_Error) {
-//                sys.print("Error parsing test file: " + file);
-//            }
-            sys.print(file + ":\t" + ex + "\n");
-            return;
-        }
-        // generate output
-        // test with and without screw-ie8 flag
-        for (var i = 0; i < 2; i++) {
-            var title = i == 0 ? 'normal:\t\t' : 'screw-ie8:\t';
-            sys.print(title);
-            var output = RapydScript.OutputStream({
-                screw_old_browsers: i
-            });
-            ast.print(output);
+                fs: fs
+    };
 
-            // test that output performs correct JS operations
-    //        sys.print(output);
-    //            eval(output.toString());
-            var testcontent = "exports.run = function(){assert = require('assert');" + output.toString() + "};";
-            fs.writeFileSync(filepath + ".js", testcontent);
-            var testcase = require(filepath + ".js");
-            try {
-                testcase.run();
-            } catch (e) {
-                sys.print(file + ":\t" + e.stack + "\n\n");
-                fs.unlinkSync(filepath + ".js");
-                continue;
-            }
-            sys.print(file + ":\ttest completed successfully\n");
-            fs.unlinkSync(filepath + ".js");
-        };
-    });
+    var test_dirs = [
+        ["rapydscript/test","../test"],
+        ["rapydscript/amd/test","../test_amd"]
+    ];
+
+    var test_dir, test_module, tests;
+    for (var i in test_dirs) {
+        test_dir = test_dirs[i];
+        test_module = require(test_dir[0]);
+        options.basedir = path.normalize(path.join(dirname, test_dir[1]))
+        tests = new test_module.Tests(test_dir[1], dirname, options);
+        tests.run();
+    }
+
     process.exit(0);
 }
 
@@ -237,19 +210,18 @@ async.eachLimit(files, 1, function (file, cb) {
 //        if (ARGS.p != null) {
 //            file = file.replace(/^\/+/, "").split(/\/+/).slice(ARGS.p).join("/");
 //        }
+        var basedir = path.dirname(file)
         time_it("parse", function(){
             TOPLEVEL = RapydScript.parse(code, {
                 filename: file,
+                ext: EXT,
+                amd: AMD,
                 toplevel: TOPLEVEL,
                 readfile: fs.readFileSync,
-                basedir: path.dirname(file),
+                fs: fs,
+                search_paths: PYTHONPATH,
+                basedir: basedir,
                 auto_bind: AUTO_BIND ? true : false,
-                libdir: path.normalize(
-                    path.join(
-                        path.dirname(module.filename),
-                        "../src/lib"
-                    )
-                )
             });
         });
         cb();

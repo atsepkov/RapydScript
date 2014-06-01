@@ -1,0 +1,220 @@
+"use strict"
+
+def get_next_part(next_part, part):
+    if part not in next_part:
+        new_part = {}
+        next_part[part] = new_part
+        next_part = new_part
+    else:
+        next_part = next_part[part]
+    return next_part
+
+def add_import_var(import_vars, node, path):
+    name = node.name ? node.name : node.expression.name
+    components = [name]
+    next_part = get_next_part(import_vars, name)
+
+    if isinstance(node, AST_Dot) and node.property == ".":
+        node = node.expression
+    
+    while isinstance(node, AST_Dot):
+        components.push(node.property)
+        next_part = get_next_part(next_part, node.property)
+        node = node.expression
+
+    param_name = path.replace(/\//g, "_")
+    if len(components) == 1:
+        next_part["___assign___"] = components[0] + " = " + param_name + ";"
+    else:
+        next_part["___assign___"] = param_name
+
+def indent(output, level):
+    k = 0
+    while k < level:
+        output.indent()
+        k += 1
+
+def print_import_vars(output, import_vars):
+#        console.log(JSON.stringify(import_vars))
+    
+    def print_object(output, next_part, level):
+
+        for name in dir(next_part):
+            part = next_part[name]
+            if "___assign___" in part:
+                output.newline()
+                indent(output, level)
+                output.print(name + ": " + part["___assign___"])
+            else:
+                indent(output, level)
+                output.print(name + "{ ")
+                print_object(output, part, level+1)
+                indent(output, level)
+                output.print("}")
+                output.newline()
+        
+    for name in dir(import_vars):
+        output.print("var " + name + ";")
+        output.newline()
+        next_part = import_vars[name]
+        if "___assign___" in next_part:
+            output.print(next_part["___assign___"])
+            output.newline()
+        else:
+            output.print(name + " = { ")
+            print_object(output, next_part, 1)
+            output.newline()
+            output.print("};")
+            
+        
+def print_return_map_var(output, name, node_type, exported, j):
+    if name in exported:
+        return j
+    exported[name] = True
+    if j > 0:
+        output.comma()
+    output.newline()
+    output.indent()
+    output.indent()
+    output.print( name + ': ' + name)
+    return j + 1
+
+def print_explicit_module_name(output, module_name):
+    output.print("'")
+    output.print(module_name)
+    output.print("'")
+    output.comma()
+    output.newline()
+    
+def print_amd(self, output, display_complex_body):
+    ext_len = -1 * len(output.option('ext'))
+    module_name = self.start.file[:ext_len]
+    imports = {}
+    import_paths = []
+    output.newline()
+    output.print("'use strict'")
+    output.newline()
+    output.print("""
+        if (typeof define !== 'function') {
+            var define = require('amdefine')(module);
+        }
+    """)
+    output.newline()
+    output.print("define(")
+    
+    i = len(module_name) - module_name.lastIndexOf('/') + 1
+    if i > 0:
+        package_name = module_name[:(-1*i)] + '/'
+    else:
+        package_name = ''
+
+    # Find all unique imports        
+    self.body.forEach(def(node):
+        nonlocal j
+        if node.TYPE is not "Import":
+            return
+        
+        if node.path in imports:
+            return
+
+        imports[node.path] = node
+        import_paths.push(node.path)
+    )
+    
+    output.print("[")
+    n = import_paths.length - 1
+    import_paths.forEach(def(path, j):
+        if j > 0:
+            output.comma()
+        output.newline()
+        output.print('"' + path + '"')
+    )
+    
+    output.newline()
+    output.print("],")
+    
+    output.newline()
+    output.print("function(")
+    import_vars = {}
+    import_paths.forEach(def(path, j):
+        nonlocal imports, import_vars
+        node = imports[path]
+        if node.as:
+            if node.as.name:
+                param = node.as.name
+            elif node.as.value:
+                param = node.as.value
+            # Ignore if there is a ! at the end of name.  This is to deal
+            # with domReady!
+            if param.indexOf("!", param.length - 1) !== -1:
+                param = None
+        else:
+            if node.argnames: # from import
+                param = path.replace(/\/__init__$/, "") # map to directory name
+            else: # import
+                param = node.path
+                add_import_var(import_vars, node.module, path)
+        if param:
+            if j > 0:
+                output.comma()
+            param = param.replace(/(\/|-)/g, "_")
+            output.print(param)
+    )
+    output.print(")")
+    
+    k = 0
+    def output_exported(output, node, exported, j):
+        nonlocal k
+        if node.TYPE not in ["Function", "Class", "SymbolRef", "Import"]:
+            return
+        
+        if node.TYPE is "Import":
+            if not node.argnames:
+                return
+            for name in node.argnames:
+                k = print_return_map_var(output, name.name, node.TYPE, exported, k)
+            return
+
+        if not node.public:
+            return
+
+        name = node.name
+        if node.name.name:
+            name = node.name.name
+            
+        k = print_return_map_var(output, name, node.TYPE, exported, k)
+    
+    output.with_block(def():
+        output.prologue(self)
+
+        output.newline()
+        print_import_vars(output, import_vars)
+        
+        display_complex_body(self, True, output)
+        output.newline()
+
+        output.indent()
+        output.print("return {")
+        exported = {}
+        self.body.forEach(def(node, j):
+            nonlocal exported
+            if node.TYPE is "SimpleStatement":
+                i = 0
+                node.walk(new TreeWalker(def(node):
+                    nonlocal output, exported, j, i
+                    if isinstance(node, AST_Assign):
+                        output_exported(output, node.left, exported, j+i)
+                    i += 1
+                ))
+                return
+            output_exported(output, node, exported, j)
+        )              
+        output.newline()
+        output.indent()
+        output.print("};")
+        output.newline()
+    )
+    
+    output.print(");")
+    output.newline()
+

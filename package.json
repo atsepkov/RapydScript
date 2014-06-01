@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "async": "~0.2.6",
-    "optimist": "~0.3.5"
+    "optimist": "~0.3.5",
+    "amdefine": "~0.1.0"
   },
   "bin": {
     "rapydscript": "bin/rapydscript"
