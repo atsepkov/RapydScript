@@ -30,12 +30,12 @@
 
       </header>
       <section>
-        <p><img src="https://lh5.googleusercontent.com/-nttNSI6xSWs/U6XsIrovhPI/AAAAAAAACEQ/Zy_8kQ9e1Eg/w488-h366-no/rs_logo_transparent.png" alt="RapydScript"></p>
+        <p><img src="https://lh4.googleusercontent.com/-M0GHwz9DgPM/U6XtpCkusqI/AAAAAAAACEs/Hc7hQcyMOOY/w180-h196-no/rs_logo_github.png" alt="RapydScript"></p>
 
 <h2>
 <a name="what-is-rapydscript" class="anchor" href="#what-is-rapydscript"><span class="octicon octicon-link"></span></a>What is RapydScript?</h2>
 
-<p>RapydScript is a pre-compiler for JavaScript, similar to CoffeeScript, but with cleaner, more readable syntax. The syntax is very similar to Python, but allows JavaScript as well. This project was written as an alternative to Pyjamas for those wishing Python-like JavaScript without the extra overhead and complexity Pyjamas introduces.</p>
+<p>RapydScript (pronounced 'RapidScript') is a pre-compiler for JavaScript, similar to CoffeeScript, but with cleaner, more readable syntax. The syntax is very similar to Python, but allows JavaScript as well. This project was written as an alternative to Pyjamas for those wishing Python-like JavaScript without the extra overhead and complexity Pyjamas introduces.</p>
 
 <p>RapydScript allows to write your front-end in Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with PyvaScript, the best way to describe RapydScript is PyvaScript++. To those familiar with CoffeeScript, RapydScript is like CoffeeScript with syntax (and some features) of Python. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:</p>
 
@@ -49,6 +49,7 @@
 <li>variable and object scoping that make sense (no need for repetitive 'var' or 'new' keywords)</li>
 <li>ability to use both, Python's methods/functions and JavaScript's alternatives</li>
 <li>similar to above, ability to use both, Python's and JavaScript's tutorials (as well as widgets)</li>
+<li>it's self-hosting, that means the compiler is itself written in RapydScript and compiles into JavaScript</li>
 </ul><p>Let's not waste any more time with the introductions, however. The best way to learn a new language/framework is to dive in.</p>
 
 <h2>
@@ -61,13 +62,16 @@
 <p><a href="http://salvatore.pythonanywhere.com/RapydScript">http://salvatore.pythonanywhere.com/RapydScript</a><br>
 This includes the demos from RapydScript's <code>examples</code> directory, as well as a few others.</p>
 
-<p><a href="http://salvatore.pythonanywhere.com/RapydBox/editor">http://salvatore.pythonanywhere.com/RapydBox/editor</a><br>
+<p><a href="http://salvatore.pythonanywhere.com/RapydBox">http://salvatore.pythonanywhere.com/RapydBox</a><br>
 This is a collection of very cool demos, showcasing RapydScript's similarity to real Python and at the same time its ability to work with other JavaScript. It relies on a JavaScript port of NodeBox (which was originally written in Python). NodeBox was ported from Python to JavaScript to allow cross-platform compatibility. Ironically, the original demos from Python version of NodeBox now work with JavaScript version of NodeBox with few changes (and sometimes none at all) by using RapydScript.</p>
+
+<p><a href="http://salvatore.pythonanywhere.com/RapydGlow">http://salvatore.pythonanywhere.com/RapydGlow</a>
+RapydScript making use of GlowScript, another project done by a member of our community</p>
 
 <h2>
 <a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
 
-<p>First make sure you have installed the latest version of <a href="http://nodejs.org/">node.js</a> (You may need to restart your computer after this step).</p>
+<p>First make sure you have installed the latest version of <a href="http://nodejs.org/">node.js</a> (You may need to restart your computer after this step). You may also need to install <code>optimist</code> library.</p>
 
 <p>From NPM for use as a command line app:</p>
 
@@ -77,13 +81,6 @@ This is a collection of very cool demos, showcasing RapydScript's similarity to 
 <p>From NPM for programmatic use:</p>
 
 <pre><code>npm install rapydscript
-</code></pre>
-
-<p>From Mercurial:</p>
-
-<pre><code>hg clone https://bitbucket.org/pyjeon/rapydscript
-cd rapydscript
-npm link .
 </code></pre>
 
 <p>From Git:</p>
@@ -118,6 +115,10 @@ files.</p>
 -n, --namespace-imports  Pythonic imports (experimental)
 -v, --verbose      Verbose                                           [boolean]
 -V, --version      Print version number and exit.                    [boolean]
+-t, --test         Run unit tests, making sure the compiler produces usable code
+-m, --omit-baselib Omit base library from generated code, make sure you're including baselib.js if you use this
+-i, --auto-bind    Automatically bind methods to the class they belong to (more Pythonic, but could interfere with other JS libs)
+--screw-ie8        Optimize compilation, sacrificing compatibility with older browsers
 </code></pre>
 
 <p>The rest of the option remain from UglifyJS and have not been tested, some may work, but most will not, since the AST is different between RapydScript and UglifyJS. These option  will eventually be removed or modified to be relevant to RapydScript.</p>
@@ -409,6 +410,34 @@ print(*args)
 <p>In this particular case, there is no advantage to using <code>*</code>, but if <code>args</code> gets passed in from outside, and we don't know its size, <code>*</code> becomes very handy. Likewise, if you're writing a function that can take variable number of arguments, it's cleaner to use <code>*args</code> rather than forcing the developer using it to pass in an array.</p>
 
 <h2>
+<a name="keyword-arguments-kwargs" class="anchor" href="#keyword-arguments-kwargs"><span class="octicon octicon-link"></span></a>Keyword Arguments (**kwargs)</h2>
+
+<p>RapydScript implementation of kwargs is not completely consistent with Python, this is to minimize overhead since 99% of the functions you write will not need this feature. First, let's cover function calls. The following calls are equivalent:</p>
+
+<pre><code>test('baz', foo=1, 99, bar=3)
+test('baz', 99, {foo: 1, bar: 3})
+</code></pre>
+
+<p>The first function call may be more convenient to those who spend a lot of time in Python. As far as the function itself is concerned, both of these just collect named arguments in a hash and pass them in the last argument. This means that a regular function in RapydScript will not see these arguments unless you explicitly tell it that they are in the last argument:</p>
+
+<pre><code>def test(foo, bar, kw):
+    print(foo)  # 'baz'
+    print(bar)  # 99
+    print(kw)   # {foo: 1. bar: 3}
+    print(kw.foo)   # 1
+</code></pre>
+
+<p>Luckily, there is a <code>kwargs</code> decorator in <code>stdlib</code> that will simulate the expected Python behavior:</p>
+
+<pre><code>@kwargs
+def test(foo, bar, kw):
+    print(foo)  # 1
+    print(bar)  # 3
+    print(kw)   # {foo: 1. bar: 3}
+    print(kw.foo)   # 1
+</code></pre>
+
+<h2>
 <a name="inferred-tuple-packingunpacking" class="anchor" href="#inferred-tuple-packingunpacking"><span class="octicon octicon-link"></span></a>Inferred Tuple Packing/Unpacking</h2>
 
 <p>Like Python, RapydScript allows inferred tuple packing/unpacking and assignment. While inferred/implicit logic is usually bad, it can sometimes make the code cleaner, and based on the order of statements in the Zen of Python, 'beautiful' takes priority over 'explicit'. For example, if you wanted to swap two variables, the following looks cleaner than explicitly declaring a temporary variable:</p>
@@ -536,6 +565,21 @@ console.log(arr2)   # [Array[2], Array[2]]
 hash = {'dogs': 1, 'cats': 2}
 print(hash)         # {"dogs":1,"cats":2}
 console.log(hash)   # Object
+</code></pre>
+
+<p>One other topic I debated for a while is handling of conditionals. In Python, if you wanted a one-liner conditional that gets assigned to a variable, you would write something like this:</p>
+
+<pre><code>foo = bar if baz else 10
+</code></pre>
+
+<p>In JavaScript, the equivalent logic would be written as follows:</p>
+
+<pre><code>var foo = baz ? bar : 10
+</code></pre>
+
+<p>Which one looks cleaner is subject to personal preference (I'm used to seeing condition first in most of the <code>if</code> statements, so the second way makes more sense to me). But where the second approach wins is when dealing with anonymous functions. Indeed, Python doesn't have to handle them, yet RapydScript does. As a result, I decided to go with JavaScript's approach here. This also allows me to assign functions here, same way as JavaScript would:</p>
+
+<pre><code>foo = baz ? def(): return bar; : def(): return 10
 </code></pre>
 
 <h2>
@@ -673,7 +717,17 @@ $('body').append(textfield.widget);
         SomethingElse.anotherMethod(self)
 </code></pre>
 
-<p>Notice that <code>Something</code> class has no <code>__init__</code> method. Like in Python, this method is optional for classes. If you omit it, an empty constructor will automatically get created for you by RapydScript (or when inheriting, the parent's constructor will be used). Also notice that we never inherited from SomethingElse class, yet we can invoke its methods. This brings us to the next point, the only real advantage of inheriting from another class (which you can't gain by calling the other classes method as shown above) is that the omitted methods are automatically copied from the parent. Admittedly, we might also care about instance() method, to have it work with the non-main parent, but we're already overwriting JavaScript's instanceof() method in stdlib, so feel free to tweak it further, if you have the need to. To summarize classes, assume they work the same way as in Python, plus a few bonus cases. The following, for example, are equivalent:</p>
+<p>Notice that <code>Something</code> class has no <code>__init__</code> method. Like in Python, this method is optional for classes. If you omit it, an empty constructor will automatically get created for you by RapydScript (or when inheriting, the parent's constructor will be used). Also notice that we never inherited from SomethingElse class, yet we can invoke its methods. This brings us to the next point, the only real advantage of inheriting from another class (which you can't gain by calling the other classes method as shown above) is that the omitted methods are automatically copied from the parent. Admittedly, we might also care about <code>isinstance()</code> method, to have it work with the non-main parent, which is equivalent to JavaScript's <code>instanceof</code> operator.</p>
+
+<p><strong>NOTE:</strong> If you compile your code without <code>--screw-ie8</code> flag, the constructor will be executed every time you create a subclass of the given class. In most cases this will not hurt you, but in some cases you could see odd side-effects. For example, having a <code>print()</code> statement in the parent constructor will cause its contents to be output for every subclass, even if you do not explicitly create an instance. <code>--screw-ie8</code> option fixes this issue, at the expense of compatibility with Internet Explorer 6-8.</p>
+
+<p>There is also a convenience function in RapydScript called <code>mixin</code> that lets you assign all methods of a given class to another, like Python's multiple inheritance:</p>
+
+<pre><code>mixin(Snake, Animal, false)     # add Animal's methods to Snake, don't overwrite ones already declared in Snake
+mixin(Snake, Animal, true)      # add Animal's methods to Snake, overwriting ones already declared in Snake
+</code></pre>
+
+<p>To summarize classes, assume they work the same way as in Python, plus a few bonus cases. The following, for example, are equivalent:</p>
 
 <pre><code>class Aclass:
     def __init__(self):
@@ -726,8 +780,8 @@ class Aclass:
 
 <p>Some methods in the native JavaScript classes, such as <code>String.fromCharCode()</code> have also been marked as static to make things easier for the developer.</p>
 
-<h2>
-<a name="external-classes" class="anchor" href="#external-classes"><span class="octicon octicon-link"></span></a>External Classes</h2>
+<h3>
+<a name="external-classes" class="anchor" href="#external-classes"><span class="octicon octicon-link"></span></a>External Classes</h3>
 
 <p>RapydScript will automatically detect classes declared within the same scope (as long as the declaration occurs before use), as well as classes properly imported into the module (each module making use of a certain class should explicitly import the module containing that class). RapydScript will also properly detect native JavaScript classes (String, Array, Date, etc.). Unfortunately, RapydScript has no way of detecting classes from third-party libraries. In those cases, you could use the <code>new</code> keyword every time you create an object from such class. Alternatively, you could mark the class as external.</p>
 
@@ -738,7 +792,7 @@ class Alpha:
     pass
 </code></pre>
 
-<p>RapydScript will now treat <code>Alpha</code> as if it was declared within the same scope, auto-prepending the <code>new</code> keyword when needed and using <code>prototype</code> to access its methods. You don't need to pre-declare the methods of this class (unless you decide to for personal reference, the compiler will simply ignore them) unless you want to mark certain methods as static:</p>
+<p>RapydScript will now treat <code>Alpha</code> as if it was declared within the same scope, auto-prepending the <code>new</code> keyword when needed and using <code>prototype</code> to access its methods (see <code>casperjs</code> example in next section to see how this can be used in practice). You don't need to pre-declare the methods of this class (unless you decide to for personal reference, the compiler will simply ignore them) unless you want to mark certain methods as static:</p>
 
 <pre><code>@external
 class Alpha:
@@ -761,6 +815,64 @@ class Alpha:
 <p>As mentioned earlier, this is simply for making your code easier to read. The compiler itself will ignore all method declarations except ones marked with <code>staticmethod</code> decorator.</p>
 
 <p>You could also use <code>external</code> decorator to bypass improperly imported RapydScript modules. However, if you actually have control of these modules, the better solution would be to fix those imports.</p>
+
+<h3>
+<a name="method-binding" class="anchor" href="#method-binding"><span class="octicon octicon-link"></span></a>Method Binding</h3>
+
+<p>By default, RapydScript does not bind methods to the classes they're declared under. This behavior is unlike Python, but very much like the rest of JavaScript. For example, consider this code:</p>
+
+<pre><code>class Boy:
+    def __init__(self, name):
+        self.name = name
+
+    def greet(self):
+        print('My name is' + self.name)
+
+tod = Boy('Tod')
+tod.greet()                 # Hello, my name is Tod
+getattr(tod, 'greet')()     # Hello, my name is undefined
+</code></pre>
+
+<p>In some cases, however, you may wish for the functions to remain bound to the object they were retrieved from. For those cases, RapydScript has <code>bind</code> function. Unlike regular JavaScript <code>Function.prototype.bind</code>, RapydScript's <code>bind</code> can rebind methods that have already been bound. The binding we wanted to see in the above example can be achieved as follows:</p>
+
+<pre><code>bound = bind(getattr(tod, 'greet'), tod)
+bound()                     # Hello, my name is Tod
+</code></pre>
+
+<p>To unbind a bound method, you can call pass <code>false</code> as a second argument instead of an object you wish to bind to. You can also auto-bind all methods of the class by calling <code>rebind_all</code>:</p>
+
+<pre><code>class Boy:
+    def __init__(self, name):
+        self.name = name
+        rebind_all(self)
+
+    def greet(self):
+        print('My name is' + self.name)
+
+tod = Boy('Tod')
+tod.greet()                 # Hello, my name is Tod
+getattr(tod, 'greet')()     # Hello, my name is Tod
+</code></pre>
+
+<p>Likewise, <code>rebind_all(self, false)</code> will unbind all methods. It's not recommended to auto-bind classes that inherit from 3rd party libraries. For example, <code>casperjs</code> has <code>Casper</code> class, which RapydScript can easily inherit and extend:</p>
+
+<pre><code>@external
+class Casper:
+    pass
+
+class Scraper(Casper):
+    def __init__(self):
+        Casper.__init__(self)
+        self.start()
+
+s = Scraper()
+s.thenOpen('http://casperjs.org',
+    def(): this.echo(this.getTitle())
+)
+s.run()
+</code></pre>
+
+<p>Including <code>rebind_all</code> call in the constructor, however, will break <code>Casper</code>. It is for that reason that <code>rebind_all</code> isn't added to the constructor by default by RapydScript. You could, however use <code>--auto-bind</code> compile flag to have RapydScript rebind automatically for you. There is a bit more that this flag does behind the scenes, which ensures that class binding behaves identical to Python, at the expense of some performance and compatibility with libraries like <code>casperjs</code>.</p>
 
 <h2>
 <a name="modules" class="anchor" href="#modules"><span class="octicon octicon-link"></span></a>Modules</h2>
@@ -1015,6 +1127,11 @@ yql                 # lightweight library for performing Yahoo Query Language re
 <a name="advanced-usage-topics" class="anchor" href="#advanced-usage-topics"><span class="octicon octicon-link"></span></a>Advanced Usage Topics</h2>
 
 <p>This section contains various topics which might be of interest to the programmer writing large projects using RapydScript, but might not be relevant to a programmer who is just getting started with RapydScript. The topics in this section focus on coding conventions to keep your code clean, optimizations, and additional libraries that come with RapydScript, as well as suggestions for writing your own libraries.</p>
+
+<h3>
+<a name="browser-compatibility" class="anchor" href="#browser-compatibility"><span class="octicon octicon-link"></span></a>Browser Compatibility</h3>
+
+<p>By default, RapydScript compiles your logic such that it will work on modern browsers running HTML5, as well as older browser like IE6-8. To do so, the compiler sometimes has to generate rather messy and inefficient output. As of September, 2013, less than 8% of the world has been found to be using IE8. If you know that your users will not be using older browsers, you can compile your logic with <code>--screw-ie8</code> option to generate cleaner, faster code.</p>
 
 <h3>
 <a name="code-conventions" class="anchor" href="#code-conventions"><span class="octicon octicon-link"></span></a>Code Conventions</h3>
