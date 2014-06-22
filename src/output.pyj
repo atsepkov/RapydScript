@@ -1141,7 +1141,12 @@ def OutputStream(options):
         output.semicolon()
     )
     DEFPRINT(AST_Toplevel, def(self, output):
-        if output.option("private_scope") and output.is_main():
+        is_main = output.is_main()
+        if is_main and self.shebang:
+            output.print(self.shebang)
+            output.newline()
+
+        if output.option("private_scope") and is_main:
             output.with_parens(def():
                 output.print("function()")
                 output.with_block(def():
@@ -1153,7 +1158,7 @@ def OutputStream(options):
             output.print("();")
             output.print("")
         else:
-            if output.is_main():
+            if is_main:
                 output.prologue(self)
 
             if self.strict:

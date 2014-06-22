@@ -487,8 +487,9 @@ def tokenizer($TEXT, filename):
         return token("string", ret)
     )
 
-    def read_line_comment():
-        next()
+    def read_line_comment(shebang=False):
+        if not shebang:
+            next()
         i = find("\n")
 
         if i == -1:
@@ -498,7 +499,7 @@ def tokenizer($TEXT, filename):
             ret = S.text.substring(S.pos, i)
             S.pos = i
 
-        return token("comment1", ret, True)
+        return token(shebang ? "shebang" : "comment1", ret, True)
 
     read_multiline_comment = with_eof_error("Unterminated multiline comment", def():
         next()
@@ -517,6 +518,7 @@ def tokenizer($TEXT, filename):
         S.newline_before = S.newline_before or text.indexOf("\n") >= 0
         return token("comment2", text, True)
     )
+
     def read_name():
         backslash = False
         name = ""
@@ -572,6 +574,7 @@ def tokenizer($TEXT, filename):
         mods = read_name()
         return token("regexp", RegExp(regexp, mods))
     )
+
     def read_operator(prefix):
         def grow(op):
             if not peek():
@@ -587,17 +590,6 @@ def tokenizer($TEXT, filename):
 
     def handle_slash():
         next()
-        regex_allowed = S.regex_allowed
-        tmp_ = peek()
-        if tmp_ == "/":
-            S.comments_before.push(read_line_comment())
-            S.regex_allowed = regex_allowed
-            return next_token()
-        elif tmp_ == "*":
-            S.comments_before.push(read_multiline_comment())
-            S.regex_allowed = regex_allowed
-            return next_token()
-
         return (S.regex_allowed ? read_regexp("") : read_operator("/"))
 
     def handle_dot():
@@ -635,16 +627,19 @@ def tokenizer($TEXT, filename):
 
         code = ch.charCodeAt(0)
         tmp_ = code
-        if tmp_ == 34 or tmp_ == 39:
+        if tmp_ == 34 or tmp_ == 39:    # double-quote (") or single quote (')
             return read_string()
-        elif tmp_ == 35:
+        elif tmp_ == 35:                # pound-sign (#)
+            if S.pos == 0 and S.text.charAt(1) == '!':
+                #shebang
+                return read_line_comment(True)
             regex_allowed = S.regex_allowed
             S.comments_before.push(read_line_comment())
             S.regex_allowed = regex_allowed
             return next_token()
-        elif tmp_ == 46:
+        elif tmp_ == 46:                # dot (.)
             return handle_dot()
-        elif tmp_ == 47:
+        elif tmp_ == 47:                # slash (/)
             return handle_slash()
 
         if is_digit(code):
@@ -722,9 +717,9 @@ ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ]
 # -----[ Parser ]-----
 def parse($TEXT, options):
     options = defaults(options, {
-        strict: False,
-        filename: None,
-        auto_bind: False,
+        strict: False,      # whether to use strict JavaScript mode
+        filename: None,     # name of the file being parsed
+        auto_bind: False,   # whether auto-binding of methods to classes is enabled
         toplevel: None
     })
 
@@ -923,6 +918,12 @@ def parse($TEXT, options):
                 })
 
             return stat
+        elif tmp_ == "shebang":
+            tmp_ = S.token.value
+            next()
+            return new AST_Directive({
+                value: tmp_
+            })
         elif tmp_ == "num" or tmp_ == "regexp" or tmp_ == "operator" or tmp_ == "atom":
             return simple_statement()
         elif tmp_ == "punc":
@@ -2322,8 +2323,14 @@ def parse($TEXT, options):
     return def():
         start = S.token
         body = []
+        first_token = True
         while not is_("eof"):
-            body.push(statement())
+            element = statement()
+            if first_token and isinstance(element, AST_Directive) and element.value.indexOf('#!') == 0:
+                shebang = element.value
+            else:
+                body.push(element)
+            first_token = False
 
         end = prev()
         toplevel = options.toplevel
@@ -2340,6 +2347,7 @@ def parse($TEXT, options):
                             return True
                     return False
                 .call(this),
+                shebang: shebang,
                 end: end
             })
 
