@@ -1287,7 +1287,7 @@ def OutputStream(options):
         return False
 
     def is_simple_for(self):
-        # returns true if this loop can be simplified into a basic for loop
+        # returns true if this loop can be simplified into a basic for(i=n;i<h;i++) loop
         if isinstance(self.object, AST_BaseCall)
         and isinstance(self.object.expression, AST_SymbolRef)
         and self.object.expression.name == "range"

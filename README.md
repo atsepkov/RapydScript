@@ -5,7 +5,7 @@ What is RapydScript?
 --------------------
 RapydScript (pronounced 'RapidScript') is a pre-compiler for JavaScript, similar to CoffeeScript, but with cleaner, more readable syntax. The syntax is very similar to Python, but allows JavaScript as well. This project was written as an alternative to Pyjamas for those wishing Python-like JavaScript without the extra overhead and complexity Pyjamas introduces.
 
-RapydScript allows to write your front-end in Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with PyvaScript, the best way to describe RapydScript is PyvaScript++. To those familiar with CoffeeScript, RapydScript is like CoffeeScript with syntax (and some features) of Python. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
+RapydScript allows to write your front-end in Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with CoffeeScript, RapydScript is like CoffeeScript, but inspired by Python's readability rather than Ruby's cleverness. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
 
 - classes that work and feel similar to Python
 - modules that can be used for logic abstraction and allow more flexibility than Python's modules
@@ -28,13 +28,13 @@ If you have questions, bug reports, or feature requests, feel free to post them 
 
 I bundled a few demos with RapydScript itself, but several members of the community put together much better demos themselves. If you would like to take a look at them to see what's possible with RapydScript, here are some examples:
 
-<http://salvatore.pythonanywhere.com/RapydScript>  
+<http://salvatore.diodev.fr/RapydScript>  
 This includes the demos from RapydScript's `examples` directory, as well as a few others.
 
-<http://salvatore.pythonanywhere.com/RapydBox>  
+<http://salvatore.diodev.fr/RapydBox>  
 This is a collection of very cool demos, showcasing RapydScript's similarity to real Python and at the same time its ability to work with other JavaScript. It relies on a JavaScript port of NodeBox (which was originally written in Python). NodeBox was ported from Python to JavaScript to allow cross-platform compatibility. Ironically, the original demos from Python version of NodeBox now work with JavaScript version of NodeBox with few changes (and sometimes none at all) by using RapydScript.
 
-<http://salvatore.pythonanywhere.com/RapydGlow>
+<http://salvatore.diodev.fr/RapydGlow>
 RapydScript making use of GlowScript, another project done by a member of our community
 
 
