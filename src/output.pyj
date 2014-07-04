@@ -520,9 +520,7 @@ def OutputStream(options):
                 #function _$rapyd$_in(val, arr){
                 #  if (arr instanceof Array || typeof obj === 'string') return arr.indexOf(val) != -1;
                 #  else {
-                #    for (i in arr) {
-                #      if (arr.hasOwnProperty(i) && i === val) return true;
-                #    }
+                #    if (arr.hasOwnProperty(val)) return true;
                 #    return false;
                 #  }
                 #}
@@ -531,13 +529,11 @@ def OutputStream(options):
                     body: [ [ "if", {
                         parens: [ "arr", "instanceof", "Array", "||", "typeof", "arr", "===", '"string"' ]
                     }, "return", "arr.indexOf(val)", "!=", "-1" ], [ "else", {
-                        block: [ [ "for", {
-                            parens: [ "i", "in", "arr" ]
-                        }, {
-                            block: [ [ "if", {
-                                parens: [ "arr.hasOwnProperty(i)", "&&", "i", "===", "val" ]
-                            }, "return", "true" ] ]
-                        } ], [ "return", "false" ] ]
+                        block: [
+                            [ "if", {
+                                parens: [ "arr.hasOwnProperty(val)" ]
+                            }, "return", "true" ]
+                        , [ "return", "false" ] ]
                     } ] ]
                 })
             ,
