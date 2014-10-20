@@ -3,7 +3,7 @@
   "description": "RapydScript to JavaScript compiler",
   "homepage": "http://rapydscript.pyjeon.com",
   "main": "tools/node.js",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "engines": {
     "node": ">=0.4.0"
   },
