@@ -1,0 +1,4 @@
+# arithmetic
+assert.equal(3**4, Math.pow(3, 4))
+assert.equal(100**-2, Math.pow(100, -2))
+assert.equal(2*5**2*3, 150)

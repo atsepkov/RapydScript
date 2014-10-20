@@ -2099,8 +2099,13 @@ def OutputStream(options):
             "==": True,
             "!=": True
         }
-        if self.operator == "in":
-            output.print("_$rapyd$_in")
+        function_ops = {
+            "in": "_$rapyd$_in",
+            "**": "Math.pow"
+        }
+
+        if self.operator in function_ops:
+            output.print(function_ops[self.operator])
             output.with_parens(def():
                 self.left.print(output)
                 output.comma()
