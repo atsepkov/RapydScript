@@ -186,7 +186,7 @@ def js_error(message, filename, line, col, pos):
     raise new JS_Parse_Error(message, line, col, pos)
 
 def is_token(token, type, val):
-    return token.type == type and (val == None or token.value == val)
+    return token.type == type and (val == None or val == undefined or token.value == val)
 
 EX_EOF = {}
 
@@ -613,7 +613,7 @@ def tokenizer($TEXT, filename):
                     raise
 
     def next_token(force_regexp):
-        if force_regexp != None:
+        if force_regexp not in (None, undefined):
             return read_regexp(force_regexp)
 
         indent = parse_whitespace()
@@ -768,9 +768,10 @@ def parse($TEXT, options):
         return S.prev
 
     def croak(msg, line, col, pos):
+        # note: undefined means nothing was passed in, None/null means a null value was passed in
         ctx = S.input.context()
-        js_error(msg, ctx.filename, (line != None ? line : ctx.tokline),
-                 (col != None ? col : ctx.tokcol), (pos != None ? pos : ctx.tokpos))
+        js_error(msg, ctx.filename, (line != undefined ? line : ctx.tokline),
+                 (col != undefined ? col : ctx.tokcol), (pos != undefined ? pos : ctx.tokpos))
 
     def token_error(token, msg):
         croak(msg, token.line, token.col)

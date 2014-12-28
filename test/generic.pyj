@@ -11,5 +11,10 @@ assert(1 == 1)                  # number vs number: ok
 assert(True == True)            # boolean vs boolean: ok
 assert(not (1 == True))         # number vs boolean: NEVER equal
 assert(1 != True)               # number vs boolean: NEVER equal
+assert(not ("" == False))       # string vs boolean: NEVER equal
+assert(not ("0" == 0))          # string vs integer: NEVER equal
+assert(not ("" == 0))           # string vs integer: NEVER equal
+assert(bool(1) == True)         # boolean conversion
+assert(bool("") == False)       # boolean conversion
 assert(JS('1 == true'))         # javascript override
 assert(not JS('(1 != true)'))   # javascript override
