@@ -108,7 +108,9 @@ OP_MAP = {
     'not': "!",
     'del': "delete",
     'None': "null",
-    'is': "==="
+    'is': "===",
+    '==': "===",
+    '!=': "!=="
 }
 
 WHITESPACE_CHARS = makePredicate(characters(" \u00a0\n\r\t\f\u000b\u200b\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"));
@@ -699,6 +701,7 @@ PRECEDENCE = def(a, ret):
             ret[b[j]] = i+1
     return ret
 .call(this, [
+    # lowest precedence
     [ "||" ],
     [ "&&" ],
     [ "|" ],
@@ -710,6 +713,7 @@ PRECEDENCE = def(a, ret):
     [ "+", "-" ],
     [ "*", "/", "%" ],
     [ "**" ]
+    # highest precedence
 ], {})
 
 STATEMENTS_WITH_LABELS = array_to_hash([ "for", "do", "while", "switch" ])
@@ -818,7 +822,9 @@ def parse($TEXT, options):
             "<=": True,
             ">=": True,
             "==": True,
-            "!=": True
+            "!=": True,
+            "===": True,
+            "!==": True
         }
         if isinstance(stmt, AST_Binary) and stmt.operator in comparators \
                 and isinstance(stmt.left, AST_Binary) and stmt.left.operator in comparators:
