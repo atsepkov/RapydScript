@@ -14,7 +14,7 @@ import stdlib_common
 ###########################################################
 # String Methods
 ###########################################################
-String.prototype.find = Array.prototype.indexOf
+String.prototype.find = String.prototype.indexOf
 String.prototype.strip = String.prototype.trim
 String.prototype.lstrip = String.prototype.trimLeft
 String.prototype.rstrip = String.prototype.trimRight
