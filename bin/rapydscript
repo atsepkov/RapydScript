@@ -162,7 +162,11 @@ if (ARGS.t || ARGS.test) {
             try {
                 testcase.run();
             } catch (e) {
-                sys.print(file + ":\t" + e.stack + "\n\n");
+                if (e.stack) {
+                    sys.print(file + ":\t" + e.stack + "\n\n");
+                } else {
+                    sys.print(file + ":\t" + e + "\n\n");
+                }
                 fs.unlinkSync(filepath + ".js");
                 continue;
             }

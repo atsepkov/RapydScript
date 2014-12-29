@@ -55,15 +55,15 @@ def kwargs(f):
     argNames = argNames ? argNames.split(',').map(def(s): return s.trim();) : []
     return def():
         args = [].slice.call(arguments)
-        if args.length and (args.length < f.length):
+        if args.length:
             kw = args.pop()
             if type(kw) == 'object':
-                for i in range(len(argNames)):
+                for i in range(argNames.length):
                     if argNames[i] in dir(kw):
                         args[i] = kw[argNames[i]]
             else:
                 args.push(kw)
-        return f.apply(f, args)
+        return f.apply(this, args)
 
 
 ###########################################################

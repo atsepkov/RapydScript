@@ -1163,25 +1163,22 @@ def OutputStream(options):
             display_body(self.body, True, output)
 
     )
-    def print_module(self, name, variables, output):
+    def print_module(self, variables, output):
         def print_var(name):
             if typeof name is "string":
                 output.print(name)
             else:
                 name.print(output)
 
-        output.print("var")
-        output.space()
-        output.assign(name)
         output.with_parens(def():
             output.print("function()")
             output.with_block(def():
                 # dump the logic of this module
                 display_complex_body(self, False, output)
                 # expose local variables to the outside via a hash
-                output.newline()
                 output.indent()
                 output.print("return")
+                output.space()
                 output.with_block(def():
                     self.variables.forEach(def(arg, i):
                         output.indent()
@@ -1200,15 +1197,18 @@ def OutputStream(options):
             )
         )
         output.print("()")
-        output.semicolon()
-        output.newline()
 
     DEFPRINT(AST_Import, def(self, output):
         if output.import(self.module):
             if not output.option("namespace_imports"):
                 self.body.print(output)
             else:
-                print_module(self.body, self.module, self.variables, output)
+                output.print("var")
+                output.space()
+                output.assign(self.module)
+                print_module(self.body, self.variables, output)
+                output.semicolon()
+                output.newline()
 
         if output.option("namespace_imports") and self.argnames:
             self.variables.forEach(def(arg):
@@ -1511,52 +1511,46 @@ def OutputStream(options):
     )
 
     # -----[ functions ]-----
-    def decorate(node, output, prefix):
-        if node.decorators and node.decorators.length:
-            output.indent()
-            if prefix:
-                output.print(prefix)
-
-            output.assign(node.name)
-            wrap = def(d):
-                if d.length:
-                    output.print(d.slice(0)[0].name)
-                    output.with_parens(def():
-                        wrap(d.slice(1))
-                    )
-                else:
-                    if prefix:
-                        output.print(prefix)
-
-                    node.name.print(output)
-
-
-            wrap(node.decorators)
-            output.semicolon()
-            output.newline()
+    def decorate(node, output, internalsub):
+        wrap = def(d):
+            if d.length:
+                output.print(d.slice(0)[0].name)
+                output.with_parens(def():
+                    wrap(d.slice(1))
+                )
+            else:
+                internalsub()
+        wrap(node.decorators)
 
 
     AST_Lambda.DEFMETHOD("_do_print", def(output, nokeyword):
         self = this
-        if not nokeyword:
-            output.print("function")
+        def internalsub():
+            if not nokeyword:
+                output.print("function")
 
-        if self.name:
+            if self.name:
+                output.space()
+                self.name.print(output)
+
+            output.with_parens(def():
+                if not self.argnames.starargs:
+                    self.argnames.forEach(def(arg, i):
+                        if i:
+                            output.comma()
+
+                        arg.print(output)
+                    )
+            )
             output.space()
-            self.name.print(output)
+            print_bracketed(self, output, True)
 
-        output.with_parens(def():
-            if not self.argnames.starargs:
-                self.argnames.forEach(def(arg, i):
-                    if i:
-                        output.comma()
-
-                    arg.print(output)
-                )
-        )
-        output.space()
-        print_bracketed(self, output, True)
-        decorate(self, output)
+        if self.decorators and self.decorators.length:
+            output.assign(self.name.name)
+            decorate(self, output, internalsub)
+            output.semicolon()
+        else:
+            internalsub()
     )
     DEFPRINT(AST_Lambda, def(self, output):
         self._do_print(output)
@@ -1575,70 +1569,80 @@ def OutputStream(options):
             else:
                 output.assign(".prototype" + ((method ? "." + method : "")))
 
-        class_fun_def = def(stmt):
+        define_method = def(stmt):
             name = stmt.name.name
-            if name == "__init__":
-                stmt.bound = self.bound
-                output.print("function")
-                output.space()
-                self.name.print(output)
-            else:
-                output.newline()
-                class_def(name)
+            class_def(name)
+            def internalsub():
                 output.print("function")
                 output.space()
                 output.print(name)
 
-            output.with_parens(def():
-                if not stmt.argnames.starargs:
-                    stmt.argnames.forEach(def(arg, i):
-                        # only strip first argument if the method isn't static
-                        if self.static.indexOf(name) != -1:
-                            i += 1
-                        if i > 1:
-                            output.comma()
-                        if i:
-                            arg.print(output)
-                    )
-            )
-            print_bracketed(stmt, output, True)
+                output.with_parens(def():
+                    if not stmt.argnames.starargs:
+                        stmt.argnames.forEach(def(arg, i):
+                            # only strip first argument if the method isn't static
+                            if self.static.indexOf(name) != -1:
+                                i += 1
+                            if i > 1:
+                                output.comma()
+                            if i:
+                                arg.print(output)
+                        )
+                )
+                print_bracketed(stmt, output, True)
+
+            # decorate the method
+            if stmt.decorators and stmt.decorators.length:
+                decorate(stmt, output, internalsub)
+            else:
+                internalsub()
             output.semicolon()
             output.newline()
-            decorate(stmt, output, self.name.name + ".prototype.")
 
         # generate constructor
-        if self.init:
-            class_fun_def(self.init, self.name.name)
-        elif self.parent:
-            # init method doesn't exist, default to parent's init
-            output.print("function")
-            output.space()
-            self.name.print(output)
-            output.print("()")
-            output.space()
-            output.with_block(def():
-                bind_methods(self.bound, output)
-                output.indent()
-                self.parent.print(output)
-                output.print(".prototype.constructor.apply")
-                output.with_parens(def():
-                    output.print("this")
-                    output.comma()
-                    output.print("arguments")
+        def internalsub():
+            if self.init or self.parent:
+                output.print("function")
+                output.space()
+                self.name.print(output)
+                output.print("()")
+                output.space()
+                output.with_block(def():
+                    bind_methods(self.bound, output)
+                    output.indent()
+                    if self.init:
+                        output.print('this')
+                    else:
+                        self.parent.print(output)
+                        output.print('.prototype')
+                    output.print(".__init__.apply")
+                    output.with_parens(def():
+                        output.print("this")
+                        output.comma()
+                        output.print("arguments")
+                    )
+                    output.semicolon()
+                    output.newline()
                 )
-                output.semicolon()
-                output.newline()
-            )
+            else:
+                # no init method or parent, create empty init
+                output.print("function")
+                output.space()
+                self.name.print(output)
+                output.print("()")
+                output.space()
+                output.with_block(def():
+                    bind_methods(self.bound, output)
+                )
+
+        # decorate the class
+        if self.decorators and self.decorators.length:
+            output.print('var ')
+            output.assign(self.name)
+            decorate(self, output, internalsub)
+            output.semicolon()
         else:
-            # no init method or parent, create empty init
-            output.print("function")
-            output.space()
-            self.name.print(output)
-            output.print("()")
-            output.space()
-            output.with_block(def():
-                bind_methods(self.bound, output)
-            )
+            internalsub()
 
         output.newline()
         # inheritance
@@ -1656,17 +1660,11 @@ def OutputStream(options):
         # actual methods
         self.body.forEach(def(stmt, i):
             if isinstance(stmt, AST_Method):
-                if stmt.name.name != "__init__":
-                    class_fun_def(stmt)
+                define_method(stmt)
 
             elif isinstance(stmt, AST_Class):
-                output.indent()
-                self.name.print(output)
-                output.print(".")
-                stmt.print(output)
-                output.newline()
+                console.error('Nested classes aren\'t supported yet')
         )
-        decorate(self, output)
     )
     DEFPRINT(AST_Class, def(self, output):
         self._do_print(output)
@@ -1678,8 +1676,14 @@ def OutputStream(options):
         if self.external:
             return
 
-        print_module(self, self.name, self.variables, output)
-        decorate(self, output)
+        output.print("var")
+        output.space()
+        output.assign(self.name)
+        def internalsub():
+            print_module(self, self.variables, output)
+        decorate(self, output, internalsub)
+        output.semicolon()
+        output.newline()
     )
     DEFPRINT(AST_Module, def(self, output):
         self._do_print(output)

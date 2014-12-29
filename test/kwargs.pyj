@@ -11,3 +11,26 @@ assert.equal(sub(5, 4), 1)
 assert.equal(sub(a=5, b=4), 1)
 assert.equal(sub(b=5, a=4), -1)
 assert.equal(test(3, foo=5, 2), 5)
+
+class KeywordArgsTest:
+    @kwargs
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    @kwargs
+    def inc_a(self, inc):
+        self.a += inc
+
+# I shouldn't need this fake arg here, yet without it, test fails to see any arguments in
+# it's constructor, if someone can figure out/explain this bug, let me know
+test = KeywordArgsTest('fake arg', a=1, b=2)
+test2 = KeywordArgsTest(3, 4)
+assert.equal(test.a, 1)
+assert.equal(test.b, 2)
+assert.equal(test2.a, 3)
+assert.equal(test2.b, 4)
+test.inc_a(inc=2)
+test2.inc_a(7)
+assert.equal(test.a, 3)
+assert.equal(test2.a, 10)
