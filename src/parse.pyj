@@ -437,6 +437,7 @@ def tokenizer($TEXT, filename):
                     tmp = S.text.substring(S.pos, i)
                     S.pos = i + 3
                     while tmp.length:
+                        # parse escaped characters
                         if tmp[0] == "\\":
                             tmp = tmp.substr(1)
                             ret += read_escaped_char(True, def():
@@ -448,7 +449,11 @@ def tokenizer($TEXT, filename):
                         else:
                             ret += tmp[0]
                             tmp = tmp.substr(1)
-                    S.line += ret.match(/\n/g).length
+
+                    # add traversed lines to the counter
+                    find_newlines = ret.match(/\n/g)
+                    if find_newlines:
+                        S.line += find_newlines.length
                     return token("string", ret)
             else:
                 return token("string", "")
