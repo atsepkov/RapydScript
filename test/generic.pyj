@@ -3,8 +3,10 @@ assert.equal(3**4, Math.pow(3, 4))
 assert.equal(100**-2, Math.pow(100, -2))
 assert.equal(2*5**2*3, 150)
 
+
 # comparisons
 assert.ok(3<5<7)
+
 
 # strict equality
 assert(1 == 1)                  # number vs number: ok
@@ -18,3 +20,27 @@ assert(bool(1) == True)         # boolean conversion
 assert(bool("") == False)       # boolean conversion
 assert(JS('1 == true'))         # javascript override
 assert(not JS('(1 != true)'))   # javascript override
+assert(JS('String("test")') == "test")  # this should do string conversion rather than creating a string object
+assert(String("test") != "test")        # this should create a string object
+
+
+# raw JavaScript
+JS('def = {}')                # ability to bypass reserved keywords in declaration
+JS('def').item = 3            # ability to use reserved keywords
+assert(JS('def.item') == 3)
+
+n = 5
+assert(JS("""
+(function() {
+    var s = 0;
+    for (var i=0; i<=n; i++) {
+        s += i;
+    }
+    return s;
+})()
+""") == (def():
+    s = 0
+    for i in [0 to n]:
+        s += i
+    return s
+)())                        # shared scoping and equivalent capability

@@ -2128,6 +2128,7 @@ def parse($TEXT, options):
         if allow_calls and is_("punc", "(") and not S.token.nlb:
             next()
             if isinstance(expr, AST_SymbolRef) and expr.name == "JS":
+                # raw JavaScript chunk of code
                 str_ = expression(False)
                 if not (isinstance(str_, AST_String)):
                     token_error(prev(), "Compile-time function JS() can't process variables or expressions")
@@ -2138,7 +2139,7 @@ def parse($TEXT, options):
                     end: prev()
                 })
                 expect(")")
-                return ret
+                return subscripts(ret, True)
             elif get_class_in_scope(expr):
                 # this is an object being created using a class
                 return subscripts(new AST_New({
@@ -2180,6 +2181,7 @@ def parse($TEXT, options):
                     or tmp_ == "getattr"
                     or tmp_ == "setattr"
                     or tmp_ == "hasattr":
+                        # special functions that trigger addition of extra logic to generated JavaScript
                         BASELIB[expr.name] = True
                         # NOTE: there is intentionally no return here, we want these functions to go through regular logic
                         # after they trigger the appropriate baselib flag
@@ -2200,6 +2202,7 @@ def parse($TEXT, options):
                             end: prev()
                         })
 
+                # fall-through to basic function call
                 return subscripts(new AST_Call({
                     start: start,
                     expression: expr,
