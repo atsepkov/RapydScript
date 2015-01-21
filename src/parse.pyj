@@ -100,7 +100,57 @@ RE_HEX_NUMBER = /^0x[0-9a-f]+$/i
 RE_OCT_NUMBER = /^0[0-7]+$/
 RE_DEC_NUMBER = /^\d*\.?\d*(?:e[+-]?\d*(?:\d\.?|\.?\d)\d*)?$/i
 
-OPERATORS = makePredicate([ "in", "instanceof", "typeof", "new", "void", "del", "++", "--", "+", "-", "not", "~", "&", "|", "^", "**", "*", "/", "%", ">>", "<<", ">>>", "<", ">", "<=", ">=", "==", "is", "!=", "!==", "?", "=", "+=", "-=", "/=", "*=", "%=", ">>=", "<<=", ">>>=", "|=", "^=", "&=", "and", "or", "til", "to", "@" ])
+OPERATORS = makePredicate([
+    "in",
+    "instanceof",
+    "typeof",
+    "new",
+    "void",
+    "del",
+    "++",
+    "--",
+    "+",
+    "-",
+    "not",
+    "~",
+    "&",
+    "|",
+    "^",
+    "**",
+    "*",
+    "/",
+    "%",
+    ">>",
+    "<<",
+    ">>>",
+    "<",
+    ">",
+    "<=",
+    ">=",
+    "==",
+    "===",
+    "is",
+    "!=",
+    "!==",
+    "?",
+    "=",
+    "+=",
+    "-=",
+    "/=",
+    "*=",
+    "%=",
+    ">>=",
+    "<<=",
+    ">>>=",
+    "|=",
+    "^=",
+    "&=",
+    "and",
+    "or",
+    "til",
+    "to",
+    "@"
+])
 
 OP_MAP = {
     'or': "||",
@@ -593,7 +643,10 @@ def tokenizer($TEXT, filename):
                 return grow(bigger)
             else:
                 return op
-        return token("operator", grow(prefix or next()))
+        op = grow(prefix or next())
+        if op in ["++", "--", "===", "!=="]:
+            parse_error("Invalid operator «" + op + "»")
+        return token("operator", op)
 
     def handle_slash():
         next()
@@ -2238,8 +2291,6 @@ def parse($TEXT, options):
         return val
 
     def make_unary(ctor, op, expr):
-        if op == "++" or op == "--":
-            croak("Invalid operator «" + op + "»")
         return new ctor({
             operator: op,
             expression: expr
