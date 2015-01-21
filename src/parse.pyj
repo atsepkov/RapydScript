@@ -782,7 +782,7 @@ def parse($TEXT, options):
         croak(msg, token.line, token.col)
 
     def unexpected(token):
-        if token == None:
+        if token == undefined:
             token = S.token
         token_error(token, "Unexpected token: " + token.type + " «" + token.value + "»")
 

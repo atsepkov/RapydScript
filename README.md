@@ -249,27 +249,48 @@ Like Python, RapydScript supports function decorators. While decorator arguments
 	hello() # returns "<b><i>hello world</i></b>"
 
 
-Chaining Blocks
----------------
+Self-Executing Functions
+------------------------
 RapydScript wouldn't be useful if it required work-arounds for things that JavaScript handled easily. If you've worked with JavaScript or jQuery before, you've probably seen the following syntax:
+
+	(function(args){
+		// some logic here
+	})(args)
+
+This code calls the function immediately after declaring it instead of assigning it to a variable. Python doesn't have any way of doing this. The closest work-around is this:
+
+	def tmp(args):
+		# some logic here
+	tmp.__call__(args)
+
+While it's not horrible, it did litter our namespace with a temporary variable. If we have to do this repeatedly, this pattern does get annoying. This is where RapydScript decided to be a little unorthodox and implement the JavaScript-like solution:
+
+	(def(args):
+		# some logic here
+	)()
+
+A close cousin of the above is the following code (passing current scope to the function being called):
 
 	function(){
 		// some logic here
 	}.call(this);
 
-This code calls the function immediatelly after declaring it instead of assigning it to a variable. Python doesn't have any way of doing this. The closest work-around is this:
-	
-	def tmp():
-		# some logic here
-	tmp.__call__()
-	
-While it's not horrible, it did litter our namespace with a temporary variable. If we have to do this repeatedly, this pattern does get annoying. This is where RapydScript decided to be a little unorthodox and implement the JavaScript-like solution:
+With RapydScript equivalent of:
 
 	def():
 		# some logic here
 	.call(this)
 
-RapydScript will bind any lines beginning with `.` to the outside of the block with the matching indentation. This logic isn't limited to the `.call()` method, you can use it with `.apply()` or any other method/property the function has assigned to it. This can be used for jQuery as well:
+There is also a third alternative, that will pass the arguments as an array:
+
+	def(a, b):
+		# some logic here
+	.apply(this, [a, b])
+
+
+Chaining Blocks
+---------------
+As seen in previous section, RapydScript will bind any lines beginning with `.` to the outside of the block with the matching indentation. This logic isn't limited to the `.call()` method, you can use it with `.apply()` or any other method/property the function has assigned to it. This can be used for jQuery as well:
 
 	$(element)
 	.css('background-color', 'red')
@@ -281,7 +302,7 @@ The only limitation is that the indentation has to match, if you prefer to inden
 		.css('background-color', 'red')\
 		.show()
 
-RapydScript also allows an alternative syntax for the same feature, for those prefering Python's traditional, hanging-indent look:
+RapydScript also allows an alternative syntax for the same feature, for those preferring Python's traditional, hanging-indent look:
 
 	def(one, two) and call(this, 1, 2):
 		...
@@ -310,7 +331,7 @@ In my opinion, this is something even Python could benefit from. Like with funct
 
 Optional Arguments
 ------------------
-Like Python, Javascript allows optional arguments to be passed into a function. Unlike Python, however, JavaScript doesn't assign default values to these, nor does it work well with optional arguments. If you forget to pass an argument, JavaScript will simply set the variable to undefined, and it's up to you to handle it. Should you forget about it, you'll probably pay the price later, when you use this variable in any sort of mathematical computation. By that time, you'll either end up with NaN (not a number), infinity, or some other weird value, causing an error a few hundred lines after the line responsible for causing it (good luck debugging it). Luckily, RapydScript allows sane optional arguments, similar to Python. The following function, for example, allows you to pass in a color for the background, or it will default to black (the format is r,g,b,a):
+Like Python, JavaScript allows optional arguments to be passed into a function. Unlike Python, however, JavaScript doesn't assign default values to these, nor does it work well with optional arguments. If you forget to pass an argument, JavaScript will simply set the variable to undefined, and it's up to you to handle it. Should you forget about it, you'll probably pay the price later, when you use this variable in any sort of mathematical computation. By that time, you'll either end up with NaN (not a number), infinity, or some other weird value, causing an error a few hundred lines after the line responsible for causing it (good luck debugging it). Luckily, RapydScript allows sane optional arguments, similar to Python. The following function, for example, allows you to pass in a color for the background, or it will default to black (the format is r,g,b,a):
 
 	def setColor(color=[0,0,0,1]):
 		$('body').css('background', 'rgba('+','.join(color)+')')
@@ -320,7 +341,7 @@ One thing to note here, is that unlike Python, RapydScript will create a separat
 
 Variable number of arguments (*args)
 ------------------------------------
-Like Python, Javascript allows the user to write a function that takes variable number of arguments and performs its logic on all of them. Some examples of this are Math.max(), console.log() function and array's concat() method. Unlike, Python, however, JavaScript does not make this intuitive. You have to use a special iterable element inside the function called `arguments`, which has some properties of an array but doesn't support all of the functionality. Likewise, if you want to unfold an array into a list of arguments for a function during a function call, you have to use `.apply()` method instead of invoking the function normally. RapydScript converts Pythonic way of `*args` declaration to JavaScript. For example, the following function definition will take 2 named arguments, and dump the rest into an array (an actual array, not a gimped `arguments` object, like in JavaScript):
+Like Python, JavaScript allows the user to write a function that takes variable number of arguments and performs its logic on all of them. Some examples of this are Math.max(), console.log() function and array's concat() method. Unlike, Python, however, JavaScript does not make this intuitive. You have to use a special iterable element inside the function called `arguments`, which has some properties of an array but doesn't support all of the functionality. Likewise, if you want to unfold an array into a list of arguments for a function during a function call, you have to use `.apply()` method instead of invoking the function normally. RapydScript converts Pythonic way of `*args` declaration to JavaScript. For example, the following function definition will take 2 named arguments, and dump the rest into an array (an actual array, not a gimped `arguments` object, like in JavaScript):
 	
 	def doSomething(a, b, *args):
 		...
@@ -1031,6 +1052,9 @@ Anything that requires more than a couple semi-colons, however, or involves long
 
 Even for this example, however, I'd personally prefer to use multiple lines.
 
+#### Raw JavaScript
+Occasionally you may need to use raw JavaScript due to a limitation of RapydScript. To keep code legible and consistent, I suggest minimizing the chunk of code contained within `JS`, keeping most of the logic within RapydScript itself. For example, instead of accessing a variable that shares reserved keyword as `JS('module.exports')` use `JS('module').exports`. This will make it more visually-obvious what you're trying to do as well as allow your syntax highlighter to do its job.
+
 #### jQuery-wrapped Elements
 If you use jQuery with your app, you will probably be storing these into variables a lot. If you've written a decently sized app, you've probably mistaken a bare element with wrapped element at least once. This is especially true of objects like `canvas`, where you need to access object's attributes and methods directly. My solution for these is simple, prepend jQuery-wrapped elements with `$`:
 
@@ -1043,6 +1067,13 @@ This is especially useful with function definitions, since you will immediately 
 
 #### Libraries
 I recommend that developers rely on native JavaScript logic when possible, rather than libraries like `math.pyj` and `re.pyj`. While they mimic Python without problems and work quite well, they introduce extra overhead that your web app doesn't need. Additionally, I think `re` module in Python is unnecessarily complex, and JavaScript's `RegExp` object is much easier to use. With that said, these libraries can be extremely useful for porting large applications from Python to the web, but if you're writing new code, it will probably be easier to maintain if you decide to use native JavaScript alternatives (such as `Math` and `RegExp`) instead.
+
+#### External Libraries and Classes
+RapydScript will pick up any classes you declare yourself as well as native JavaScript classes. It will not, however, pick up class-like objects created by outside frameworks. There are two approaches for dealing with those. One is via `@external` decorator, the other is via `new` operator when declaring such object. To keep code legible and consistent, I strongly prefer the use of `@external` decorator over the `new` operator for several reasons, even if it may be more verbose:
+
+- `@external` decorator makes classes declared externally obvious to anyone looking at your code
+- class declaration that uses `@external` decorator can be exported into a reusable module
+- developers are much more likely to forget a single instance of `new` operator when declaring an object than to forget an import, the errors due to omitted `new` keyword are also likely to be more subtle and devious to debug
 
 
 Quirks
