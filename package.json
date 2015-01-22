@@ -1,9 +1,15 @@
 {
   "name": "rapydscript",
-  "description": "RapydScript to JavaScript compiler",
+  "description": "Pythonic JavaScript that doesn't suck",
   "homepage": "http://rapydscript.pyjeon.com",
+  "keywords": [
+    "javascript",
+    "rapydscript",
+    "language",
+    "compiler"
+  ],
   "main": "tools/node.js",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "license": "BSD",
   "engines": {
     "node": ">=0.4.0"
