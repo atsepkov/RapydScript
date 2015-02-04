@@ -1611,11 +1611,10 @@ def OutputStream(options):
                     bind_methods(self.bound, output)
                     output.indent()
                     if self.init:
-                        output.print('this')
+                        self.name.print(output)
                     else:
                         self.parent.print(output)
-                        output.print('.prototype')
-                    output.print(".__init__.apply")
+                    output.print(".prototype.__init__.apply")
                     output.with_parens(def():
                         output.print("this")
                         output.comma()
