@@ -93,6 +93,7 @@ NATIVE_CLASSES = {
     'Uint8Array': {},
     'Uint8ClampedArray': {}
 }
+COMMON_STATIC = [ "call", "apply", "bind", "toString" ]
 
 OPERATOR_CHARS = makePredicate(characters("+-*&%=<>!?|~^@"))
 
@@ -2122,7 +2123,7 @@ def parse($TEXT, options):
         return sym
 
     def is_static_method(cls, method):
-        if cls.static and cls.static.indexOf(method) != -1:
+        if COMMON_STATIC.indexOf(method) != -1 or cls.static and cls.static.indexOf(method) != -1:
             return True
         else:
             return False
