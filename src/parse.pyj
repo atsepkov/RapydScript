@@ -1895,6 +1895,8 @@ def parse($TEXT, options):
                 ex = expression(True)
                 ex.start = start
                 ex.end = S.token
+                if isinstance(ex, AST_SymbolRef):
+                    ex.parens = True
                 expect(")")
                 return subscripts(ex, allow_calls)
             elif tmp_ == "[":
@@ -2194,7 +2196,7 @@ def parse($TEXT, options):
                 })
                 expect(")")
                 return subscripts(ret, True)
-            elif get_class_in_scope(expr):
+            elif not expr.parens and get_class_in_scope(expr):
                 # this is an object being created using a class
                 return subscripts(new AST_New({
                     start: start,

@@ -106,7 +106,7 @@ assert.equal(String.fromCharCode(65), "A") # static method recognition
 
 # now we test RapydScript's ability to insert 'new' operator correctly
 assert.ok(String('a') != 'a')   # string literal vs string object
-#assert.ok((String)('a') == 'a') # string literal vs string literal
+assert.ok((String)('a') == 'a') # string literal vs string literal
 assert.ok(String.call(this, 'a') == 'a') # string literal via static method on string
 
 # self consistency

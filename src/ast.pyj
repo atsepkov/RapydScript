@@ -894,8 +894,11 @@ AST_Label = DEFNODE("Label", "references", {
     }
 }, AST_Symbol)
 
-AST_SymbolRef = DEFNODE("SymbolRef", None, {
-    $documentation: "Reference to some symbol (not definition/declaration)"
+AST_SymbolRef = DEFNODE("SymbolRef", "parens", {
+    $documentation: "Reference to some symbol (not definition/declaration)",
+    $propdoc: {
+        parens: "[boolean/S] if true, this variable is wrapped in parentheses"
+    }
 }, AST_Symbol)
 
 AST_LabelRef = DEFNODE("LabelRef", None, {
