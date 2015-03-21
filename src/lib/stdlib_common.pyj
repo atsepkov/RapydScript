@@ -11,6 +11,7 @@
 ###########################################################
 # Basic Functionality
 ###########################################################
+nonlocal JSON
 JSON = JSON or {}
 
 # implement JSON.stringify in older browsers, if doesn't already exist
