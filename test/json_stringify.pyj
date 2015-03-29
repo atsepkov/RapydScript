@@ -1,5 +1,5 @@
-#Assert JSON is undefined to be sure we're testing RapydScript's stringify
-assert.equal(JSON, undefined)
+#Set JSON to nothing to be sure we're testing RapydScript's stringify
+JSON = {}
 
 import stdlib
 
@@ -88,6 +88,14 @@ assert.equal(
 	JSON.stringify(undefined),
 	undefined,
 	'undefined is not valid and should not return a string "undefined" but literally undefined'
+)
+# '1224892800000' is the Epoch timestamp of midnight October 25, 2008.
+# Using that instead of Date(2008,10,25) to avoid errors when the user
+# running the tests is not in a UTC +00:00 timezone (which is very likely)
+assert.equal(
+	JSON.stringify(Date(1224892800000)),
+	'"2008-10-25T00:00:00.000Z"',
+	'Check date handling'
 )
 # We don't really care what RegExp objects end up like,
 # but we want to match browser behavior.
