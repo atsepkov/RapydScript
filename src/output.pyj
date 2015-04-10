@@ -1180,13 +1180,13 @@ def OutputStream(options):
                 output.print("return")
                 output.space()
                 output.with_block(def():
-                    self.variables.forEach(def(arg, i):
+                    variables.forEach(def(arg, i):
                         output.indent()
                         print_var(arg)
                         output.print(":")
                         output.space()
                         print_var(arg)
-                        if i < self.variables.length - 1:
+                        if i < variables.length - 1:
                             output.comma()
 
                         output.newline()
