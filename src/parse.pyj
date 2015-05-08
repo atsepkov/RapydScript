@@ -1990,6 +1990,7 @@ def parse($TEXT, options):
                 return ret
 
             if is_("operator", "til"):
+                BASELIB['range'] = True
                 next()
                 expr.push(expression(False))
                 ret = subscripts(new AST_Call({
@@ -2003,6 +2004,7 @@ def parse($TEXT, options):
                 expect("]")
                 return ret
             elif is_("operator", "to"):
+                BASELIB['range'] = True
                 next()
                 expr.push(new AST_Binary({
                     left: expression(False),
