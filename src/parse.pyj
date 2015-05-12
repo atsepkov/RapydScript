@@ -1261,6 +1261,7 @@ def parse($TEXT, options):
     def for_in(init, list_comp):
         lhs = (isinstance(init, AST_Var) ? init.definitions[0].name : None)
         obj = expression(True)
+        BASELIB["iterable"] = True
         #        expect(")");
         if list_comp:
             return {

@@ -537,6 +537,20 @@ def OutputStream(options):
                     } ] ]
                 })
             ,
+            "iterable": def():
+                # function _$rapyd$_Iterable(iterable) {
+                # 	if (iterable instanceof Array || iterable instanceof String || typeof iterable === "string") return iterable;
+                # 	return Object.keys(iterable);
+                # }
+                return func_gen("_$rapyd$_Iterable", {
+                    args: [ "iterable" ],
+                    body: [ [ "if", {
+                        parens: [ "iterable", "instanceof", "Array", "||",
+                                  "iterable", "instanceof", "String", "||",
+                                  "typeof", "iterable", "===", "'string'" ]
+                    }, "return", "iterable" ], [ "return", "Object.keys", { call: [ "iterable" ] } ] ]
+                })
+            ,
             "len": def():
                 #function len(obj) {
                 #  if (obj instanceof Array || typeof obj === 'string') return obj.length;
@@ -1385,7 +1399,10 @@ def OutputStream(options):
         else:
             # regular loop
             output.assign("var _$rapyd$_Iter" + INDEX_COUNTER)
-            self.object.print(output)
+            output.print("_$rapyd$_Iterable")
+            output.with_parens(def():
+                self.object.print(output)
+            )
             output.semicolon()
             output.newline()
             output.indent()

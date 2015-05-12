@@ -15,3 +15,5 @@ class External:
             getattr()
             setattr()
             hasattr()
+        for a in b:
+            pass
