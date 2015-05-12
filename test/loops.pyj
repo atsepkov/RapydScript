@@ -33,3 +33,19 @@ inclusive = [3 to 5]
 exclusive = [3 til 6]
 assert.deepEqual(inclusive, exclusive)
 assert.deepEqual(inclusive, [3,4,5])
+
+hash = {
+    "foo": 1,
+    "bar": 1,
+    "baz": 1,
+}
+i = 0
+for key in hash:
+    assert.equal(key, a[i])
+    i += 1
+
+word = "test"
+i = 0
+for letter in word:
+    assert.equal(letter, word[i])
+    i += 1
