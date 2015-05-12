@@ -1436,7 +1436,10 @@ def OutputStream(options):
             output.with_block(def():
                 output.indent()
                 output.assign("var _$rapyd$_Iter")
-                self.object.print(output)
+                output.print("_$rapyd$_Iterable")
+                output.with_parens(def():
+                    self.object.print(output)
+                )
                 output.comma()
                 output.assign("_$rapyd$_Result")
                 output.print("[]")

@@ -1980,6 +1980,7 @@ def parse($TEXT, options):
                 # list comprehension
                 next()
                 forloop = for_(True)
+                BASELIB["iterable"] = True
                 ret = new AST_ListComprehension({
                     statement: expr[0],
                     init: forloop.init,

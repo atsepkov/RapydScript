@@ -9,7 +9,7 @@
     "compiler"
   ],
   "main": "tools/node.js",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "license": "BSD",
   "engines": {
     "node": ">=0.4.0"
