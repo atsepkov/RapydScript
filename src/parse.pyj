@@ -1992,6 +1992,7 @@ def parse($TEXT, options):
                 return ret
 
             if is_("operator", "til"):
+                # up to but not including upper limit
                 BASELIB['range'] = True
                 next()
                 expr.push(expression(False))
@@ -2006,13 +2007,14 @@ def parse($TEXT, options):
                 expect("]")
                 return ret
             elif is_("operator", "to"):
+                # now add a tiny number to make sure we include the upper limit
                 BASELIB['range'] = True
                 next()
                 expr.push(new AST_Binary({
                     left: expression(False),
                     operator: "+",
                     right: new AST_Number({
-                        value: 1
+                        value: 0.000001
                     })
                 }))
                 ret = subscripts(new AST_Call({
