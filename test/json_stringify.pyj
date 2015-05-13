@@ -1,0 +1,189 @@
+#Set JSON to nothing to be sure we're testing RapydScript's stringify
+JSON = {}
+
+import stdlib
+
+#Tests cases taken from jquery-json
+assert.equal(
+	JSON.stringify('hi'),
+	'"hi"',
+	'Strings should be wrapped in double quotes'
+)
+assert.equal(
+	JSON.stringify({ apple: 2 }),
+	'{"apple":2}',
+	'Objects'
+)
+assert.equal(
+	JSON.stringify({ apple: { apple: 2 } }),
+	'{"apple":{"apple":2}}',
+	'Objects inside objects'
+)
+assert.equal(
+	JSON.stringify({ apple: 7, pear: 5 }),
+	'{"apple":7,"pear":5}',
+	'Objects with multiple members should be separated by a comma'
+)
+assert.equal(
+	JSON.stringify(2.5),
+	'2.5',
+	'Numbers with a decimal'
+)
+assert.equal(
+	JSON.stringify(25),
+	'25',
+	'Number'
+)
+assert.equal(
+	JSON.stringify([2, 5]),
+	'[2,5]',
+	'Array of numbers'
+)
+assert.equal(
+	JSON.stringify(def (): pass;),
+	undefined,
+	'Functions are not supported and should return undefined'
+)
+assert.equal(
+	JSON.stringify('C:\\A.TXT'),
+	'"C:\\\\A.TXT"',
+	'Slashes should be double escaped'
+)
+assert.equal(
+	JSON.stringify('C:\\B.TXT'),
+	'"C:\\\\B.TXT"',
+	'Slashes should be double escaped'
+)
+assert.equal(
+	JSON.stringify(['C:\\A.TXT', 'C:\\B.TXT', 'C:\\C.TXT', 'C:\\D.TXT']),
+	'["C:\\\\A.TXT","C:\\\\B.TXT","C:\\\\C.TXT","C:\\\\D.TXT"]',
+	'Array of strings with slashes'
+)
+assert.equal(
+	JSON.stringify({ dDefault: '1.84467440737E+19' }),
+	'{"dDefault":"1.84467440737E+19"}',
+	'Object with lower case key and value that should not be touched'
+)
+assert.equal(
+	JSON.stringify([0, false, def(): pass;]),
+	'[0,false,null]',
+	'Resolve unsupported values (like functions) to null when encountered as object member values'
+)
+assert.equal(
+	JSON.stringify(0),
+	'0',
+	'Zero is zero'
+)
+assert.equal(
+	JSON.stringify(false),
+	'false',
+	'False is false'
+)
+assert.equal(
+	JSON.stringify(null),
+	'null',
+	'null is null'
+)
+assert.equal(
+	JSON.stringify(undefined),
+	undefined,
+	'undefined is not valid and should not return a string "undefined" but literally undefined'
+)
+# '1224892800000' is the Epoch timestamp of midnight October 25, 2008.
+# Using that instead of Date(2008,10,25) to avoid errors when the user
+# running the tests is not in a UTC +00:00 timezone (which is very likely)
+assert.equal(
+	JSON.stringify(Date(1224892800000)),
+	'"2008-10-25T00:00:00.000Z"',
+	'Check date handling'
+)
+# We don't really care what RegExp objects end up like,
+# but we want to match browser behavior.
+assert.equal(
+	JSON.stringify(RegExp('hello')),
+	'{}',
+	'Instantiated RegExp (simple) '
+)
+assert.equal(
+	JSON.stringify(RegExp('hello', 'gi')),
+	'{}',
+	'Instantiated RegExp (with options)'
+)
+assert.equal(
+	JSON.stringify(/hello/),
+	'{}',
+	'RegExp literal (simple)'
+)
+assert.equal(
+	JSON.stringify(/hello/gi),
+	'{}',
+	'RegExp literal (with options)'
+)
+# Nobody should be using new Number(), new Boolean(), or new String()
+# but they are an interesting edge case, because they are typeof 'object'.
+# Workaround for jshint:
+assert.equal(
+	JSON.stringify(Number(7)),
+	'7',
+	'Instantiated Number'
+)
+assert.equal(
+	JSON.stringify(Boolean(true)),
+	'true',
+	'Instantiated Boolean (true)'
+)
+assert.equal(
+	JSON.stringify(Boolean(false)),
+	'false',
+	'Instantiated Boolean (false)'
+)
+assert.equal(
+	JSON.stringify(String('hello')),
+	'"hello"',
+	'Instantiated String'
+)
+#https://github.com/ariya/phantomjs/issues/10315
+def argTest():
+	assert.equal(
+	JSON.stringify(	arguments),
+		'{"0":"foo","1":"bar","2":"baz"}',
+		'arguments, as instance of Arguments, should be treated as an object'
+	)
+argTest('foo', 'bar', 'baz')
+assert.equal(
+	JSON.stringify({ apple: undefined, pear: 5 }),
+	'{"pear":5}',
+	'Objects with a member with value of type undefined should be removed'
+)
+assert.equal(
+	JSON.stringify([undefined, undefined, 1, 2]),
+	'[null,null,1,2]',
+	'Resolve undefined to null when encountered as object member values'
+)
+
+Object.prototype.AWESOME = 7
+
+assert.equal(
+	JSON.stringify({ apple: 2, key: 'value' }),
+	'{"apple":2,"key":"value"}',
+	'Prototype values should not be included in the string'
+)
+
+# Since prototypes are highly dangerous,
+# make sure to remove it as soon as possible
+# Lots of code in jQuery will fail as it is
+# in the policy of jQuery that Object prototypes
+# are not supported.
+try:
+	# Might fail in IE. Make sure to not let any exception
+	# get out.
+	del Object.prototype.AWESOME;
+except:
+	pass
+
+assert.equal(
+	JSON.stringify({ isAwesome: true, hasOwnProperty: false }),
+	'{"isAwesome":true,"hasOwnProperty":false}',
+	'Guard against inherited prototypes should not depend on prototype inheritance itself'
+)
+
