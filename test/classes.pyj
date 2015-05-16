@@ -71,6 +71,7 @@ assert.deepEqual(dir(angela).sort(), [
 angela.nickname("Angie")
 assert.equal(angela.greet(), "Yo, it's me, Angie")
 
+dude = None
 (def fake_module():
 	# test that we can declare classes inside other blocks
 	# test that we can call methods of classes we didn't inherit from

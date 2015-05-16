@@ -25,7 +25,7 @@ assert(String("test") != "test")        # this should create a string object
 
 
 # raw JavaScript
-JS('def = {}')                # ability to bypass reserved keywords in declaration
+JS('var def = {}')                # ability to bypass reserved keywords in declaration
 JS('def').item = 3            # ability to use reserved keywords
 assert(JS('def.item') == 3)
 

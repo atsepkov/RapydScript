@@ -1137,6 +1137,19 @@ def OutputStream(options):
             output.with_parens(def():
                 output.print("function()")
                 output.with_block(def():
+                    # strict mode is more verbose about errors, and less forgiving about them
+                    # kind of like Python
+                    output.indent()
+                    output.print('"use strict"')
+                    output.semicolon()
+                    output.newline()
+
+                    # TODO: this is a hack for now, should probably declare this in local-most scope
+                    output.indent()
+                    output.print("var _$rapyd$_Temp")
+                    output.semicolon()
+                    output.newline()
+
                     output.prologue(self)
                     display_complex_body(self, True, output)
                     output.newline()
@@ -1543,6 +1556,8 @@ def OutputStream(options):
             print_bracketed(self, output, True)
 
         if self.decorators and self.decorators.length:
+            output.print("var")
+            output.space()
             output.assign(self.name.name)
             decorate(self, output, internalsub)
             output.semicolon()
