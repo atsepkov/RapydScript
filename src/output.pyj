@@ -2102,6 +2102,26 @@ def OutputStream(options):
         self.property.print(output)
         output.print("]")
     )
+    DEFPRINT(AST_Splice, def(self, output):
+        output.print('[].splice.apply')
+        output.with_parens(def():
+            self.expression.print(output)
+            output.comma()
+            output.with_square(def():
+                # for now naively assume both are integers - we may choose to do something
+                # more fancy here in the future
+                start = self.property.value
+                count = self.property2.value - self.property.value
+                output.print(start)
+                output.comma()
+                output.print(count)
+            )
+            output.print('.concat')
+            output.with_parens(def():
+                self.assignment.print(output)
+            )
+        )
+    )
     DEFPRINT(AST_UnaryPrefix, def(self, output):
         op = self.operator
         output.print(op)

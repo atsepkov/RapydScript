@@ -2168,17 +2168,28 @@ def parse($TEXT, options):
 
             expect("]")
             if is_slice:
-                return subscripts(new AST_Call({
-                    start: start,
-                    expression: new AST_Dot({
+                if is_("operator") and S.token.value == "=":
+                    next()  # swallow the assignment
+                    return subscripts(new AST_Splice({
                         start: start,
                         expression: expr,
-                        property: "slice",
+                        property: slice_bounds[0],
+                        property2: slice_bounds[1],
+                        assignment: expression(True),
                         end: prev()
-                    }),
-                    args: slice_bounds,
-                    end: prev()
-                }), allow_calls)
+                    }), allow_calls)
+                else:
+                    return subscripts(new AST_Call({
+                        start: start,
+                        expression: new AST_Dot({
+                            start: start,
+                            expression: expr,
+                            property: "slice",
+                            end: prev()
+                        }),
+                        args: slice_bounds,
+                        end: prev()
+                    }), allow_calls)
             else:
                 return subscripts(new AST_Sub({
                     start: start,

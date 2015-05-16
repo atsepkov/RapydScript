@@ -723,6 +723,20 @@ AST_Sub = DEFNODE("Sub", None, {
         )
 }, AST_PropAccess)
 
+AST_Splice = DEFNODE("Slice", "property2 assignment", {
+    $documentation: 'Index-style property access, i.e. `a[3:5]`',
+    $propdoc: {
+        property2: "[AST_Node] the 2nd property to access - typically ending index for the array.",
+        assignment: "[AST_Node] The data being spliced in."
+    },
+    _walk: def(visitor):
+        return visitor._visit(this, def():
+            this.expression._walk(visitor)
+            this.property._walk(visitor)
+            this.property2._walk(visitor)
+        )
+}, AST_PropAccess)
+
 AST_Unary = DEFNODE("Unary", "operator expression", {
     $documentation: "Base class for unary expressions",
     $propdoc: {
