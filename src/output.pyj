@@ -1418,6 +1418,27 @@ def OutputStream(options):
         output.space()
         self._do_print_body(output)
     )
+
+    AST_ForJS.DEFMETHOD("_do_print_body", def(output):
+        self = this
+        output.with_block(def():
+            self.body.body.forEach(def(stmt, i):
+                output.indent()
+                stmt.print(output)
+                output.newline()
+            )
+        )
+    )
+
+    DEFPRINT(AST_ForJS, def(self, output):
+        output.print("for")
+        output.space()
+        output.with_parens(def():
+            self.condition.print(output)
+        )
+        output.space()
+        self._do_print_body(output)
+    )
     DEFPRINT(AST_ListComprehension, def(self, output):
         output.with_parens(def():
             output.print("function")

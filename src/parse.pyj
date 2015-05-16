@@ -1096,6 +1096,8 @@ def parse($TEXT, options):
                     body: in_loop(statement)
                 })
             elif tmp_ == "for":
+                if is_("name", "JS"):
+                    return for_js()
                 return for_()
             elif tmp_ == "from":
                 return finalize_import(from_import_())
@@ -1251,10 +1253,8 @@ def parse($TEXT, options):
             if is_("operator", "in"):
                 if isinstance(init, AST_Var) and init.definitions.length > 1:
                     croak("Only one variable declaration allowed in for..in loop")
-
                 next()
                 return for_in(init, list_comp)
-
 
         unexpected()
 
@@ -1274,6 +1274,14 @@ def parse($TEXT, options):
             init: init,
             name: lhs,
             object: obj,
+            body: in_loop(statement)
+        })
+
+    # A native JavaScript for loop - for JS("var i=0; i<5000; i++"):
+    def for_js():
+        condition = expression(True, True)
+        return new AST_ForJS({
+            condition: condition,
             body: in_loop(statement)
         })
 

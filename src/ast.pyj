@@ -235,6 +235,13 @@ AST_ForIn = DEFNODE("ForIn", "init name object", {
         )
 }, AST_StatementWithBody)
 
+AST_ForJS = DEFNODE("ForJS", "condition", {
+    $documentation: "A `for ... in` statement",
+    $propdoc: {
+        condition: "[AST_Verbatim] raw JavaScript conditional"
+    },
+}, AST_StatementWithBody)
+
 AST_ListComprehension = DEFNODE("ListComprehension", "condition statement", {
     $documentation: "A list comprehension expression",
     $propdoc: {
