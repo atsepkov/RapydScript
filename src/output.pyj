@@ -2103,18 +2103,17 @@ def OutputStream(options):
         output.print("]")
     )
     DEFPRINT(AST_Splice, def(self, output):
+        # splice assignment via pythonic array[start:end]
         output.print('[].splice.apply')
         output.with_parens(def():
             self.expression.print(output)
             output.comma()
             output.with_square(def():
-                # for now naively assume both are integers - we may choose to do something
-                # more fancy here in the future
-                start = self.property.value
-                count = self.property2.value - self.property.value
-                output.print(start)
+                self.property.print(output)
                 output.comma()
-                output.print(count)
+                self.property2.print(output)
+                output.print('-')
+                self.property.print(output)
             )
             output.print('.concat')
             output.with_parens(def():
