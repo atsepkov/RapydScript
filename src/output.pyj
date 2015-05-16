@@ -67,7 +67,6 @@ def OutputStream(options):
         namespace_imports: False,
         omit_baselib: False,
         private_scope: True,
-        screw_old_browsers: False,
         auto_bind: False
     }, True)
     indentation = 0
@@ -480,38 +479,16 @@ def OutputStream(options):
                 })
             ,
             "extends": def():
-                # regular:
-                #
-                # function _$rapyd$_extends(child, parent) {
-                #  child.prototype = new parent;
-                #  child.prototype.constructor = child;
-                #  _$rapyd$_rebindAll(child.prototype);
-                # }
-                #
-                # screw_old_browsers:
-                #
                 # function _$rapyd$_extends(child, parent) {
                 #  child.prototype = Object.create(parent.prototype)
                 #  child.prototype.constructor = child;
                 # }
-                if options.screw_old_browsers:
-                    return func_gen("_$rapyd$_extends", {
-                        args: [ "child", "parent" ],
-                        body: [ [ "child.prototype", "=", "Object.create", {
-                            call: [ "parent.prototype" ]
-                        } ], [ "child.prototype.constructor", "=", "child" ] ]
-                    })
-                else:
-                    body = [ [ "child.prototype", "=", "new", "parent" ], [ "child.prototype.constructor", "=", "child" ] ]
-                    if options.auto_bind:
-                        body.push([ "_$rapyd$_rebindAll", {
-                            call: [ "child.prototype" ]
-                        } ])
-
-                    return func_gen("_$rapyd$_extends", {
-                        args: [ "child", "parent" ],
-                        body: body
-                    })
+                return func_gen("_$rapyd$_extends", {
+                    args: [ "child", "parent" ],
+                    body: [ [ "child.prototype", "=", "Object.create", {
+                        call: [ "parent.prototype" ]
+                    } ], [ "child.prototype.constructor", "=", "child" ] ]
+                })
 
             ,
             "in": def():

@@ -14,7 +14,6 @@ var ARGS = optimist
 Use a single dash to read input from the standard input.\
 \n\n\
 ")
-    .describe("screw-ie8", "Pass this flag if you don't care about full compliance with Internet Explorer 6-8 quirks (by default RapydScript will try to be IE-proof).")
     .describe("o", "Output file (default STDOUT).")
     .describe("b", "Remove the module wrapper that prevents RapydScript \
 scope from bleeding into other JavaScript logic.")
@@ -56,7 +55,6 @@ because of dead code removal or cascading statements into sequences.")
     .string("comments")
     .string("wrap")
     .boolean("p")
-    .boolean("screw-ie8")
     .boolean("v")
     .boolean("stats")
     .boolean("V")
@@ -100,7 +98,6 @@ var OUTPUT_OPTIONS = {
     namespace_imports: NAMESPACE_IMPORTS ? true : false,
     auto_bind: AUTO_BIND ? true : false,
     omit_baselib: OMIT_BASELIB ? true : false,
-    screw_old_browsers: ARGS.screw_ie8 ? true : false
 };
 
 if (ARGS.t || ARGS.test) {
@@ -123,7 +120,7 @@ if (ARGS.t || ARGS.test) {
                 filename: file,
                 toplevel: ast,
                 readfile: fs.readFileSync,
-				basedir: path.normalize(
+                basedir: path.normalize(
                     path.join(
                         path.dirname(module.filename),
                         "../test"
@@ -138,41 +135,32 @@ if (ARGS.t || ARGS.test) {
             });
         } catch(ex) {
 //            if (ex instanceof RapydScript.JS_Parse_Error) {
-//                sys.print("Error parsing test file: " + file);
+//               sys.print("Error parsing test file: " + file);
 //            }
             sys.print(file + ":\t" + ex + "\n");
             return;
         }
         // generate output
-        // test with and without screw-ie8 flag
-        for (var i = 0; i < 2; i++) {
-            var title = i == 0 ? 'normal:\t\t' : 'screw-ie8:\t';
-            sys.print(title);
-            var output = RapydScript.OutputStream({
-                screw_old_browsers: i
-            });
-            ast.print(output);
+        var output = RapydScript.OutputStream({
+        });
+        ast.print(output);
 
-            // test that output performs correct JS operations
-    //        sys.print(output);
-    //            eval(output.toString());
-            var testcontent = "exports.run = function(){assert = require('assert');" + output.toString() + "};";
-            fs.writeFileSync(filepath + ".js", testcontent);
-            var testcase = require(filepath + ".js");
-            try {
-                testcase.run();
-            } catch (e) {
-                if (e.stack) {
-                    sys.print(file + ":\t" + e.stack + "\n\n");
-                } else {
-                    sys.print(file + ":\t" + e + "\n\n");
-                }
-                fs.unlinkSync(filepath + ".js");
-                continue;
+        // test that output performs correct JS operations
+        var testcontent = "exports.run = function(){assert = require('assert');" + output.toString() + "};";
+        fs.writeFileSync(filepath + ".js", testcontent);
+        var testcase = require(filepath + ".js");
+        try {
+            testcase.run();
+        } catch (e) {
+            if (e.stack) {
+                sys.print(file + ":\t" + e.stack + "\n\n");
+            } else {
+                sys.print(file + ":\t" + e + "\n\n");
             }
-            sys.print(file + ":\ttest completed successfully\n");
             fs.unlinkSync(filepath + ".js");
-        };
+        }
+        sys.print(file + ":\ttest completed successfully\n");
+            fs.unlinkSync(filepath + ".js");
     });
     process.exit(0);
 }
