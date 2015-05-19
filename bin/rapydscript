@@ -100,6 +100,33 @@ var OUTPUT_OPTIONS = {
     omit_baselib: OMIT_BASELIB ? true : false,
 };
 
+// generate baselib with current settings
+if (!OMIT_BASELIB || ARGS.t || !ARGS.test) {
+    try {
+        var baselibPath = path.join(
+            path.dirname(module.filename),
+            "../src/baselib.pyj"
+        );
+        var baselibAst = RapydScript.parse(fs.readFileSync(baselibPath, "utf-8"), {
+            readfile: fs.readFileSync,
+        });
+    } catch(e) {
+        if (e.message.search("no such file or directory")) {
+            throw "Failed to locate baselib module.";
+        }
+        else {
+            throw e;
+        }
+    }
+    var outputStream = RapydScript.OutputStream({
+        private_scope: false,
+        beautify: BEAUTIFY ? true : false,
+    });
+    baselibAst.print(outputStream);
+    var baselibGenerator = eval(outputStream.toString());
+    OUTPUT_OPTIONS.baselib = baselibGenerator;
+}
+
 if (ARGS.t || ARGS.test) {
     // run all tests and exit
     var assert = require("assert");
@@ -142,6 +169,7 @@ if (ARGS.t || ARGS.test) {
         }
         // generate output
         var output = RapydScript.OutputStream({
+            baselib: baselibGenerator
         });
         ast.print(output);
 

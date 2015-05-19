@@ -1,0 +1,139 @@
+"""
+**********************************************************************
+
+  A RapydScript to JavaScript compiler.
+  https://github.com/atsepkov/RapydScript2
+
+  -------------------------------- (C) ---------------------------------
+
+                       Author: Alexander Tsepkov
+                         <atsepkov@pyjeon.com>
+                         http://www.pyjeon.com
+
+  Distributed under Apache 2.0 license:
+    Copyright 2013 (c) Alexander Tsepkov <atsepkov@pyjeon.com>
+
+  RapydScript source code is originally based on UglifyJS2 (covered
+  by BSD license). UglifyJS2 was written by Mihai Bazon
+  <mihai.bazon@gmail.com>, who is its respective copyright holder.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+        * Redistributions of source code must retain the above
+          copyright notice, this list of conditions and the following
+          disclaimer.
+
+        * Redistributions in binary form must reproduce the above
+          copyright notice, this list of conditions and the following
+          disclaimer in the documentation and/or other materials
+          provided with the distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER “AS IS” AND ANY
+    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
+    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+    OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
+    TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+    THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
+
+ **********************************************************************
+"""
+"use strict"
+
+{
+"abs": def abs(n):
+    return Math.abs(n)
+,
+"bind": def _$rapyd$_bind(fn, thisArg):
+    if fn.orig: fn = fn.orig
+    if thisArg == False: return fn
+    ret = def():
+        return fn.apply(thisArg, arguments)
+    ret.orig = fn
+    return ret
+,
+"rebind_all": def _$rapyd$_rebindAll(thisArg, rebind):
+    if JS('typeof rebind') == "undefined": rebind = True
+    for JS('var p in thisArg'):
+        if thisArg[p] and thisArg[p].orig:
+            if rebind: thisArg[p] = _$rapyd$_bind(thisArg[p], thisArg)
+            else: thisArg[p] = thisArg[p].orig
+,
+"dir": def dir(item):
+    # TODO: this isn't really representative of real Python's dir(), nor is it
+    # an intuitive replacement for "for ... in" loop, need to update this logic
+    # and introduce a different way of achieving "for ... in"
+    arr = []
+    for JS('var i in item'): arr.push(i)
+    return arr
+,
+"enumerate": def enumerate(item):
+    arr = []
+    for JS('var i=0;i<item.length;i++'): arr[arr.length] = [i, item[i]]
+    return arr
+,
+"extends": def _$rapyd$_extends(child, parent):
+    child.prototype = Object.create(parent.prototype)
+    child.prototype.constructor = child
+,
+"in": def _$rapyd$_in(val, arr):
+    if isinstance(arr, Array) or JS('typeof arr') == 'string': return arr.indexOf(val) != -1
+    else:
+        if arr.hasOwnProperty(val): return True
+        return False
+,
+"iterable": def _$rapyd$_Iterable(iterable):
+    if isinstance(iterable, Array) or isinstance(iterable, String) or JS('typeof iterable') == 'string': return iterable
+    return Object.keys(iterable)    # so we can use 'for ... in' syntax with hashes
+,
+"len": def len(obj):
+    if isinstance(obj, Array) or JS('typeof obj') == 'string': return obj.length
+    else:
+        count = 0
+        for JS('var i in obj'):
+            if obj.hasOwnProperty(i): count += 1
+        return count
+,
+"mixin": def _$rapyd$_mixin(target, source, overwrite):
+    for JS('var i in source'):
+        if source.hasOwnProperty(i) and overwrite or JS('typeof target[i]') == 'undefined': target[i] = source[i]
+,
+"print": def _$rapyd$_print(*args):
+    output = JSON.stringify(args)
+    if JS('typeof console') == 'object': console.log(output.substr(1, output.length-2))
+,
+"range": def range(start, stop, step):
+    if arguments.length <= 1:
+        stop = start or 0
+        start = 0
+    step = arguments[2] or 1
+
+    length = Math.max(Math.ceil((stop - start) / step), 0)
+    idx = 0
+    range = Array(length)
+
+    while idx < length:
+        range[JS('idx++')] = start
+        start += step
+    return range
+,
+"reversed": def reversed(arr):
+    tmp = arr[:]
+    return tmp.reverse()
+,
+"getattr": def getattr(obj, name):
+    return obj[name]
+,
+"setattr": def setattr(obj, name, value):
+    obj[name] = value
+,
+"hasattr": def hasattr(obj, name):
+    return JS('name in obj')
+}
