@@ -60,16 +60,10 @@ class AssertionError(Error):
 # Arrays
 ###########################################################
 def map(oper, arr):
-	return list(arr.map(oper))
+    return list(arr.map(oper))
 
 def filter(oper, arr):
-	return list(arr.filter(oper))
-
-def sum(arr, start=0):
-    return arr.reduce(
-        def(prev, cur): return prev+cur;,
-        start
-    )
+    return list(arr.filter(oper))
 
 
 ###########################################################
