@@ -15,5 +15,7 @@ class External:
             getattr()
             setattr()
             hasattr()
+            sum()
+            a[::-1]
         for a in b:
             pass

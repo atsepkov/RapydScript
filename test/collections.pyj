@@ -22,12 +22,24 @@ assert.ok(7 in a)
 assert.ok(i1 in b)
 assert.ok(i2 not in b)
 
-# strings
-assert.ok("tes" in "this is a test")
-
 # assignment
 a[-1] = 9
 assert.equal(a[-1], 9)
+
+# extended slices
+b = [0 to 10]
+s = 'abcde'
+assert.deepEqual(b[::2], [0, 2, 4, 6, 8, 10])
+assert.deepEqual(b[::-1], range(10,-1,-1))
+assert.deepEqual(b[7:0:-1], [7, 6, 5, 4, 3, 2, 1])
+assert.deepEqual(b[7:1:-2], [7, 5, 3])
+assert.equal(s[::2], 'ace')
+assert.equal(s[::-1], 'edcba')
+assert.equal(s[4:0:-1], 'edcb')
+assert.equal(s[4:1:-2], 'ec')
+
+# strings
+assert.ok("tes" in "this is a test")
 
 one = "one"
 two = "two"

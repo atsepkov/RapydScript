@@ -2214,7 +2214,7 @@ def parse($TEXT, options):
                         expression: new AST_SymbolRef({
                             name: "eslice"
                         }),
-                        args: slice_bounds,
+                        args: [expr].concat(slice_bounds),
                         end: prev()
                     }), allow_calls)
                 else:
@@ -2297,6 +2297,7 @@ def parse($TEXT, options):
                     or tmp_ == "print"
                     or tmp_ == "range"
                     or tmp_ == "reversed"
+                    or tmp_ == "sum"
                     or tmp_ == "getattr"
                     or tmp_ == "setattr"
                     or tmp_ == "hasattr":
