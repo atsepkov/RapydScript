@@ -426,7 +426,8 @@ def OutputStream(options):
         "float": "parseFloat",
         "int": "parseInt",
         mixin: "_$rapyd$_mixin",
-        print: "_$rapyd$_print"
+        print: "_$rapyd$_print",
+        eslice: "_$rapyd$_eslice",
     }
     INDEX_COUNTER = 0
     def DEFPRINT(nodetype, generator):

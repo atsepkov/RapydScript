@@ -79,6 +79,26 @@
     for JS('var i=0;i<item.length;i++'): arr[arr.length] = [i, item[i]]
     return arr
 ,
+"eslice": def _$rapyd$_eslice(arr, step, start, end):
+    arr = arr[:]
+    if type(arr) == 'string' or isinstance(arr, String):
+        isString = True
+        arr = arr.split('')
+
+    if step < 0:
+        step = -step
+        arr.reverse()
+        if type(start) != "undefined":
+            tmp = start + 1
+        if type(end) != "undefined":
+            start = end + 1
+        end = tmp
+    if type(start) == "undefined": start = 0
+    if type(end) == "undefined": end = arr.length
+
+    arr = arr.slice(start, end).filter(def(e, i): return i % step == 0;)
+    return isString ? arr.join('') : arr
+,
 "extends": def _$rapyd$_extends(child, parent):
     child.prototype = Object.create(parent.prototype)
     child.prototype.constructor = child

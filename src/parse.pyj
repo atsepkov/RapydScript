@@ -2161,9 +2161,7 @@ def parse($TEXT, options):
             is_slice = False
             if is_("punc", ":"):
                 # slice [:n]
-                slice_bounds.push(new AST_Number({
-                    value: 0
-                }))
+                slice_bounds.push(None)
             else:
                 slice_bounds.push(expression(False))
 
@@ -2171,22 +2169,59 @@ def parse($TEXT, options):
                 # slice [n:m?]
                 is_slice = True
                 next()
-                if not is_("punc", "]"):
+                if is_("punc", ":"):
+                    slice_bounds.push(None)
+                elif not is_("punc", "]"):
+                    slice_bounds.push(expression(False))
+
+            if is_("punc", ":"):
+                # slice [n:m:o?]
+                BASELIB["eslice"] = True
+                next()
+                if is_("punc", "]"):
+                    unexpected()
+                else:
                     slice_bounds.push(expression(False))
 
             expect("]")
+
             if is_slice:
                 if is_("operator") and S.token.value == "=":
+                    # splice-assignment (arr[start:end] = ...)
                     next()  # swallow the assignment
                     return subscripts(new AST_Splice({
                         start: start,
                         expression: expr,
-                        property: slice_bounds[0],
+                        property: slice_bounds[0] or new AST_Number({
+                            value: 0
+                        }),
                         property2: slice_bounds[1],
                         assignment: expression(True),
                         end: prev()
                     }), allow_calls)
+                elif slice_bounds.length == 3:
+                    # extended slice (arr[start:end:step])
+                    slice_bounds.unshift(slice_bounds.pop())
+                    if not slice_bounds[-1]:
+                        slice_bounds.pop()
+                        if not slice_bounds[-1]:
+                            slice_bounds.pop()
+                    elif not slice_bounds[-2]:
+                        slice_bounds[-2] = new AST_Undefined()
+
+                    return subscripts(new AST_Call({
+                        start: start,
+                        expression: new AST_SymbolRef({
+                            name: "eslice"
+                        }),
+                        args: slice_bounds,
+                        end: prev()
+                    }), allow_calls)
                 else:
+                    # regular slice (arr[start:end])
+                    slice_bounds = [i == None ? new AST_Number({
+                        value: 0
+                    }) : i for i in slice_bounds]
                     return subscripts(new AST_Call({
                         start: start,
                         expression: new AST_Dot({
@@ -2199,10 +2234,13 @@ def parse($TEXT, options):
                         end: prev()
                     }), allow_calls)
             else:
+                # regular index (arr[index])
                 return subscripts(new AST_Sub({
                     start: start,
                     expression: expr,
-                    property: slice_bounds[0],
+                    property: slice_bounds[0] or new AST_Number({
+                        value: 0
+                    }),
                     end: prev()
                 }), allow_calls)
 
