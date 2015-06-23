@@ -1,5 +1,5 @@
 #! /usr/bin/env node
-// -*- js -*-
+// vim:ft=javascript:ts=4:et
 
 "use strict";
 
@@ -30,6 +30,7 @@ instead of using @bound decorator [experimental].")
     .describe("p", "Prettify output/specify output options.")
     .describe("m", "Omit baselib functions (use this if you have a different way of ensuring they're imported, such as including baselib.js).")
     .describe("t", "Run RapydScript tests")
+    .describe("w", "When testing, run only the specified test file, for e.g., -w classes")
 
     .describe("comments", "Preserve copyright comments in the output. \
 By default this works like Google Closure, keeping JSDoc-style comments that contain \"@license\" or \"@preserve\". \
@@ -133,15 +134,20 @@ if (!OMIT_BASELIB || ARGS.t || !ARGS.test) {
 if (ARGS.t || ARGS.test) {
     // run all tests and exit
     var assert = require("assert");
+    var os = require('os');
+    var all_ok = true;
     var test_dir = path.normalize(
         path.join(
             path.dirname(module.filename),
             "../test"
         )
     );
-    var files = fs.readdirSync(test_dir).filter(function(name){
-        return /^[^_].*\.pyj$/.test(name);
-    });
+    if (ARGS.w)
+        var files = [ARGS.w + '.pyj'];
+    else
+        var files = fs.readdirSync(test_dir).filter(function(name){
+            return /^[^_].*\.pyj$/.test(name);
+        });
     files.forEach(function(file){
         var ast;
         var filepath = path.join(test_dir, file);
@@ -179,12 +185,14 @@ if (ARGS.t || ARGS.test) {
 
         // test that output performs correct JS operations
         var testcontent = "exports.run = function(){assert = require('assert');" + output.toString() + "};";
-        fs.writeFileSync(filepath + ".js", testcontent);
-        var testcase = require(filepath + ".js");
+        var jsfile = path.join(os.tmpdir(), file + '.js')
+        fs.writeFileSync(jsfile, testcontent);
+        var testcase = require(jsfile);
 		var ok = false;
         try {
             testcase.run();
 			ok = true;
+            fs.unlinkSync(jsfile);
         } catch (e) {
             if (e.stack) {
                 sys.print(file + ":\t" + e.stack + "\n\n");
@@ -193,10 +201,10 @@ if (ARGS.t || ARGS.test) {
             }
         }
 		if (ok) sys.print(file + ":\ttest completed successfully\n");
-        else sys.print(file + ":\ttest failed\n");
-		fs.unlinkSync(filepath + ".js");
+        else { all_ok = false; sys.print(file + ":\ttest failed\n"); }
     });
-    process.exit(0);
+    if (!all_ok) sys.print('There were some test failures!!');
+    process.exit((all_ok) ? 0 : 1);
 }
 
 //if (BEAUTIFY);
