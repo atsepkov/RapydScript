@@ -782,7 +782,7 @@ Including `rebind_all` call in the constructor, however, will break `Casper`. It
 Modules
 -------
 
-RapydScript's module system works almost exactly like pythons. Modules are
+RapydScript's module system works almost exactly like Python's. Modules are
 files ending with the suffix ```.pyj``` and packages are directories containing
 an ```__init__.pyj``` file. The only caveat is that star imports are not
 currently supported (this is by design, star imports are easily abused).
