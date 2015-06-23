@@ -1410,7 +1410,7 @@ def parse($TEXT, options):
             for argvar in argnames:
                 obj = classes[argvar.name]
                 if obj:
-                    S.classes[0][argvar.name] = { "static": obj.static, bound: obj.bound}
+                    S.classes[-1][argvar.name] = { "static": obj.static, bound: obj.bound }
         else:
             S.modules[key] = True
 

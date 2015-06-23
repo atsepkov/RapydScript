@@ -1,6 +1,9 @@
 from one import toplevel_var, toplevel_func, TopLevel, true_var, false_var
 from two import toplevel_var2, toplevel_func2, TopLevel2
 
+def AClass(x):
+    return this
+
 eq = assert.equal
 # Test import of top-level variables and callables
 eq(toplevel_var, 'foo')
@@ -31,3 +34,14 @@ eq('sub', two.sub.sub_func())
 # recognized
 s = two.sub.Sub(1)
 eq(s.a, 1)
+
+# Test that a class imported into an inner scope is not recognized as a class
+# outside that scope
+def inner():
+    from one import AClass
+    a = AClass(1)
+    eq(a.a, 1)
+
+inner()
+b = AClass(1)
+eq(b, this)

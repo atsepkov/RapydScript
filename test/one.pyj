@@ -8,6 +8,11 @@ class TopLevel:
     def __init__(self, a):
         self.a = a
 
+class AClass(TopLevel):
+
+    def __init__(self, a):
+        self.a = a
+
 toplevel_var = 'foo'
 
 if True:
