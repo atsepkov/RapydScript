@@ -51,7 +51,6 @@ because of dead code removal or cascading statements into sequences.")
     .alias("o", "output")
     .alias("b", "bare")
     .alias("v", "verbose")
-    .alias("n", "namespace-imports")
     .alias("i", "auto-bind")
     .alias("p", "prettify")
     .alias("m", "omit-baselib")
@@ -94,14 +93,12 @@ if (ARGS.h || ARGS.help) {
 // configure settings for the output
 var BEAUTIFY = getOptions("p", true);
 var NO_MODULE_WRAPPER = getOptions("b", false);
-var NAMESPACE_IMPORTS = getOptions("n", false);
 var AUTO_BIND = getOptions("i", false);
 var OMIT_BASELIB = getOptions("m", false);
 
 var OUTPUT_OPTIONS = {
     beautify: BEAUTIFY ? true : false,
     private_scope: NO_MODULE_WRAPPER ? false : true,
-    namespace_imports: NAMESPACE_IMPORTS ? true : false,
     auto_bind: AUTO_BIND ? true : false,
     omit_baselib: OMIT_BASELIB ? true : false,
 };
@@ -183,18 +180,20 @@ if (ARGS.t || ARGS.test) {
         var testcontent = "exports.run = function(){assert = require('assert');" + output.toString() + "};";
         fs.writeFileSync(filepath + ".js", testcontent);
         var testcase = require(filepath + ".js");
+		var ok = false;
         try {
             testcase.run();
+			ok = true;
         } catch (e) {
             if (e.stack) {
                 sys.print(file + ":\t" + e.stack + "\n\n");
             } else {
                 sys.print(file + ":\t" + e + "\n\n");
             }
-            fs.unlinkSync(filepath + ".js");
         }
-        sys.print(file + ":\ttest completed successfully\n");
-            fs.unlinkSync(filepath + ".js");
+		if (ok) sys.print(file + ":\ttest completed successfully\n");
+        else sys.print(file + ":\ttest failed\n");
+		fs.unlinkSync(filepath + ".js");
     });
     process.exit(0);
 }
