@@ -809,7 +809,6 @@ def parse($TEXT, options):
         classes: [ {} ],
         labels: [],
         decorators: [],
-        modules: {},
     }
 
     S.token = next()
@@ -1307,6 +1306,11 @@ def parse($TEXT, options):
 
     # scan function/class body for nested class declarations
     def get_class_in_scope(expr):
+        # TODO: Currently if a local variable shadows a class name defined in
+        # an outerscope, the logic below will identify that variable as a
+        # class. This bug was always present. Fixing it will require the parser
+        # to maintain a list of local variables for every AST_Scope and provide
+        # an easy way to walk the ast tree upwards.
         if isinstance(expr, AST_SymbolRef):
             # check Native JS classes
             if NATIVE_CLASSES.hasOwnProperty(expr.name):
@@ -1327,16 +1331,10 @@ def parse($TEXT, options):
                 referenced_path.unshift(expr.name)
                 # now 'referenced_path' should contain the full path of potential class
                 if len(referenced_path) > 1:
-                    module_id = referenced_path[:-1].join('.')
-                    if S.modules.hasOwnProperty(module_id):
-                        # TODO: verify that this expr is not shadowed by a
-                        # local variable in the current scope. This should be pretty rare,
-                        # but it needs to be done for robustness. Can be implemented by using
-                        # the walk method on the top-level scope.
-                        class_name = referenced_path[-1]
-                        mod = IMPORTED[module_id]
-                        if mod.classes.hasOwnProperty(class_name):
-                            return mod.classes[class_name]
+                    class_name = referenced_path.join('.')
+                    for s in range(S.classes.length-1, -1, -1):
+                        if S.classes[s].hasOwnProperty(class_name):
+                            return S.classes[s][class_name]
         return False
 
     def do_import(key):
@@ -1398,6 +1396,7 @@ def parse($TEXT, options):
     import_ = def(from_import):
         name, key = read_import()
         argnames = None
+        classes = IMPORTED[key].classes
         if from_import:
             expect_token("keyword", "import")
             argnames = []
@@ -1406,13 +1405,15 @@ def parse($TEXT, options):
                 next()
                 argnames.push(as_symbol(AST_SymbolVar))
             # Put imported class names in the outermost scope
-            classes = IMPORTED[key].classes
             for argvar in argnames:
                 obj = classes[argvar.name]
                 if obj:
                     S.classes[-1][argvar.name] = { "static": obj.static, bound: obj.bound }
         else:
-            S.modules[key] = True
+            for i in dir(classes):
+                obj = classes[i]
+                if isinstance(obj, AST_Class):
+                    S.classes[-1][key + '.' + obj.name.name] = { 'static': obj.static, bound: obj.bound }
 
         return new AST_Import({
             module: name,
