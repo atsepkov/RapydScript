@@ -1,6 +1,8 @@
 #!/bin/sh
 set -x
 
+die() { echo "$@" 1>&2 ; exit 1; }
+
 if command -v node >/dev/null; then
     NODE="node"
 elif command -v nodejs >/dev/null; then
@@ -11,12 +13,32 @@ else
 fi
 
 BDIR=temp
+DEST=lib
+SRC=src
+CC=bin/rapydscript
 
-rm -rf $BDIR && mkdir $BDIR && \
-$NODE bin/rapydscript src/lib/baselib_gen.pyj -o $BDIR/baselib.js -b -p && \
-$NODE bin/rapydscript src/utils.pyj -o $BDIR/utils.js -b -p -m  && \
-$NODE bin/rapydscript src/ast.pyj -o $BDIR/ast.js -b -p -m && \
-$NODE bin/rapydscript src/parse.pyj -o $BDIR/parse.js -b -p -m && \
-$NODE bin/rapydscript src/output.pyj -o $BDIR/output.js -b -p -m && \
-cp $BDIR/*.js lib/ && \
-exit 0
+CHANGED=0
+FILES=(baselib utils ast parse output)
+for i in ${FILES[@]}; do
+	if [[ $SRC/$i.pyj -nt $DEST/$i.js ]]; then
+		CHANGED=1;
+	fi
+done
+
+if [[ $CHANGED -eq 0 ]]; then
+	echo "Up to date"
+	exit 0
+fi
+
+if command -v git >/dev/null; then
+	git checkout -- $DEST/*.js || die "Failed to revert to HEAD"
+fi
+
+rm -rf $BDIR
+mkdir $BDIR || die "Failed to create $BDIR directory"
+$NODE $CC $SRC/lib/baselib_gen.pyj -o $BDIR/baselib.js -b -p || die "Failed to compile $i"
+for i in ${FILES[@]:1}; do
+	$NODE $CC $SRC/$i.pyj -o $BDIR/$i.js -b -p -m || die "Failed to compile $i"
+done
+
+cp $BDIR/*.js $DEST/ && exit 0
