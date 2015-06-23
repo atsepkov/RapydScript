@@ -278,14 +278,19 @@ AST_Scope = DEFNODE("Scope", "directives variables localvars functions uses_with
     }
 }, AST_Block)
 
-AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang", {
+AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang import_order module_id exports submodules classes", {
     $documentation: "The toplevel scope",
     $propdoc: {
         globals: "[Object/S] a map of name -> SymbolDef for all undeclared names",
         baselib: "[Object/s] a collection of used parts of baselib",
-        imports: "[AST_Import*] a collection of all imported modules",
+        imports: "[Object/S] a map of module_id->AST_Toplevel for all imported modules",
         strict: "[boolean/S] true if strict directive is in scope",
-        shebang: "[string] If #! line is present, it will be stored here"
+        shebang: "[string] If #! line is present, it will be stored here",
+        import_order: "[number] The global order in which this scope was imported",
+        module_id: "[string] The id of this module",
+        exports: "[SymbolDef*] list of names exported from this module",
+        submodules: "[string*] list of names exported from this module",
+        classes: "[Object/S] a map of class names to AST_Class for classes defined in this module",
     },
     wrap_enclose: def(arg_parameter_pairs):
         self = this
@@ -348,13 +353,13 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang", {
         return wrapped_tl
 }, AST_Scope)
 
-AST_Import = DEFNODE("Import", "module argnames variables body", {
-    $documentation: "Container for imported files",
+AST_Import = DEFNODE("Import", "module key argnames body", {
+    $documentation: "Container for imports",
     $propdoc: {
         module: "[AST_SymbolVar] name of the module we're importing",
+        key:  "[string] The key by which this module is stored in the global modules mapping",
         argnames: "[AST_SymbolVar*] names of objects to be imported",
-        variables: "[Object/S] a map of name -> SymbolDef for all variables/functions defined in this scope",
-        body: "[AST_TopLevel] contents of the imported file"
+        body: "[AST_TopLevel] parsed contents of the imported file",
     }
 }, AST_Statement)
 
@@ -393,7 +398,7 @@ AST_Function = DEFNODE("Function", None, {
     $documentation: "A function expression"
 }, AST_Lambda)
 
-AST_Class = DEFNODE("Class", "init name parent static external bound decorators modules", {
+AST_Class = DEFNODE("Class", "init name parent static external bound decorators module_id", {
     $documentation: "A class declaration",
     $propdoc: {
         name: "[AST_SymbolDeclaration?] the name of this class",
@@ -403,7 +408,7 @@ AST_Class = DEFNODE("Class", "init name parent static external bound decorators 
         external: "[boolean] true if class is declared elsewhere, but will be within current scope at runtime",
         bound: "[string*] list of methods that need to be bound to behave correctly (function pointers)",
         decorators: "[AST_Decorator*] function decorators, if any",
-        modules: "[string*] module stack that this class resides inside of, if any"
+        module_id: "[string] The id of the module this class is defined in",
     },
     _walk: def(visitor):
         return visitor._visit(this, def():

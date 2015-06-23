@@ -1,0 +1,16 @@
+# vim:fileencoding=utf-8
+
+def toplevel_func(a):
+    return a + 'toplevel'
+
+class TopLevel:
+
+    def __init__(self, a):
+        self.a = a
+
+toplevel_var = 'foo'
+
+if True:
+    true_var = 'true'
+else:
+    false_var = 'false'

@@ -64,7 +64,6 @@ def OutputStream(options):
         semicolons: True,
         comments: False,
         preserve_line: False,
-        namespace_imports: False,
         omit_baselib: False,
         baselib: None,
         private_scope: True,
@@ -376,15 +375,8 @@ def OutputStream(options):
         assign: assign_var,
         prologue: prologue,
         "import": def(module_):
-            key = ""
-            while isinstance(module_, AST_Dot):
-                key = "." + module_.property + key
-                module_ = module_.expression
-
-            key = module_.name + key
-            should_import = not IMPORTED[key]
-            IMPORTED[key] = True
-            return should_import
+            if not IMPORTED.hasOwnProperty(module_.key):
+                IMPORTED[module_.key] = module_
         ,
         is_main: def():
             return OUTPUT.length == 0
@@ -644,6 +636,41 @@ def OutputStream(options):
             output.semicolon()
             output.newline()
 
+    def write_imports(module_, output):
+        imports = []
+        for import_id in Object.keys(module_.imports):
+            imports.push(module_.imports[import_id])
+        imports.sort(def(a, b):
+            a, b = a.import_order, b.import_order
+            return ((a < b) ? -1 : ((a > b) ? 1 : 0))
+        )
+        if imports.length > 1:
+            output.indent()
+            output.print('if (typeof _$rapyd$_modules !== "object") var _$rapyd$_modules = {};')
+            output.newline()
+
+        # Create the module objects
+        for module_ in imports:
+            if module_.module_id != '__main__':
+                output.indent()
+                output.print('_$rapyd$_modules["')
+                output.print(module_.module_id)
+                output.print('"] = {}')
+                output.semicolon()
+                output.newline()
+
+        # Output module code
+        for module_ in imports:
+            if module_.module_id != '__main__':
+                print_module(module_, output)
+
+        output.newline()
+        output.indent()
+        output.print('var __name__ = "__main__"')
+        output.semicolon()
+        output.newline()
+        output.newline()
+
     def display_complex_body(node, is_toplevel, output):
         offset = 0
         # argument offset
@@ -751,6 +778,25 @@ def OutputStream(options):
             output.semicolon()
             output.newline()
 
+    def declare_exports(module_id, exports, submodules, output):
+        seen = {}
+        for symbol in exports:
+            output.newline()
+            output.indent()
+            output.print('_$rapyd$_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
+            seen[symbol.name] = True
+            output.semicolon()
+            output.newline()
+        for sub_module_id in submodules:
+            if not seen.hasOwnProperty(module_id):
+                key = sub_module_id.split('.')[-1]
+                output.newline()
+                output.indent()
+                output.print('_$rapyd$_modules["' + module_id + '"]["' + key + '"] = ')
+                output.print('_$rapyd$_modules["' + sub_module_id + '"]')
+                output.semicolon()
+                output.newline()
+
     def unpack_tuple(tuple, output, in_statement):
         tuple.elements.forEach(def(elem, i):
             output.indent()
@@ -795,6 +841,7 @@ def OutputStream(options):
                     output.newline()
 
                     output.prologue(self)
+                    write_imports(self, output)
                     display_complex_body(self, True, output)
                     output.newline()
                 )
@@ -804,6 +851,7 @@ def OutputStream(options):
         else:
             if is_main:
                 output.prologue(self)
+                write_imports(self, output)
 
             if self.strict:
                 declare_vars(self.localvars, output)
@@ -811,64 +859,56 @@ def OutputStream(options):
             display_body(self.body, True, output)
 
     )
-    def print_module(self, variables, output):
-        def print_var(name):
-            if typeof name is "string":
-                output.print(name)
-            else:
-                name.print(output)
-
+    def print_module(self, output):
+        output.newline()
+        output.indent()
         output.with_parens(def():
             output.print("function()")
             output.with_block(def():
                 # dump the logic of this module
-                display_complex_body(self, False, output)
-                # expose local variables to the outside via a hash
                 output.indent()
-                output.print("return")
-                output.space()
-                output.with_block(def():
-                    variables.forEach(def(arg, i):
-                        output.indent()
-                        print_var(arg)
-                        output.print(":")
-                        output.space()
-                        print_var(arg)
-                        if i < variables.length - 1:
-                            output.comma()
-
-                        output.newline()
-                    )
-                )
+                output.print('var ')
+                output.assign('__name__')
+                output.print('"' + self.module_id + '"')
+                output.semicolon()
+                output.newline()
+                declare_vars(self.localvars, output)
+                display_body(self.body, True, output)
+                declare_exports(self.module_id, self.exports, self.submodules, output)
+                output.newline()
+                output.indent()
+                output.print("return this")
                 output.semicolon()
                 output.newline()
             )
         )
         output.print("()")
+        output.semicolon()
+        output.newline()
 
     DEFPRINT(AST_Import, def(self, output):
-        if output.import(self.module):
-            if not output.option("namespace_imports"):
-                self.body.print(output)
-            else:
-                output.print("var")
-                output.space()
-                output.assign(self.module)
-                print_module(self.body, self.variables, output)
-                output.semicolon()
-                output.newline()
+        output.import(self.module)
+        def add_aname(aname, key, from_import):
+            output.print('var ')
+            output.assign(aname)
+            output.print('_$rapyd$_modules["')
+            output.print(key)
+            output.print('"]')
+            if from_import:
+                output.print('.')
+                output.print(aname)
+            output.semicolon()
+            output.newline()
+            output.indent()
 
-        if output.option("namespace_imports") and self.argnames:
-            self.variables.forEach(def(arg):
-                output.print("var")
-                output.space()
-                output.assign(arg)
-                self.module.print(output)
-                output.print(".")
-                arg.print(output)
-                output.semicolon()
-                output.newline()
-            )
+        if self.argnames:
+            # A from import
+            for argname in self.argnames:
+                add_aname(argname.name, self.key, True)
+        else:
+            bound_name = self.key.split('.', 1)[0]
+            add_aname(bound_name, bound_name, False)
+
     )
     DEFPRINT(AST_LabeledStatement, def(self, output):
         self.label.print(output)
@@ -1287,10 +1327,8 @@ def OutputStream(options):
                 output.with_block(def():
                     bind_methods(self.bound, output)
                     output.indent()
-                    if self.init:
-                        self.name.print(output)
-                    else:
-                        self.parent.print(output)
+                    cname = (self.name) ? self.name : self.parent
+                    cname.print(output)
                     output.print(".prototype.__init__.apply")
                     output.with_parens(def():
                         output.print("this")
@@ -1343,25 +1381,6 @@ def OutputStream(options):
         )
     )
     DEFPRINT(AST_Class, def(self, output):
-        self._do_print(output)
-    )
-
-    # -----[ modules ]-----
-    AST_Module.DEFMETHOD("_do_print", def(output):
-        self = this
-        if self.external:
-            return
-
-        output.print("var")
-        output.space()
-        output.assign(self.name)
-        def internalsub():
-            print_module(self, self.variables, output)
-        decorate(self, output, internalsub)
-        output.semicolon()
-        output.newline()
-    )
-    DEFPRINT(AST_Module, def(self, output):
         self._do_print(output)
     )
 

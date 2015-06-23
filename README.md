@@ -781,81 +781,13 @@ Including `rebind_all` call in the constructor, however, will break `Casper`. It
 
 Modules
 -------
-Unlike Python, RapydScript's import system does not automatically encapsulate external files in modules. Multiple RapydScript users have raised concerns about this, so I added explicit modules to RapydScript. They work very similar to implicit modules of Python, with the exception that developer would use the `module` keyword rather than creating a new file. As a result, one can place multiple modules into a single file, or even nest them (note that import logic cannot import from within nested modules individually, only from files). In terms of JavaScript, a module is basically a function such that all of its local variables are visible to the outside. For example:
 
-	module math:
-		pi = Math.PI
+RapydScript's module system works almost exactly like pythons. Modules are
+files ending with the suffix ```.pyj``` and packages are directories containing
+an ```__init__.pyj``` file. The only caveat is that star imports are not
+currently supported (this is by design, star imports are easily abused).
 
-		a = "foo"
-		a += "bar"
-
-		counter = 0
-		def inc_counter():
-			nonlocal counter
-			counter += 1
-		def get_counter():
-			return counter
-
-		class Counter:
-			def __init__(self):
-				self.counter = 0
-			def inc(self):
-				self.counter += 1
-
-	print(math.pi)				# outputs 3.141592653589793
-	print(math.a)				# outputs 'foobar'
-
-	math.inc_counter()			# increments counter
-	print(math.counter)			# outputs 0 (math.counter has been imported by value, it will not update when internal counter does)
-	print(math.get_counter())	# outputs 1
-
-	c = math.Counter()			# creates a new instance of math.Counter, note the absence of 'new' keyword
-	c.inc()						# increments counter
-	print(c.counter)			# outputs 1
-
-Above examples show a few interesting features of RapydScript modules. First, note that modules allow all of the same logic inside of them as regular functions, as seen by appending 'bar' to 'foo'. Since module runs at the time of its initialization, any such logic will have already been executed by the time you reference the module from other code. This is how Python works with modules as well. Second, since JavaScript (like Python) passes primitive types by value, referencing them directly from outside the module will return their values at the time of module initialization rather than their current values. The example printing `math.counter` makes this clear. Third, RapydScript is smart enough to detect classes through modules, so you don't need to remember the `new` keyword for classes declared within modules.
-
-The automatic `new` keyword is a useful feature, but what about modules that are declared in different files? If you `import` them in your code directly, RapydScript will pick them up automatically as well. If you instead include multiple `.js` files in your HTML, you could bypass the problem via decorators. Like classes (and functions), modules support `@external` decorator:
-
-	@external
-	module math:
-		class Counter:
-			pass
-
-	c = math.Counter()
-
-The above example will treat `math.Counter` as a class, but will not create the class or the `math` module containing it, assuming that `math.Class` will be included from somewhere else when the page loads. Since modules are technically functions, they also support normal decorators, like the functions themselves:
-
-	def has_item(m):
-		m.item = "an item"
-		return m
-
-	@has_item
-	module blank:
-		pass
-
-	print(blank.item)		# outputs 'an item'
-
-This is unlike Python modules, but can be useful in case you want to tweak your modules further, like adding extra parameters to them or conditional debug logic. You could also nest modules as many levels as you wish:
-
-	module world:
-		module country:
-			co = 'US'
-			module city:
-				ct = 'Cupertino, CA'
-				module zipcode:
-					z = '95014'
-					class House:
-						def __init__(self, address):
-							self.addr = address
-						def get_address(self):
-							return [self.addr, ct, z, co].join(', ')
-
-	apple_hq = world.country.city.zipcode.House('1 Infinite Loop')
-	apple_hq.get_address()		# '1 Infinite Loop, Cupertino, CA, 95014, US'
-
-This is admittedly a silly example, since we hardcoded the city and zipcode yet dynamically specify the address, but it's a good example of what can be achieved via module-nesting.
-
+Also, currently, aliasing with ```as``` is not supported, this is on my TODO list.
 
 Exception Handling
 ------------------

@@ -47,7 +47,7 @@
 """
 "use strict"
 
-KEYWORDS = "as break case class const continue debugger default def del do elif else except finally for from if import in instanceof is module new nonlocal pass raise return switch til to try typeof var void while with or and not"
+KEYWORDS = "as break case class const continue debugger default def del do elif else except finally for from if import in instanceof is new nonlocal pass raise return switch til to try typeof var void while with or and not"
 
 KEYWORDS_ATOM = "False None True"
 
@@ -181,8 +181,12 @@ UNICODE = {
     connector_punctuation: RegExp("[\\u005F\\u203F\\u2040\\u2054\\uFE33\\uFE34\\uFE4D-\\uFE4F\\uFF3F]")
 }
 
-IMPORTED = {}
 BASELIB = {}
+
+class ImportError(Error):
+
+    def __init__(self, message):
+        self.message = message
 
 def is_letter(code):
     return code >= 97 and code <= 122 or code >= 65 and code <= 90 or code >= 170 and UNICODE.letter.test(String.fromCharCode(code))
@@ -241,7 +245,7 @@ def is_token(token, type, val):
 
 EX_EOF = {}
 
-def tokenizer($TEXT, filename):
+def tokenizer($TEXT, filename):  # {{{
     S = {
         text: $TEXT.replace(/\r\n?|[\n\u2028\u2029]/g, "\n").replace(/\uFEFF/g, ""),
         filename: filename,
@@ -733,7 +737,7 @@ def tokenizer($TEXT, filename):
         return S
 
     return next_token
-
+# }}}
 
 # -----[ Parser (constants) ]-----
 UNARY_PREFIX = makePredicate([
@@ -785,8 +789,13 @@ def parse($TEXT, options):
         strict: False,      # whether to use strict JavaScript mode
         filename: None,     # name of the file being parsed
         auto_bind: False,   # whether auto-binding of methods to classes is enabled
+        module_id:'__main__', # The id of the module being parsed
         toplevel: None
     })
+    module_id = options.module_id
+    IMPORTED = options.IMPORTED or {}
+    IMPORTING = options.IMPORTING or {}
+    IMPORTING[module_id] = True
 
     S = {
         input: (typeof $TEXT == "string" ? tokenizer($TEXT, options.filename) : $TEXT),
@@ -800,9 +809,7 @@ def parse($TEXT, options):
         classes: [ {} ],
         labels: [],
         decorators: [],
-        module_tree: {},
-        # tree describing the structure of modules and classes within them (module: {}, class: undefined)
-        module_stack: []
+        modules: {},
     }
 
     S.token = next()
@@ -892,13 +899,48 @@ def parse($TEXT, options):
         else:
             return False
 
+    def scan_for_top_level_callables(body):
+        ans = []
+        # Get the named functions and classes
+        if isinstance(body, Array):
+            for name in dir(body):
+                obj = body[name]
+                if isinstance(obj, AST_Function) or isinstance(obj, AST_Class):
+                    ans.push(obj.name)
+                else:
+                    # skip inner scopes
+                    if isinstance(obj, AST_Scope):
+                        continue
+                    for x in ['body', 'alternative']:
+                        opt = obj[x]
+                        if opt:
+                            ans = ans.concat(scan_for_top_level_callables(opt))
 
-    def scan_for_local_vars(body, is_module):
+                        if isinstance(opt, AST_Assign) and not (isinstance(opt.right, AST_Scope)):
+                            ans = ans.concat(scan_for_top_level_callables(opt.right))
+
+        elif body.body:
+            # recursive descent into wrapper statements that contain body blocks
+            ans = ans.concat(scan_for_top_level_callables(body.body))
+            if body.alternative:
+                ans = ans.concat(scan_for_top_level_callables(body.alternative))
+
+
+        return ans
+
+    def scan_for_classes(body):
+        ans = {}
+        for name in dir(body):
+            obj = body[name]
+            if isinstance(obj, AST_Class):
+                ans[obj.name.name] = obj
+        return ans
+
+    def scan_for_local_vars(body):
         """
         Pick out all variables being assigned to from within this scope, we'll mark them as local
 
         body        body to be scanned
-        is_module   if this body belongs to a module object and variables should be exposed
         """
         vars = []
         if isinstance(body, Array):
@@ -906,8 +948,6 @@ def parse($TEXT, options):
             for stmt in dir(body):
                 # skip inner scopes
                 if isinstance(body[stmt], AST_Scope):
-                    if is_module and body[stmt].name:
-                        vars.push(body[stmt].name)
                     continue
 
                 # recursive descent into conditional, loop and exception bodies
@@ -915,40 +955,39 @@ def parse($TEXT, options):
                     nonlocal vars
                     opt = body[stmt][option]
                     if opt:
-                        vars = vars.concat(scan_for_local_vars(opt, is_module))
+                        vars = vars.concat(scan_for_local_vars(opt))
 
                     if isinstance(opt, AST_Assign) and not (isinstance(opt.right, AST_Scope)):
-                        vars = vars.concat(scan_for_local_vars(opt.right, is_module))
+                        vars = vars.concat(scan_for_local_vars(opt.right))
                 )
 
-                if not is_module:
-                    # pick up iterators from loops
-                    if isinstance(body[stmt], AST_ForIn):
-                        if isinstance(body[stmt].init, AST_Array):
-                            # iteration via implicit tuple
-                            vars.push("_$rapyd$_Unpack")
-                            body[stmt].init.elements.forEach(def(elem):
-                                if vars.indexOf(elem.name) == -1:
-                                    vars.push(elem.name)
-                            )
-                        elif vars.indexOf(body[stmt].init.name) == -1:
-                            # iteration via a single variable
-                            vars.push(body[stmt].init.name)
-                    elif isinstance(body[stmt], AST_DWLoop):
-                        vars = vars.concat(scan_for_local_vars(body[stmt], is_module))
-                    elif isinstance(body[stmt], AST_If) \
-                            and is_nested_comparison(body[stmt].condition):
-                        # if statement condition with complex comparison
-                        vars.push("_$rapyd$_Temp")
-                    elif isinstance(body[stmt], AST_Exit) and is_nested_comparison(body[stmt].value):
-                        # returning a nested conditional
-                        vars.push("_$rapyd$_Temp")
+                # pick up iterators from loops
+                if isinstance(body[stmt], AST_ForIn):
+                    if isinstance(body[stmt].init, AST_Array):
+                        # iteration via implicit tuple
+                        vars.push("_$rapyd$_Unpack")
+                        body[stmt].init.elements.forEach(def(elem):
+                            if vars.indexOf(elem.name) == -1:
+                                vars.push(elem.name)
+                        )
+                    elif vars.indexOf(body[stmt].init.name) == -1:
+                        # iteration via a single variable
+                        vars.push(body[stmt].init.name)
+                elif isinstance(body[stmt], AST_DWLoop):
+                    vars = vars.concat(scan_for_local_vars(body[stmt]))
+                elif isinstance(body[stmt], AST_If) \
+                        and is_nested_comparison(body[stmt].condition):
+                    # if statement condition with complex comparison
+                    vars.push("_$rapyd$_Temp")
+                elif isinstance(body[stmt], AST_Exit) and is_nested_comparison(body[stmt].value):
+                    # returning a nested conditional
+                    vars.push("_$rapyd$_Temp")
 
         elif body.body:
             # recursive descent into wrapper statements that contain body blocks
-            vars = vars.concat(scan_for_local_vars(body.body, is_module))
+            vars = vars.concat(scan_for_local_vars(body.body))
             if body.alternative:
-                vars = vars.concat(scan_for_local_vars(body.alternative, is_module))
+                vars = vars.concat(scan_for_local_vars(body.alternative))
 
         elif isinstance(body, AST_Assign):
             # this is a single assignment operator
@@ -1010,23 +1049,6 @@ def parse($TEXT, options):
 
 
         return vars
-
-    def finalize_import(imp):
-        classes = scan_for_classes(imp.body.body)
-        for c in dir(classes):
-            if isinstance(classes[c], ModuleTreeNode):
-                S.module_tree[c] = classes[c]
-            else:
-                S.classes[0][c] = classes[c]
-
-        key = ""
-        while isinstance(imp, AST_Dot):
-            key = "." + imp.property + key
-            imp = imp.expression
-
-        key = imp.name + key
-        IMPORTED[key] = True
-        return imp
 
     statement = embed_tokens(def():
         if is_("operator", "/") or is_("operator", "/="):
@@ -1100,16 +1122,14 @@ def parse($TEXT, options):
                     return for_js()
                 return for_()
             elif tmp_ == "from":
-                return finalize_import(from_import_())
+                return import_(True)
             elif tmp_ == "import":
-                return finalize_import(import_())
+                return import_(False)
             elif tmp_ == "class":
                 BASELIB["extends"] = True
                 if options.auto_bind:
                     BASELIB["rebind_all"] = True
                 return class_()
-            elif tmp_ == "module":
-                return module_()
             elif tmp_ == "def":
                 start = prev()
                 func = function_(S.in_class.slice(-1)[0])
@@ -1286,20 +1306,6 @@ def parse($TEXT, options):
         })
 
     # scan function/class body for nested class declarations
-    def scan_for_classes(body):
-        #        var classes = {};
-        classes = new ModuleTreeNode()
-        for i in dir(body):
-            stmt = body[i]
-            if isinstance(stmt, AST_Class):
-                classes[stmt.name.name] = {
-                    "static": stmt.static,
-                    bound: stmt.bound
-                }
-            elif isinstance(stmt, AST_Module):
-                classes[stmt.name.name] = scan_for_classes(stmt.body)
-        return classes
-
     def get_class_in_scope(expr):
         if isinstance(expr, AST_SymbolRef):
             # check Native JS classes
@@ -1317,182 +1323,105 @@ def parse($TEXT, options):
             while isinstance(expr, AST_Dot):
                 referenced_path.unshift(expr.property)
                 expr = expr.expression
-
             if isinstance(expr, AST_SymbolRef):
                 referenced_path.unshift(expr.name)
                 # now 'referenced_path' should contain the full path of potential class
-                # Due to scoping that prefers local-most variables, there are multiple ways a class could be referenced.
-                # To emulate this behavior, we'd need to travel into inner-most scope first and from there keep traveling
-                # outward, while testing for existance of the given object chain in each scope level.
-                current_scope = S.module_stack.slice()
-                current_scope.unshift("")
-                # global scope
-                while current_scope.length:
-                    # navigate to correct location in the module
-                    visible_scope = S.module_tree
-                    current_scope.forEach(def(module__):
-                        nonlocal visible_scope
-                        if module__ in visible_scope:
-                            visible_scope = visible_scope[module__]
-                    )
-                    # now try to find the given path in the tree
-                    traversed_path = referenced_path.slice()
-                    while traversed_path and visible_scope[traversed_path[0]]:
-                        visible_scope = visible_scope[traversed_path[0]]
-                        traversed_path.shift()
-
-                    # we arrived to the end of the path, if visible_scope points to a class, then this call is for a class
-                    if not traversed_path.length:
-                        if not isinstance(visible_scope, ModuleTreeNode):
-                            return visible_scope
-                        else:
-                            return False
-
-                    current_scope.pop()
+                if len(referenced_path) > 1:
+                    module_id = referenced_path[:-1].join('.')
+                    if S.modules.hasOwnProperty(module_id):
+                        # TODO: verify that this expr is not shadowed by a
+                        # local variable in the current scope. This should be pretty rare,
+                        # but it needs to be done for robustness. Can be implemented by using
+                        # the walk method on the top-level scope.
+                        class_name = referenced_path[-1]
+                        mod = IMPORTED[module_id]
+                        if mod.classes.hasOwnProperty(class_name):
+                            return mod.classes[class_name]
         return False
 
-    import_ = def():
+    def do_import(key):
+        if IMPORTED.hasOwnProperty(key):
+            return
+        if IMPORTING.hasOwnProperty(key) and IMPORTING[key]:
+            raise ImportError('Detected a recursive import of: ' + key + ' while importing: ' + module_id)
+
+        # Ensure that the package containing this module is also imported
+        package_module_id = key.split('.')[:-1].join('.')
+        if len(package_module_id) > 0:
+            do_import(package_module_id)
+
+        def safe_read(base_path):
+            for i, path in enumerate([base_path + '.pyj', base_path + '/__init__.pyj']):
+                try:
+                    return [options.readfile(path, "utf-8"), path]
+                except as e:
+                    if e.code == 'ENOENT' or e.code == 'EPERM' or e.code == 'EACCESS':
+                        if i == 1:
+                            return None, None
+                    if i == 1:
+                        raise
+
+        src_code = filename = None
+        modpath = key.replace('.', '/')
+
+        for location in [options.basedir, options.libdir]:
+            if location:
+                data, filename = safe_read(location + '/' + modpath)
+                if data is not None:
+                    src_code = data
+                    break
+        if src_code is None:
+            raise "Failed Import: '" + key + "' module doesn't exist in either '" + options.basedir + "' or '" + options.libdir + "'"
+        contents = parse(src_code, {
+                filename: filename,
+                toplevel: None,
+                readfile: options.readfile,
+                basedir: options.basedir,
+                libdir: options.libdir,
+                module_id: key,
+                IMPORTED: IMPORTED,
+                IMPORTING: IMPORTING,
+        })
+        if len(package_module_id) > 0:
+            IMPORTED[package_module_id].submodules.push(key)
+
+    def read_import():
         tmp = name = expression(False)
-        file = ".pyj"
+        key = ''
         while isinstance(tmp, AST_Dot):
-            file = "/" + tmp.property + file
+            key = "." + tmp.property + key
             tmp = tmp.expression
+        key = tmp.name + key
+        do_import(key)
+        return name, key
 
-        file = tmp.name + file
-        contents = None
-        try:
-            contents = parse(options.readfile(options.basedir + "/" + file, "utf-8"), {
-                filename: file,
-                toplevel: contents,
-                readfile: options.readfile,
-                basedir: options.basedir,
-                libdir: options.libdir
-            })
-        except as e:
-            if not e.message.search("no such file or directory"):
-                raise
-
-            try:
-                contents = parse(options.readfile(options.libdir + "/" + file, "utf-8"), {
-                    # didn't find it in local directory, check libs
-                    filename: file,
-                    toplevel: contents,
-                    readfile: options.readfile,
-                    basedir: options.libdir,
-                    libdir: options.libdir
-                })
-            except as e:
-                if e.message.search("no such file or directory"):
-                    raise "Failed Import: '" + tmp.name + "' module doesn't exist in either '" + options.basedir + "' or '" + options.libdir + "'"
-                else:
-                    raise
-
-
+    import_ = def(from_import):
+        name, key = read_import()
+        argnames = None
+        if from_import:
+            expect_token("keyword", "import")
+            argnames = []
+            argnames.push(as_symbol(AST_SymbolVar))
+            while is_("punc", ","):
+                next()
+                argnames.push(as_symbol(AST_SymbolVar))
+            # Put imported class names in the outermost scope
+            classes = IMPORTED[key].classes
+            for argvar in argnames:
+                obj = classes[argvar.name]
+                if obj:
+                    S.classes[0][argvar.name] = { "static": obj.static, bound: obj.bound}
+        else:
+            S.modules[key] = True
 
         return new AST_Import({
             module: name,
-            argnames: None,
-            body: contents,
-            variables: def():
-                # detect publically-seen variables
-                return scan_for_local_vars(contents, True).filter(def(element, index, arr):
-                    return arr.lastIndexOf(element) is index
-                )
-            .call(this)
-        })
-
-    from_import_ = def():
-        name = expression(False)
-        file = ".pyj"
-        while isinstance(name, AST_Dot):
-            file = "/" + name.property + file
-            name = name.expression
-
-        file = name.name + file
-        expect_token("keyword", "import")
-        contents = None
-        try:
-            contents = parse(options.readfile(options.basedir + "/" + file, "utf-8"), {
-                filename: file,
-                toplevel: contents,
-                readfile: options.readfile,
-                basedir: options.basedir,
-                libdir: options.libdir
-            })
-        except:
-            contents = parse(options.readfile(options.libdir + "/" + file, "utf-8"), {
-                # didn't find it in local directory, check libs
-                filename: file,
-                toplevel: contents,
-                readfile: options.readfile,
-                basedir: options.libdir,
-                libdir: options.libdir
-            })
-
-        return new AST_Import({
-            module: name,
-            argnames: def(a):
-                a.push(as_symbol(AST_SymbolVar))
-                while is_("punc", ","):
-                    next()
-                    a.push(as_symbol(AST_SymbolVar))
-                return a
-            .call(this, []),
-            body: contents
-        })
-
-    ModuleTreeNode = def():
-        pass
-    # this exists to allow 'instanceof' check from within get_class_in_scope()
-    module_ = def(use_name):
-        name = use_name ? use_name : as_symbol(AST_SymbolDefun)
-        if not name:
-            unexpected()
-
-        # detect external modules
-        externaldecorator = S.decorators.indexOf("external")
-        if externaldecorator != -1:
-            S.decorators.splice(externaldecorator, 1)
-
-        definition = new AST_Module({
-            name: name,
+            key: key,
             body: def():
-                # navigate to correct location in the module tree and append the module
-                module_tree = S.module_tree
-                S.module_stack.forEach(def(module__):
-                    nonlocal module_tree
-                    module_tree = module_tree[module__]
-                )
-                module_tree[name.name] = new ModuleTreeNode()
-                S.module_stack.push(name.name)
-                a = block_()
-                S.module_stack.pop()
-                return a
-            .call(this),
-            external: externaldecorator != -1,
-            decorators: def():
-                d = []
-                S.decorators.forEach(def(decorator):
-                    d.push(new AST_Decorator({
-                        name: decorator
-                    }))
-                )
-                S.decorators = []
-                return d
-            .call(this),
-            variables: [],
-            localvars: []
+                return IMPORTED[key]
+            ,
+            argnames: argnames
         })
-        # detect publically-seen variables
-        definition.variables = scan_for_local_vars(definition.body, True).filter(def(element, index, arr):
-            return arr.lastIndexOf(element) is index
-        )
-        definition.localvars = scan_for_local_vars(definition.body, False).filter(def(element, index, arr):
-            return arr.lastIndexOf(element) is index
-        ).map(def(element):
-            return new_symbol(AST_SymbolVar, element)
-        )
-        return definition
 
     class_ = def():
         name = as_symbol(AST_SymbolDefun)
@@ -1510,6 +1439,7 @@ def parse($TEXT, options):
         }
         definition = new AST_Class({
             name: name,
+            module_id:module_id,
             parent: def():
                 if is_("punc", "("):
                     next()
@@ -1519,7 +1449,6 @@ def parse($TEXT, options):
                 else:
                     return None
             .call(this),
-            modules: S.module_stack.slice(),
             localvars: [],
             "static": class_details.static,
             external: externaldecorator != -1,
@@ -1536,12 +1465,6 @@ def parse($TEXT, options):
             .call(this),
             body: def(loop, labels):
                 # navigate to correct location in the module tree and append the class
-                module_tree = S.module_tree
-                S.module_stack.forEach(def(module__):
-                    nonlocal module_tree
-                    module_tree = module_tree[module__]
-                )
-                module_tree[name.name] = class_details
                 S.in_class.push(name.name)
                 S.classes[S.classes.length - 1][name.name] = class_details
                 S.classes.push({})
@@ -2337,7 +2260,7 @@ def parse($TEXT, options):
         if is_("operator") and UNARY_PREFIX(start.value):
             next()
             if start.value == "@":
-                if is_("name") and (peek().value == "@" or peek().value == "def" or peek().value == "class" or peek().value == "module"):
+                if is_("name") and (peek().value == "@" or peek().value == "def" or peek().value == "class"):
                     S.decorators.push(S.token.value)
                     next()
                     return new AST_EmptyStatement()
@@ -2544,16 +2467,24 @@ def parse($TEXT, options):
                 end: end
             })
 
-        assignments = scan_for_local_vars(toplevel.body, False).filter(def(element, index, arr):
-            return arr.lastIndexOf(element) is index
-        )
+        def uniq(element, index, arr):
+            return arr.lastIndexOf(element) == index
+
+        assignments = scan_for_local_vars(toplevel.body).filter(uniq)
+        callables = scan_for_top_level_callables(toplevel.body).filter(uniq)
         toplevel.localvars = []
         assignments.forEach(def(item):
             toplevel.localvars.push(new_symbol(AST_SymbolVar, item))
         )
+        toplevel.exports = toplevel.localvars.concat(callables).filter(uniq)
+        toplevel.submodules = []
+        toplevel.classes = scan_for_classes(toplevel.body)
+        toplevel.import_order = Object.keys(IMPORTED).length
+        toplevel.module_id = module_id
+        IMPORTED[module_id] = toplevel
         toplevel.imports = IMPORTED
         toplevel.baselib = BASELIB
+        IMPORTING[module_id] = False
         return toplevel
     .call(this)
-
 

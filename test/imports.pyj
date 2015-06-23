@@ -1,18 +1,33 @@
-import _import
+from one import toplevel_var, toplevel_func, TopLevel, true_var, false_var
+from two import toplevel_var2, toplevel_func2, TopLevel2
 
-a = Alpha()
+eq = assert.equal
+# Test import of top-level variables and callables
+eq(toplevel_var, 'foo')
+eq(toplevel_func('x'), 'xtoplevel')
+eq(toplevel_var2, 'foo2')
+eq(toplevel_func2('x'), 'xtoplevel2')
 
-assert.equal(a.getName(), "Alpha")
-assert.equal(Alpha.getName(a), "Alpha")
+# Test import of top-level vars in a conditional
+eq('true', true_var)
 
-class Bravo(Alpha):
-    def __init__(self):
-        self.name = "Bravo"
-    @staticmethod
-    def setName(obj, name):
-        obj.name = name
+# Test plain imports
+import one
+eq(one.toplevel_var, toplevel_var)
+eq(one.toplevel_func('x'), toplevel_func('x'))
 
-testBravo()
+# Test recognition of imported classes
+tl = TopLevel('1')
+eq(tl.a, '1')
+tl2 = TopLevel2('x')
+eq(tl2.a, 'x')
 
-a = foo.Bar()
-assert.equal(a.baz(), "foo bar baz")
+# Test access to submodules via plain imports
+import two.sub
+eq('sub', two.sub.sub_var)
+eq('sub', two.sub.sub_func())
+
+# Test that class accessed via plain import is
+# recognized
+s = two.sub.Sub(1)
+eq(s.a, 1)

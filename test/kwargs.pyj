@@ -1,4 +1,4 @@
-import stdlib
+from stdlib_common import kwargs
 
 @kwargs
 def sub(a, b):

@@ -123,8 +123,7 @@
         if source.hasOwnProperty(i) and overwrite or JS('typeof target[i]') == 'undefined': target[i] = source[i]
 ,
 "print": def _$rapyd$_print(*args):
-    output = JSON.stringify(args)
-    if JS('typeof console') == 'object': console.log(output.substr(1, output.length-2))
+    if JS('typeof console') == 'object': console.log.apply(console, args)
 ,
 "range": def range(start, stop, step):
     if arguments.length <= 1:
@@ -160,4 +159,9 @@
 ,
 "hasattr": def hasattr(obj, name):
     return JS('name in obj')
+,
+"symbolfor": def symbolfor(name):
+    if (type(Symbol) == 'function' and type(Symbol.for) == 'function'):
+        return Symbol.for(name)
+    return name + '-Symbol-' + 'db29e2d8176e4678a83171145c3e3896'
 }
