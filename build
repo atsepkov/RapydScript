@@ -1,9 +1,22 @@
-#!/usr/bin/env bash
+#!/bin/sh
+set -x
 
-nodejs bin/rapydscript src/lib/baselib_gen.pyj -o src/baselib.js -b -p
-nodejs bin/rapydscript src/utils.pyj -o src/utils.js -b -p -m
-nodejs bin/rapydscript src/ast.pyj -o src/ast.js -b -p -m
-nodejs bin/rapydscript src/parse.pyj -o src/parse.js -b -p -m
-nodejs bin/rapydscript src/output.pyj -o src/output.js -b -p -m
+if command -v node >/dev/null; then
+    NODE="node"
+elif command -v nodejs >/dev/null; then
+    NODE="nodejs"
+else
+    echo >&2 "Nodejs is required. Not found in path"
+    exit 1
+fi
 
-mv src/*.js lib/
+BDIR=temp
+
+rm -rf $BDIR && mkdir $BDIR && \
+$NODE bin/rapydscript src/lib/baselib_gen.pyj -o $BDIR/baselib.js -b -p && \
+$NODE bin/rapydscript src/utils.pyj -o $BDIR/utils.js -b -p -m  && \
+$NODE bin/rapydscript src/ast.pyj -o $BDIR/ast.js -b -p -m && \
+$NODE bin/rapydscript src/parse.pyj -o $BDIR/parse.js -b -p -m && \
+$NODE bin/rapydscript src/output.pyj -o $BDIR/output.js -b -p -m && \
+cp $BDIR/*.js lib/ && \
+exit 0
