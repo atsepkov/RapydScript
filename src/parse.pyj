@@ -873,6 +873,8 @@ def parse($TEXT, options):
         return def():
             start = S.token
             expr = parser()
+            if expr == undefined:
+                unexpected()
             end = prev()
             expr.start = start
             expr.end = end
