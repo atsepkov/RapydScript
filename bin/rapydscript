@@ -172,7 +172,8 @@ if (ARGS.t || ARGS.test) {
         }
         // generate output
         var output = RapydScript.OutputStream({
-            baselib: baselibGenerator
+            baselib: baselibGenerator,
+            beautify: true
         });
         ast.print(output);
 
