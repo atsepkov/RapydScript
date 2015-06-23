@@ -8,7 +8,7 @@ if command -v node >/dev/null; then
 elif command -v nodejs >/dev/null; then
     NODE="nodejs"
 else
-    echo >&2 "Nodejs is required. Not found on path"
+    echo >&2 "Nodejs is required. Not found in path"
     exit 1
 fi
 
