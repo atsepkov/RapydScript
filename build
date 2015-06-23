@@ -30,10 +30,6 @@ if [[ $CHANGED -eq 0 ]]; then
 	exit 0
 fi
 
-if command -v git >/dev/null; then
-	git checkout -- $DEST/*.js || die "Failed to revert to HEAD"
-fi
-
 rm -rf $BDIR
 mkdir $BDIR || die "Failed to create $BDIR directory"
 $NODE $CC $SRC/lib/baselib_gen.pyj -o $BDIR/baselib.js -b -p || die "Failed to compile $i"
