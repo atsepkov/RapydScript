@@ -32,9 +32,9 @@ fi
 
 rm -rf $BDIR
 mkdir $BDIR || die "Failed to create $BDIR directory"
-$NODE $CC $SRC/lib/baselib_gen.pyj -o $BDIR/baselib.js -b -p || die "Failed to compile $i"
+$NODE $CC $SRC/lib/baselib_gen.pyj -o $BDIR/baselib.js -b -p -N || die "Failed to compile $i"
 for i in ${FILES[@]:1}; do
-	$NODE $CC $SRC/$i.pyj -o $BDIR/$i.js -b -p -m || die "Failed to compile $i"
+	$NODE $CC $SRC/$i.pyj -o $BDIR/$i.js -b -p -m -N || die "Failed to compile $i"
 done
 
 cp $BDIR/*.js $DEST/ && exit 0

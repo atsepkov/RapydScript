@@ -67,7 +67,8 @@ def OutputStream(options):
         omit_baselib: False,
         baselib: None,
         private_scope: True,
-        auto_bind: False
+        auto_bind: False,
+        write_name: True
     }, True)
     indentation = 0
     current_col = 0
@@ -664,12 +665,13 @@ def OutputStream(options):
             if module_.module_id != '__main__':
                 print_module(module_, output)
 
-        output.newline()
-        output.indent()
-        output.print('var __name__ = "__main__"')
-        output.semicolon()
-        output.newline()
-        output.newline()
+        if output.option('write_name'):
+            output.newline()
+            output.indent()
+            output.print('var __name__ = "__main__"')
+            output.semicolon()
+            output.newline()
+            output.newline()
 
     def display_complex_body(node, is_toplevel, output):
         offset = 0

@@ -31,6 +31,7 @@ instead of using @bound decorator [experimental].")
     .describe("m", "Omit baselib functions (use this if you have a different way of ensuring they're imported, such as including baselib.js).")
     .describe("t", "Run RapydScript tests")
     .describe("w", "When testing, run only the specified test file, for e.g., -w classes")
+    .describe('N', 'Do not set __name__ for the main module. Used internally when compiling rapydscript itself')
 
     .describe("comments", "Preserve copyright comments in the output. \
 By default this works like Google Closure, keeping JSDoc-style comments that contain \"@license\" or \"@preserve\". \
@@ -102,6 +103,7 @@ var OUTPUT_OPTIONS = {
     private_scope: NO_MODULE_WRAPPER ? false : true,
     auto_bind: AUTO_BIND ? true : false,
     omit_baselib: OMIT_BASELIB ? true : false,
+    write_name: !getOptions('N', true),
 };
 
 // generate baselib with current settings
@@ -125,6 +127,7 @@ if (!OMIT_BASELIB || ARGS.t || !ARGS.test) {
     var outputStream = RapydScript.OutputStream({
         private_scope: false,
         beautify: BEAUTIFY ? true : false,
+        write_name: false,
     });
     baselibAst.print(outputStream);
     var baselibGenerator = eval(outputStream.toString());
