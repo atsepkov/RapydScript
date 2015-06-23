@@ -3,6 +3,13 @@ var fs = require("fs");
 var vm = require("vm");
 var sys = require("util");
 
+if (typeof console == 'object' && typeof console.error == 'function') {
+	sys.print = console.log;
+	sys.puts = console.log;
+	sys.error = console.error;
+	sys.debug = console.error;
+}
+
 var RapydScript = vm.createContext({
     sys           : sys,
     console       : console,
