@@ -1,9 +1,44 @@
-#!/usr/bin/env bash
+#!/bin/sh
+set -x
 
-nodejs bin/rapydscript src/lib/baselib_gen.pyj -o src/baselib.js -b -p
-nodejs bin/rapydscript src/utils.pyj -o src/utils.js -b -p -m
-nodejs bin/rapydscript src/ast.pyj -o src/ast.js -b -p -m
-nodejs bin/rapydscript src/parse.pyj -o src/parse.js -b -p -m
-nodejs bin/rapydscript src/output.pyj -o src/output.js -b -p -m
+die() { echo "$@" 1>&2 ; exit 1; }
 
-mv src/*.js lib/
+if command -v node >/dev/null; then
+    NODE="node"
+elif command -v nodejs >/dev/null; then
+    NODE="nodejs"
+else
+    echo >&2 "Nodejs is required. Not found on path"
+    exit 1
+fi
+
+BDIR=temp
+DEST=lib
+SRC=src
+CC=bin/rapydscript
+
+CHANGED=0
+FILES=(baselib utils ast parse output)
+for i in ${FILES[@]}; do
+	if [[ $SRC/$i.pyj -nt $DEST/$i.js ]]; then
+		CHANGED=1;
+	fi
+done
+
+if [[ $CHANGED -eq 0 ]]; then
+	echo "Up to date"
+	exit 0
+fi
+
+if command -v git >/dev/null; then
+	git checkout -- $DEST/*.js || die "Failed to revert to HEAD"
+fi
+
+rm -rf $BDIR
+mkdir $BDIR || die "Failed to create $BDIR directory"
+$NODE $CC $SRC/lib/baselib_gen.pyj -o $BDIR/baselib.js -b -p || die "Failed to compile $i"
+for i in ${FILES[@]:1}; do
+	$NODE $CC $SRC/$i.pyj -o $BDIR/$i.js -b -p -m || die "Failed to compile $i"
+done
+
+cp $BDIR/*.js $DEST/ && exit 0
