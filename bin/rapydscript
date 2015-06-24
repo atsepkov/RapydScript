@@ -245,17 +245,13 @@ if (!OMIT_BASELIB || ARGS.t || !ARGS.test) {
 }
 
 
+// Tests {{{
 if (ARGS.t || ARGS.test) {
     // run all tests and exit
     var assert = require("assert");
     var os = require('os');
     var all_ok = true;
-    var test_dir = path.normalize(
-        path.join(
-            path.dirname(module.filename),
-            "../test"
-        )
-    );
+    var test_dir = path.join(base_path, 'test');
     if (ARGS.w)
         var files = [ARGS.w + '.pyj'];
     else
@@ -270,18 +266,8 @@ if (ARGS.t || ARGS.test) {
                 filename: file,
                 toplevel: ast,
                 readfile: fs.readFileSync,
-                basedir: path.normalize(
-                    path.join(
-                        path.dirname(module.filename),
-                        "../test"
-                    )
-                ),
-                libdir: path.normalize(
-                    path.join(
-                        path.dirname(module.filename),
-                        "../src/lib"
-                    )
-                )
+                basedir: test_dir,
+                libdir: path.join(src_path, 'lib'),
             });
         } catch(ex) {
 //            if (ex instanceof RapydScript.JS_Parse_Error) {
@@ -319,7 +305,7 @@ if (ARGS.t || ARGS.test) {
     });
     if (!all_ok) sys.print('There were some test failures!!');
     process.exit((all_ok) ? 0 : 1);
-}
+} // }}}
 
 //if (BEAUTIFY);
 //    RapydScript.merge(OUTPUT_OPTIONS, BEAUTIFY);
