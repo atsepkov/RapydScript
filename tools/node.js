@@ -2,7 +2,7 @@ var path = require("path");
 var fs = require("fs");
 var vm = require("vm");
 
-sys = exports.sys = { print:console.log, error:console.error, debug:console.debug}
+sys = exports.sys = { print:console.log, error:console.error }
 
 var RapydScript = vm.createContext({
     sys           : sys,
@@ -16,7 +16,7 @@ function load_global(file) {
     } catch(ex) {
         // XXX: in case of a syntax error, the message is kinda
         // useless. (no location information).
-        sys.debug("ERROR in file: " + file + " / " + ex);
+        sys.error("ERROR in file: " + file + " / " + ex);
         process.exit(1);
     }
 };
