@@ -128,6 +128,7 @@ if (!OMIT_BASELIB || ARGS.t || !ARGS.test) {
         private_scope: false,
         beautify: BEAUTIFY ? true : false,
         write_name: false,
+        omit_baselib: true,  // We are generating baselib here, cannot depend on it
     });
     baselibAst.print(outputStream);
     var baselibGenerator = eval(outputStream.toString());
