@@ -42,7 +42,7 @@ var FILES = exports.FILES = FILENAMES.map(function(file){
 FILES.forEach(load_global);
 
 RapydScript.AST_Node.warn_function = function(txt) {
-    sys.error("WARN: " + txt);
+    sys.error(txt);
 };
 
 // XXX: perhaps we shouldn't export everything but heck, I'm lazy.
