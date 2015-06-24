@@ -10,10 +10,14 @@ var optimist = require("optimist");
 var fs = require("fs");
 var path = require("path");
 var ARGS = optimist
-    .usage("$0 input1.js [input2.js ...] [options]\n\
-Use a single dash to read input from the standard input.\
-\n\n\
-")
+    .usage("$0 [options] input1.pyj [input2.pyj ...] \n" +
+"Compile RapydScript files into javascript. You can either " +
+"specify the input files on the command line or pipe a single file into " +
+"stdin.\n\n" +
+
+"If you specify no files and stdin is a terminal, " +
+"a RapydScript REPL will be started.")
+
     .describe("o", "Output file (default STDOUT).")
     .describe("b", "Remove the module wrapper that prevents RapydScript \
 scope from bleeding into other JavaScript logic.")
@@ -22,9 +26,8 @@ instead of using @bound decorator [experimental].")
     .describe("p", "Prettify output/specify output options.")
     .describe("m", "Omit baselib functions (use this if you have a different way of ensuring they're imported, such as including baselib.js).")
     .describe("t", "Run RapydScript tests")
-    .describe("w", "When testing, run only the specified test file, for e.g., -w classes")
-    .describe('N', 'Do not set __name__ for the main module. Used internally when compiling rapydscript itself')
-    .describe('self', 'Used internally to compile the compiler itself. It will only actually compile if something has changed since the last time it was called. To force a recompilation, simply delete lib/signatures.json')
+    .describe("w", "When testing, run only the specified test file, for e.g., --test -w classes")
+    .describe('self', 'Compile the compiler itself. It will only actually compile if something has changed since the last time it was called. To force a recompilation, simply delete lib/signatures.json')
 
     .describe("comments", "Preserve copyright comments in the output. \
 By default this works like Google Closure, keeping JSDoc-style comments that contain \"@license\" or \"@preserve\". \
@@ -36,7 +39,6 @@ Note that currently not *all* comments can be kept when compression is on, \
 because of dead code removal or cascading statements into sequences.")
 
     .describe("stats", "Display operations run time on STDERR.")
-//    .describe("self", "Build itself (RapydScript2) as a library (implies --wrap=RapydScript --export-all)")
 //    .describe("wrap", "Embed everything in a big function, making the “exports” and “global” variables available. \
 //You need to pass an argument to this option to specify the name that your module will take when included in, say, a browser.")
 //    .describe("export-all", "Only used when --wrap, this tells RapydScript to add code to automatically export all globals.")
@@ -99,7 +101,6 @@ var OUTPUT_OPTIONS = {
     private_scope: NO_MODULE_WRAPPER ? false : true,
     auto_bind: AUTO_BIND ? true : false,
     omit_baselib: OMIT_BASELIB ? true : false,
-    write_name: !getOptions('N', true),
 };
 
 var base_path = path.normalize(path.join(path.dirname(module.filename), ".."));
