@@ -3,6 +3,7 @@
 
 "use strict";
 
+var start_time = new Date().getTime();
 var RapydScript = require("../tools/node");
 var sys = require("util");
 if (typeof console == 'object' && typeof console.error == 'function') {
@@ -30,7 +31,7 @@ instead of using @bound decorator [experimental].")
     .describe("t", "Run RapydScript tests")
     .describe("w", "When testing, run only the specified test file, for e.g., -w classes")
     .describe('N', 'Do not set __name__ for the main module. Used internally when compiling rapydscript itself')
-    .describe('self', 'Used internally to compile the compiler itself')
+    .describe('self', 'Used internally to compile the compiler itself. It will only actually compile if something has changed since the last time it was called. To force a recompilation, simply delete lib/signatures.json')
 
     .describe("comments", "Preserve copyright comments in the output. \
 By default this works like Google Closure, keeping JSDoc-style comments that contain \"@license\" or \"@preserve\". \
@@ -108,8 +109,9 @@ var OUTPUT_OPTIONS = {
     write_name: !getOptions('N', true),
 };
 
-var src_path = path.normalize(path.join(path.dirname(module.filename), "..", "src"));
-var lib_path = path.normalize(path.join(path.dirname(module.filename), "..", "lib"));
+var base_path = path.normalize(path.join(path.dirname(module.filename), ".."));
+var src_path = path.join(base_path, 'src');
+var lib_path = path.join(base_path, 'lib');
 
 function parse_file(code, file, toplevel) {
     return RapydScript.parse(code, {
@@ -163,14 +165,13 @@ function generate_baselib() {
     return output;
 }
 
-function compile_self() {
+function compile_self() {  // {{{
     OUTPUT_OPTIONS.beautify = true;
     OUTPUT_OPTIONS.private_scope = false;
     OUTPUT_OPTIONS.omit_baselib = true;
     OUTPUT_OPTIONS.write_name = false;
     BEAUTIFY = true;
 
-    var start_time = new Date().getTime();
 
     function timed(name, cont) {
         var t1 = new Date().getTime();
@@ -179,24 +180,53 @@ function compile_self() {
         sys.print('Compiled in', (new Date().getTime() - t1)/1000, 'seconds\n');
         return ret;
     }
-    parse_baselib();
-    ARGS.o = path.join(lib_path, "baselib.js");
-    var compiled = {'baselib': timed('baselib', generate_baselib)}
-    RapydScript.FILENAMES.slice(1).forEach(function (fname) {
+
+    var saved_hashes = {}, hashes = {}, compiled = {}, crypto = require('crypto');
+    var compiler_changed = false, sha1sum;
+    var signatures = path.join(lib_path, 'signatures.json');
+    try {
+        saved_hashes = JSON.parse(fs.readFileSync(signatures, 'utf-8'));
+    } catch (e) {
+        if (e.code != 'ENOENT') throw (e);
+    }
+
+    sha1sum = crypto.createHash('sha1');
+    RapydScript.FILES.concat([module.filename, path.join(base_path, 'tools', 'node.js')]).forEach(function (fpath) {
+        sha1sum.update(fs.readFileSync(fpath));
+    });
+    hashes['#compiler#'] = sha1sum.digest('hex');
+    RapydScript.FILENAMES.forEach(function (fname) {
         var src = path.join(src_path, fname + '.pyj');
-        timed(fname, function() {
-            var toplevel = parse_file(fs.readFileSync(src, "utf-8"), src);
-            var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
-            toplevel.print(output);
-            compiled[fname] = output.get();
-        });
+        var h = crypto.createHash('sha1');
+        h.update(fs.readFileSync(src))
+        hashes[fname] = h.digest('hex')
+    });
+    compiler_changed = (hashes['#compiler#'] != saved_hashes['#compiler#']) ? true : false;
+    function changed(name) {
+        return compiler_changed || hashes[name] != saved_hashes[name];
+    }
+
+    parse_baselib();
+    var compiled = {};
+    if (changed('baselib')) compiled['baselib'] = timed('baselib', generate_baselib);
+    RapydScript.FILENAMES.slice(1).forEach(function (fname) {
+        if (changed(fname)) {
+            var src = path.join(src_path, fname + '.pyj');
+            timed(fname, function() {
+                var toplevel = parse_file(fs.readFileSync(src, "utf-8"), src);
+                var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
+                toplevel.print(output);
+                compiled[fname] = output.get();
+            });
+        }
     });
     sys.print('Compiling RapydScript succeeded (', (new Date().getTime() - start_time)/1000, 'seconds ), writing output...');
     Object.keys(compiled).forEach(function (fname) {
         ARGS.o = path.join(lib_path, fname + '.js');
         write_output(compiled[fname]);
     });
-}
+    fs.writeFileSync(signatures, JSON.stringify(hashes, null, 4));
+}  // }}}
 
 var files = ARGS._.slice();
 
