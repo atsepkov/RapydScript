@@ -251,6 +251,7 @@ if (ARGS.t || ARGS.test) {
     var assert = require("assert");
     var os = require('os');
     var all_ok = true;
+    var vm = require('vm');
     var test_dir = path.join(base_path, 'test');
     if (ARGS.w)
         var files = [ARGS.w + '.pyj'];
@@ -284,14 +285,13 @@ if (ARGS.t || ARGS.test) {
         ast.print(output);
 
         // test that output performs correct JS operations
-        var testcontent = "exports.run = function(){assert = require('assert');" + output.toString() + "};";
-        var jsfile = path.join(os.tmpdir(), file + '.js')
-        fs.writeFileSync(jsfile, testcontent);
-        var testcase = require(jsfile);
-		var ok = false;
+        var testcontent = "exports.run = function(){" + output.toString() + "};";
+        var jsfile = path.join(os.tmpdir(), file + '.js');
+        var code = output.toString();
+        fs.writeFileSync(jsfile, code);
         try {
-            testcase.run();
-			ok = true;
+            vm.runInNewContext(code, {'assert':require('assert'), 'RapydScript':RapydScript, 'console':console}, {'filename':jsfile});
+			var ok = true;
             fs.unlinkSync(jsfile);
         } catch (e) {
             if (e.stack) {
