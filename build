@@ -1,5 +1,5 @@
-#!/bin/sh
-set -x
+#!/usr/bin/env bash
+set -euxo pipefail
 
 die() { echo "$@" 1>&2 ; exit 1; }
 
@@ -8,8 +8,7 @@ if command -v node >/dev/null; then
 elif command -v nodejs >/dev/null; then
     NODE="nodejs"
 else
-    echo >&2 "Nodejs is required. Not found in path"
-    exit 1
+	die "Nodejs is required. Not found in path"
 fi
 
 BDIR=temp
@@ -17,24 +16,34 @@ DEST=lib
 SRC=src
 CC=bin/rapydscript
 
+declare -A source_code
+
 CHANGED=0
-FILES=(baselib utils ast parse output)
+FILES=("baselib" "utils" "ast" "parse" "output")
 for i in ${FILES[@]}; do
 	if [[ $SRC/$i.pyj -nt $DEST/$i.js ]]; then
 		CHANGED=1;
 	fi
 done
 
+if [[ "$1" == "--force" ]]; then CHANGED=1; fi
+
 if [[ $CHANGED -eq 0 ]]; then
 	echo "Up to date"
 	exit 0
 fi
 
+FLAGS="-b -p -N -m"
+EXTRA_FLAGS=""
 rm -rf $BDIR
 mkdir $BDIR || die "Failed to create $BDIR directory"
-$NODE $CC $SRC/lib/baselib_gen.pyj -o $BDIR/baselib.js -b -p -N || die "Failed to compile $i"
-for i in ${FILES[@]:1}; do
-	$NODE $CC $SRC/$i.pyj -o $BDIR/$i.js -b -p -m -N || die "Failed to compile $i"
+for i in ${FILES[@]}; do
+	if [[ "$i" == "baselib" ]]; then 
+		EXTRA_FLAGS="-B"; 
+	else
+		EXTRA_FLAGS="";
+	fi
+	$NODE $CC $SRC/$i.pyj -o $BDIR/$i.js $FLAGS $EXTRA_FLAGS || die "Failed to compile $i"
 done
 
 cp $BDIR/*.js $DEST/ && exit 0
