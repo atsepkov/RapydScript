@@ -10,7 +10,7 @@
   ],
   "main": "tools/node.js",
   "version": "0.3.4",
-  "license": "BSD",
+  "license": "BSD-2-Clause",
   "engines": {
     "node": ">=0.4.0"
   },
