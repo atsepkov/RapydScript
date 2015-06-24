@@ -312,7 +312,14 @@ def OutputStream(options):
     # retrieve baselib function based on requested key
     def dump_baselib(key):
         indent()
+        is_func = key.substr(key.length - 2) == '()'
+        if is_func:
+            ckey = key.substr(0, key.length - 2)
+            print_('var ' + ckey + ' = (')
         print_(options.baselib[key])
+        if is_func:
+            print_(')()')
+            semicolon()
         newline()
 
     # any code that should appear before the main body

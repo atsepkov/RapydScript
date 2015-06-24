@@ -2213,6 +2213,7 @@ def parse($TEXT, options):
                     }), True)
                 elif isinstance(expr, AST_SymbolRef):
                     tmp_ = expr.name
+                    # special functions that trigger addition of extra logic to generated JavaScript
                     if tmp_ == "abs"
                     or tmp_ == "bind"
                     or tmp_ == "rebind_all"
@@ -2227,8 +2228,7 @@ def parse($TEXT, options):
                     or tmp_ == "getattr"
                     or tmp_ == "setattr"
                     or tmp_ == "hasattr":
-                        # special functions that trigger addition of extra logic to generated JavaScript
-                        BASELIB[expr.name] = True
+                        BASELIB[tmp_] = True
                         # NOTE: there is intentionally no return here, we want these functions to go through regular logic
                         # after they trigger the appropriate baselib flag
                     elif tmp_ == "type":
@@ -2247,6 +2247,8 @@ def parse($TEXT, options):
                             right: args[1],
                             end: prev()
                         })
+                    elif tmp_ == 'symbolfor':
+                        BASELIB[tmp_ + '()'] = True
 
                 # fall-through to basic function call
                 return subscripts(new AST_Call({

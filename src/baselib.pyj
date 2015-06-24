@@ -156,4 +156,11 @@
 "hasattr": def hasattr(obj, name):
     return JS('name in obj')
 ,
+"symbolfor()": def _$rapyd$_symbolfor_polyfill():
+    if typeof Symbol == 'function' and typeof Symbol.for == 'function':
+        return Symbol.for
+    return (def(name):
+            return name + '-Symbol-' + '5d0927e5554349048cf0e3762a228256'
+    )
+,
 }
