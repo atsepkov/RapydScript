@@ -101,22 +101,18 @@
     child.prototype.constructor = child
 ,
 "in": def _$rapyd$_in(val, arr):
-    if isinstance(arr, Array) or JS('typeof arr') == 'string': return arr.indexOf(val) != -1
+    if Array.isArray(arr) or JS('typeof arr') == 'string': return arr.indexOf(val) != -1
     else:
         if arr.hasOwnProperty(val): return True
         return False
 ,
 "iterable": def _$rapyd$_Iterable(iterable):
-    if isinstance(iterable, Array) or isinstance(iterable, String) or JS('typeof iterable') == 'string': return iterable
+    if Array.isArray(iterable) or isinstance(iterable, String) or JS('typeof iterable') == 'string': return iterable
     return Object.keys(iterable)    # so we can use 'for ... in' syntax with hashes
 ,
 "len": def len(obj):
-    if isinstance(obj, Array) or JS('typeof obj') == 'string': return obj.length
-    else:
-        count = 0
-        for JS('var i in obj'):
-            if obj.hasOwnProperty(i): count += 1
-        return count
+    if Array.isArray(obj) or JS('typeof obj') == 'string': return obj.length
+    return Object.keys(obj).length
 ,
 "mixin": def _$rapyd$_mixin(target, source, overwrite):
     for JS('var i in source'):

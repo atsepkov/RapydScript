@@ -82,7 +82,7 @@ def deep_eq(a, b):
         # simple object
         return True
 
-    if (isinstance(a, Array) and isinstance(b, Array)) or (isinstance(a, Object) and isinstance(b, Object)):
+    if (Array.isArray(a) and Array.isArray(b)) or (isinstance(a, Object) and isinstance(b, Object)):
         # if length ot type doesn't match, they can't be equal
         if a.constructor is not b.constructor or a.length is not b.length:
             return False

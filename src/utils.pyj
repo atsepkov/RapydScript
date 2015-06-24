@@ -112,7 +112,7 @@ MAP = def():
     def MAP(a, f, backwards):
         ret = []
         top = []
-        
+
         def doit():
             val = f(a[i], i)
             is_last = isinstance(val, Last)
@@ -131,7 +131,7 @@ MAP = def():
                     ret.push(val)
             return is_last
 
-        if isinstance(a, Array):
+        if Array.isArray(a):
             if backwards:
                 for i in range(a.length-1, -1, -1):
                     if doit():
@@ -230,7 +230,7 @@ def set_intersection(a, b):
 # this function is taken from Acorn [1], written by Marijn Haverbeke
 # [1] https://github.com/marijnh/acorn
 def makePredicate(words):
-    if not (isinstance(words, Array)):
+    if not Array.isArray(words):
         words = words.split(" ")
 
     f = ""

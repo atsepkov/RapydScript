@@ -30,7 +30,7 @@ assert.throws(
 
 arr = [8,4]
 assert.equal(add(*arr), 12)
-assert.ok(isinstance(arr, Array))
+assert.ok(Array.isArray(arr))
 
 def sum(*args):
 	ttl = 0

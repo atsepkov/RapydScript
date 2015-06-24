@@ -903,7 +903,7 @@ def parse($TEXT, options):
     def scan_for_top_level_callables(body):
         ans = []
         # Get the named functions and classes
-        if isinstance(body, Array):
+        if Array.isArray(body):
             for name in dir(body):
                 obj = body[name]
                 if isinstance(obj, AST_Function) or isinstance(obj, AST_Class):
@@ -944,7 +944,7 @@ def parse($TEXT, options):
         body        body to be scanned
         """
         vars = []
-        if isinstance(body, Array):
+        if Array.isArray(body):
             # this is a body of statements
             for stmt in dir(body):
                 # skip inner scopes
@@ -1024,7 +1024,7 @@ def parse($TEXT, options):
 
     def scan_for_nonlocal_defs(body):
         vars = []
-        if isinstance(body, Array):
+        if Array.isArray(body):
             for stmt in dir(body):
                 if isinstance(body[stmt], AST_Scope):
                     continue
