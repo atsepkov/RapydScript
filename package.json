@@ -9,10 +9,14 @@
     "compiler"
   ],
   "main": "tools/node.js",
+  "scripts": {
+	  "test": "bin/rapydscript --test",
+	  "build-self": "bin/rapydscript --self"
+  },
   "version": "0.3.4",
   "license": "BSD-2-Clause",
   "engines": {
-    "node": ">=0.4.0"
+    "node": ">=0.12.0"
   },
   "maintainers": [
     {
