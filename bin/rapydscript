@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env node
 // vim:ft=javascript:ts=4:et
 
 "use strict";
@@ -23,8 +23,6 @@ Use a single dash to read input from the standard input.\
     .describe("o", "Output file (default STDOUT).")
     .describe("b", "Remove the module wrapper that prevents RapydScript \
 scope from bleeding into other JavaScript logic.")
-    .describe("n", "Import files into separate modules like Python \
-instead of concatenating them [experimental].")
     .describe("i", "Automatically bind function methods to functions themselves \
 instead of using @bound decorator [experimental].")
     .describe("p", "Prettify output/specify output options.")
@@ -32,7 +30,7 @@ instead of using @bound decorator [experimental].")
     .describe("t", "Run RapydScript tests")
     .describe("w", "When testing, run only the specified test file, for e.g., -w classes")
     .describe('N', 'Do not set __name__ for the main module. Used internally when compiling rapydscript itself')
-    .describe('B', 'Used internally to generate the baselib')
+    .describe('self', 'Used internally to compile the compiler itself')
 
     .describe("comments", "Preserve copyright comments in the output. \
 By default this works like Google Closure, keeping JSDoc-style comments that contain \"@license\" or \"@preserve\". \
@@ -67,7 +65,10 @@ because of dead code removal or cascading statements into sequences.")
     .boolean("stats")
     .boolean("V")
 //    .boolean("export-all")
-//    .boolean("self")
+   .boolean("self")
+   .boolean('N')
+   .boolean('t')
+   .boolean('m')
 
     .wrap(80)
 
@@ -107,18 +108,28 @@ var OUTPUT_OPTIONS = {
     write_name: !getOptions('N', true),
 };
 
-// generate baselib with current settings
-if (!OMIT_BASELIB || ARGS.t || !ARGS.test) {
+var src_path = path.normalize(path.join(path.dirname(module.filename), "..", "src"));
+var lib_path = path.normalize(path.join(path.dirname(module.filename), "..", "lib"));
+
+function parse_file(code, file, toplevel) {
+    return RapydScript.parse(code, {
+        filename: file,
+        toplevel: toplevel,
+        readfile: fs.readFileSync,
+        basedir: path.dirname(file),
+        auto_bind: AUTO_BIND ? true : false,
+        libdir: path.join(src_path, 'lib'),
+    });
+}
+
+function parse_baselib() {
     try {
-        var baselibPath = path.join(
-            path.dirname(module.filename),
-            "../src/baselib.pyj"
-        );
+        var baselibPath = path.join(src_path, 'baselib.pyj');
         var baselibAst = RapydScript.parse(fs.readFileSync(baselibPath, "utf-8"), {
             readfile: fs.readFileSync,
         });
     } catch(e) {
-        if (e.message.search("no such file or directory")) {
+        if (e.code == "ENOENT") {
             throw "Failed to locate baselib module.";
         }
         else {
@@ -132,8 +143,8 @@ if (!OMIT_BASELIB || ARGS.t || !ARGS.test) {
         omit_baselib: true,  // We are generating baselib here, cannot depend on it
     });
     baselibAst.print(outputStream);
-    var baselibGenerator = eval(outputStream.toString());
-    OUTPUT_OPTIONS.baselib = baselibGenerator;
+    OUTPUT_OPTIONS.baselib = eval(outputStream.toString());
+
 }
 
 function write_output(output) {
@@ -144,15 +155,50 @@ function write_output(output) {
     }
 }
 
-// Output the baselib as bare functions for use of the compiler itself
-if (ARGS.B) {
+function generate_baselib() {
     var output = '';
     Object.keys(OUTPUT_OPTIONS.baselib).forEach(function(key) {
         output += String(OUTPUT_OPTIONS.baselib[key]) + '\n\n';
     });
     write_output(output);
+}
+
+function compile_self() {
+    OUTPUT_OPTIONS.beautify = true;
+    OUTPUT_OPTIONS.private_scope = false;
+    OUTPUT_OPTIONS.omit_baselib = true;
+    OUTPUT_OPTIONS.write_name = false;
+    BEAUTIFY = true;
+
+    parse_baselib();
+    ARGS.o = path.join(lib_path, "baselib.js");
+    generate_baselib();
+    RapydScript.FILENAMES.slice(1).forEach(function (fname) {
+        ARGS.o = path.join(lib_path, fname + '.js');
+        var src = path.join(src_path, fname + '.pyj');
+        var toplevel = parse_file(fs.readFileSync(src, "utf-8"), src);
+        var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
+        toplevel.print(output);
+        write_output(output.get());
+    });
+}
+
+var files = ARGS._.slice();
+
+// Output the baselib as bare functions for use of the compiler itself
+if (ARGS.self) {
+    if (files.length > 0) {
+        sys.error("WARN: Ignoring input files since --self was passed");
+    }
+    compile_self();
     process.exit(0);
 }
+
+// generate baselib with current settings
+if (!OMIT_BASELIB || ARGS.t || !ARGS.test) {
+    parse_baselib();
+}
+
 
 if (ARGS.t || ARGS.test) {
     // run all tests and exit
@@ -201,7 +247,7 @@ if (ARGS.t || ARGS.test) {
         }
         // generate output
         var output = RapydScript.OutputStream({
-            baselib: baselibGenerator,
+            baselib: OUTPUT_OPTIONS.baselib,
             beautify: true
         });
         ast.print(output);
@@ -250,17 +296,6 @@ if (ARGS.comments) {
     }
 }
 
-var files = ARGS._.slice();
-
-if (ARGS.self) {
-    if (files.length > 0) {
-        sys.error("WARN: Ignoring input files since --self was passed");
-    }
-    files = RapydScript.FILES;
-    if (!ARGS.wrap) ARGS.wrap = "RapydScript";
-    ARGS.export_all = true;
-}
-
 if (files.length == 0) {
     files = [ "-" ];
 }
@@ -282,6 +317,7 @@ try {
         sys.error(sys.inspect(ex.defs));
         process.exit(1);
     }
+    throw ex;
 }
 
 async.eachLimit(files, 1, function (file, cb) {
@@ -294,19 +330,7 @@ async.eachLimit(files, 1, function (file, cb) {
 //            file = file.replace(/^\/+/, "").split(/\/+/).slice(ARGS.p).join("/");
 //        }
         time_it("parse", function(){
-            TOPLEVEL = RapydScript.parse(code, {
-                filename: file,
-                toplevel: TOPLEVEL,
-                readfile: fs.readFileSync,
-                basedir: path.dirname(file),
-                auto_bind: AUTO_BIND ? true : false,
-                libdir: path.normalize(
-                    path.join(
-                        path.dirname(module.filename),
-                        "../src/lib"
-                    )
-                )
-            });
+            TOPLEVEL = parse_file(code, file, TOPLEVEL);
         });
         cb();
     });

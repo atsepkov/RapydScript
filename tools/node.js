@@ -16,7 +16,6 @@ var RapydScript = vm.createContext({
 });
 
 function load_global(file) {
-    file = path.resolve(path.dirname(module.filename), file);
     try {
         var code = fs.readFileSync(file, "utf8");
         return vm.runInContext(code, RapydScript, file);
@@ -28,14 +27,16 @@ function load_global(file) {
     }
 };
 
-var FILES = exports.FILES = [
-    "../lib/baselib.js",
-    "../lib/utils.js",
-    "../lib/ast.js",
-    "../lib/parse.js",
-    "../lib/output.js",
-].map(function(file){
-    return path.join(path.dirname(fs.realpathSync(__filename)), file);
+var FILENAMES = exports.FILENAMES = [
+    "baselib",
+    "utils",
+    "ast",
+    "parse",
+    "output",
+]
+
+var FILES = exports.FILES = FILENAMES.map(function(file){
+    return path.join(path.dirname(module.filename), '..', 'lib', file + '.js');
 });
 
 FILES.forEach(load_global);
