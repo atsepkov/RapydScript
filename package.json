@@ -26,7 +26,6 @@
       "url": "https://github.com/atsepkov/RapydScript.git"
   },
   "dependencies": {
-    "async": "~0.2.6",
     "optimist": "~0.3.5"
   },
   "bin": {

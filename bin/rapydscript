@@ -8,7 +8,6 @@ var RapydScript = require("../tools/node");
 var sys = RapydScript.sys
 var optimist = require("optimist");
 var fs = require("fs");
-var async = require("async");
 var path = require("path");
 var ARGS = optimist
     .usage("$0 input1.js [input2.js ...] [options]\n\
@@ -321,45 +320,28 @@ if (ARGS.comments) {
     }
 }
 
+var running_repl = false;
 if (files.length == 0) {
-    files = [ "-" ];
+    if (process.stdin.isTTY) {
+        require('../tools/repl').repl(RapydScript, OUTPUT_OPTIONS.baselib);
+        running_repl = true;
+    } else {
+        files = [ "-" ];
+    }
 }
 
-if (files.filter(function(el){ return el == "-" }).length > 1) {
-    sys.error("ERROR: Can read a single file from STDIN (two or more dashes specified)");
-    process.exit(1);
-}
+var TOPLEVEL, STATS = {};
+var num_of_files = files.length;
 
-var STATS = {};
-var TOPLEVEL = null;
-
-try {
-    var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
-} catch(ex) {
-    if (ex instanceof RapydScript.DefaultsError) {
-        sys.error(ex.msg);
-        sys.error("Supported options:");
-        sys.error(sys.inspect(ex.defs));
+function compile_single_file(err, code) {
+    if (err) {
+        sys.error("ERROR: can't read file: " + file);
         process.exit(1);
     }
-    throw ex;
-}
-
-async.eachLimit(files, 1, function (file, cb) {
-    read_whole_file(file, function (err, code) {
-        if (err) {
-            sys.error("ERROR: can't read file: " + file);
-            process.exit(1);
-        }
-//        if (ARGS.p != null) {
-//            file = file.replace(/^\/+/, "").split(/\/+/).slice(ARGS.p).join("/");
-//        }
-        time_it("parse", function(){
-            TOPLEVEL = parse_file(code, file, TOPLEVEL);
-        });
-        cb();
+    time_it("parse", function(){
+        TOPLEVEL = parse_file(code, files[0], TOPLEVEL);
     });
-}, function () {
+
     if (ARGS.wrap) {
         TOPLEVEL = TOPLEVEL.wrap_commonjs(ARGS.wrap, ARGS.export_all);
     }
@@ -374,6 +356,18 @@ async.eachLimit(files, 1, function (file, cb) {
         TOPLEVEL = TOPLEVEL.wrap_enclose(arg_parameter_list);
     }
 
+    try {
+        var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
+    } catch(ex) {
+        if (ex instanceof RapydScript.DefaultsError) {
+            sys.error(ex.msg);
+            sys.error("Supported options:");
+            sys.error(sys.inspect(ex.defs));
+            process.exit(1);
+        }
+        throw ex;
+    }
+
     time_it("generate", function(){
         TOPLEVEL.print(output);
     });
@@ -382,9 +376,14 @@ async.eachLimit(files, 1, function (file, cb) {
 
     write_output(output);
 
+    files = files.slice(1);
+    if (files.length) {
+        setImmediate(read_whole_file, files[0], compile_single_file);
+        return;
+    }
     if (ARGS.stats) {
         sys.error(RapydScript.string_template("Timing information (compressed {count} files):", {
-            count: files.length
+            count: num_of_files
         }));
         for (var i in STATS) if (STATS.hasOwnProperty(i)) {
             sys.error(RapydScript.string_template("- {name}: {time}s", {
@@ -393,9 +392,18 @@ async.eachLimit(files, 1, function (file, cb) {
             }));
         }
     }
-});
+}
 
-/* -----[ functions ]----- */
+if (!running_repl) {
+    if (files.filter(function(el){ return el == "-" }).length > 1) {
+        sys.error("ERROR: Can read a single file from STDIN (two or more dashes specified)");
+        process.exit(1);
+    }
+
+    setImmediate(read_whole_file, files[0], compile_single_file);
+}
+
+/* -----[ functions ]----- {{{ */ 
 
 function normalize(o) {
     for (var i in o) if (o.hasOwnProperty(i) && /-/.test(i)) {
@@ -463,3 +471,4 @@ function time_it(name, cont) {
     }
     return ret;
 }
+// }}}
