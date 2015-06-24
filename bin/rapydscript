@@ -5,13 +5,7 @@
 
 var start_time = new Date().getTime();
 var RapydScript = require("../tools/node");
-var sys = require("util");
-if (typeof console == 'object' && typeof console.error == 'function') {
-	sys.print = console.log;
-	sys.puts = console.log;
-	sys.error = console.error;
-	sys.debug = console.error;
-}
+var sys = RapydScript.sys
 var optimist = require("optimist");
 var fs = require("fs");
 var async = require("async");
@@ -80,18 +74,18 @@ normalize(ARGS);
 
 if (ARGS.version || ARGS.V) {
     var json = require("../package.json");
-    sys.puts(json.name + ' ' + json.version);
+    sys.print(json.name + ' ' + json.version);
     process.exit(0);
 }
 
 if (ARGS.ast_help) {
     var desc = RapydScript.describe_ast();
-    sys.puts(typeof desc == "string" ? desc : JSON.stringify(desc, null, 2));
+    sys.print(typeof desc == "string" ? desc : JSON.stringify(desc, null, 2));
     process.exit(0);
 }
 
 if (ARGS.h || ARGS.help) {
-    sys.puts(optimist.help());
+    sys.print(optimist.help());
     process.exit(0);
 }
 
