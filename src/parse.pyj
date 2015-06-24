@@ -1533,25 +1533,55 @@ def parse($TEXT, options):
             argnames: def(a):
                 defaults = {}
                 first = True
+                seen_names = {}
+
+                def get_arg():
+                    if Object.prototype.hasOwnProperty.call(seen_names, S.token.value):
+                        token_error(prev(), "Can't repeat parameter names")
+                    if S.token.value == 'arguments':
+                        token_error(prev(), "Can't use the name arguments as a parameter name, it is reserved by JavaScript")
+                    seen_names[S.token.value] = True
+                    return as_symbol(AST_SymbolFunarg)
+
                 while not is_("punc", ")"):
                     if first:
                         first = False
                     else:
                         expect(",")
-                    if a.starargs:
-                        token_error(prev(), "Can't define multiple *args in function definition")
-                    elif is_("operator", "*"):
+                    if is_('operator', '**'):
+                        # **kwargs
                         next()
-                        a.starargs = as_symbol(AST_SymbolFunarg)
+                        if a.kwargs:
+                            token_error(prev(), "Can't define multiple **kwargs in function definition")
+                        a.kwargs = get_arg()
+                    elif is_('operator', '*'):
+                        # *args
+                        next()
+                        if a.starargs:
+                            token_error(prev(), "Can't define multiple *args in function definition")
+                        if a.kwargs:
+                            token_error(prev(), "Can't define *args after **kwargs in function definition")
+                        a.starargs = get_arg()
                     else:
-                        a.push(as_symbol(AST_SymbolFunarg))
+                        if a.starargs or a.kwargs:
+                            token_error(prev(), "Can't define a formal parameter after *args or **kwargs")
+                        a.push(get_arg())
                         if is_("operator", "="):
+                            if a.kwargs:
+                                token_error(prev(), "Can't define an optional formal parameter after **kwargs")
                             val = prev().value
                             next()
                             defaults[val] = expression(False)
+                            a.has_defaults = True
+                        else:
+                            if a.has_defaults:
+                                token_error(prev(), "Can't define required formal parameters after optional formal parameters")
 
                 next()
                 a.defaults = defaults
+                a.is_simple_func = not a.starargs and not a.kwargs and not a.has_defaults
+                if not a.is_simple_func:
+                    BASELIB['symbolfor()'] = True
                 return a
             .call(this, []),
             localvars: [],
@@ -1903,7 +1933,37 @@ def parse($TEXT, options):
         return a
 
     def func_call_list():
-        return expr_list(")", False, False, True)
+        a = []
+        first = True
+        a.kwargs = []
+        a.kwarg_items = kwargs = []
+        a.starargs = False
+        while not is_("punc", ')'):
+            if first:
+                first = False
+            else:
+                expect(",")
+            if is_('operator', '*'):
+                next()
+                arg = expression(False)
+                arg.is_array = True
+                a.push(arg)
+                a.starargs = True
+            elif is_('operator', '**'):
+                next()
+                kwargs.push(as_symbol(AST_SymbolVar, False))
+                a.starargs = True
+            else:
+                arg = expression(False)
+                if isinstance(arg, AST_Assign):
+                    a.kwargs.push([arg.left, arg.right])
+                else:
+                    a.push(arg)
+        if a.kwargs:
+            BASELIB['symbolfor()'] = True
+            BASELIB['desugar_kwargs()'] = True
+        next()
+        return a
 
     array_ = embed_tokens(def():
         expect("[")

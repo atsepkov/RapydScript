@@ -334,66 +334,48 @@ In my opinion, this is something even Python could benefit from. Like with funct
 		a += 1
 
 
-Optional Arguments
-------------------
-Like Python, JavaScript allows optional arguments to be passed into a function. Unlike Python, however, JavaScript doesn't assign default values to these, nor does it work well with optional arguments. If you forget to pass an argument, JavaScript will simply set the variable to undefined, and it's up to you to handle it. Should you forget about it, you'll probably pay the price later, when you use this variable in any sort of mathematical computation. By that time, you'll either end up with NaN (not a number), infinity, or some other weird value, causing an error a few hundred lines after the line responsible for causing it (good luck debugging it). Luckily, RapydScript allows sane optional arguments, similar to Python. The following function, for example, allows you to pass in a color for the background, or it will default to black (the format is r,g,b,a):
+Function calling with optional arguments
+-------------------------------------------
 
-	def setColor(color=[0,0,0,1]):
-		$('body').css('background', 'rgba('+','.join(color)+')')
+RapydScript supports the same function calling format as Python. You can have
+named optional arguments, create functions with variable numbers of arguments
+and variable numbers of named arguments. Some examples will illustrate this
+best:
 
-One thing to note here, is that unlike Python, RapydScript will create a separate object for the optional argument each time the function is called. This makes it slightly less efficient, but prevents it from messing up existing objects.
+	def f1(a, b=2):
+	   return [a, b]
 
+	f1(1, 3) == f1(1, b=3) == [1, 3]
 
-Variable number of arguments (*args)
-------------------------------------
-Like Python, JavaScript allows the user to write a function that takes variable number of arguments and performs its logic on all of them. Some examples of this are Math.max(), console.log() function and array's concat() method. Unlike, Python, however, JavaScript does not make this intuitive. You have to use a special iterable element inside the function called `arguments`, which has some properties of an array but doesn't support all of the functionality. Likewise, if you want to unfold an array into a list of arguments for a function during a function call, you have to use `.apply()` method instead of invoking the function normally. RapydScript converts Pythonic way of `*args` declaration to JavaScript. For example, the following function definition will take 2 named arguments, and dump the rest into an array (an actual array, not a gimped `arguments` object, like in JavaScript):
-	
-	def doSomething(a, b, *args):
-		...
+	def f2(a, *args):
+		return [a, args]
 
-Likewise, the following function call will unpack the array into separate arguments for the function:
+	f2(1, 2, 3) == [1, [2, 3]]
 
-	doSomething(*args)
+	def f3(a, b=2, **kwargs):
+	    return [a, b, kwargs]
 
-This is useful for cases where you have multiple elements inside a list, but don't know the size of this list. Here are two equivalent ways of calling the print function, for example:
+	f3(1, b=3, c=4) == [1, 3, {c:4}]
 
-	# first way
-	a = 'I was here'
-	b = 'and there'
-	print(a, b)
-	
-	# second way
-	a = 'I was here'
-	b = 'and there'
-	args = [a, b]
-	print(*args)
+	def f4(*args, **kwargs):
+		return [args, kwargs]
 
-In this particular case, there is no advantage to using `*`, but if `args` gets passed in from outside, and we don't know its size, `*` becomes very handy. Likewise, if you're writing a function that can take variable number of arguments, it's cleaner to use `*args` rather than forcing the developer using it to pass in an array.
+	f4(1, 2, 3, a=1, b=2):
+		return [[1, 2, 3], {a:1, b:2}]
 
-Keyword Arguments (**kwargs)
-----------------------------
-RapydScript implementation of kwargs is not completely consistent with Python, this is to minimize overhead since 99% of the functions you write will not need this feature. First, let's cover function calls. The following calls are equivalent:
+On difference between RapydScript and Python is that RapydScript is not as
+strict as Python when it comes to validating function arguments. This is both
+for performance and to make it easier to interoperate with other JavaScript
+libraries. So if you do not pass enough arguments when calling a function, the
+extra arguments will be set to undefined instead of raising a TypeError, as in
+Python. Similarly, when mixing ``*args`` and optional arguments, RapydScript
+will not complain if an optional argument is specified twice.
 
-	test('baz', foo=1, 99, bar=3)
-	test('baz', 99, {foo: 1, bar: 3})
-
-The first function call may be more convenient to those who spend a lot of time in Python. As far as the function itself is concerned, both of these just collect named arguments in a hash and pass them in the last argument. This means that a regular function in RapydScript will not see these arguments unless you explicitly tell it that they are in the last argument:
-
-	def test(foo, bar, kw):
-		print(foo)	# 'baz'
-		print(bar)	# 99
-		print(kw)	# {foo: 1. bar: 3}
-		print(kw.foo)	# 1
-
-Luckily, there is a `kwargs` decorator in `stdlib` that will simulate the expected Python behavior:
-
-	@kwargs
-	def test(foo, bar, kw):
-		print(foo)	# 1
-		print(bar)	# 3
-		print(kw)	# {foo: 1. bar: 3}
-		print(kw.foo)	# 1
-
+Another difference is that that, unlike Python, RapydScript will create a
+separate object for an optional argument specified as an object literal
+each time the function is called.  This makes it slightly less efficient, but
+prevents the common bug in python caused by using a mutable object literal as
+the default value for an optional argument.
 
 Inferred Tuple Packing/Unpacking
 --------------------------------

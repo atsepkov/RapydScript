@@ -257,6 +257,16 @@ def OutputStream(options):
     def next_indent():
         return indentation + options.indent_level
 
+    def spaced():
+        for i, x in enumerate(arguments):
+            if i > 0:
+                space()
+            print_(x)
+
+    def end_statement():
+        semicolon()
+        newline()
+
     def with_block(cont):
         ret = None
         print_("{")
@@ -378,6 +388,8 @@ def OutputStream(options):
         with_indent: with_indent,
         with_block: with_block,
         with_parens: with_parens,
+        spaced: spaced,
+        end_statement: end_statement,
         with_square: with_square,
         add_mapping: add_mapping,
         assign: assign_var,
@@ -710,51 +722,65 @@ def OutputStream(options):
         if isinstance(node, AST_Scope):
             # if function takes any arguments
             if node.argnames:
-                # if *args is set, declare function differently
-                if node.argnames.starargs:
-                    node.argnames.forEach(def(arg, i):
+                # If this function has optional parameters/*args/**kwargs declare it differently
+                if node.argnames.is_simple_func != True:
+                    a = node.argnames
+                    kw = 'arguments[arguments.length-1]'
+                    # Define all formal parameters
+                    for i, arg in enumerate(a):
                         if i >= offset:
                             output.indent()
                             output.print("var")
                             output.space()
                             output.assign(arg)
-                            output.print("arguments")
-                            output.with_square(def():
-                                output.print(i - offset)
-                            )
+                            if Object.prototype.hasOwnProperty.call(a.defaults, arg.name):
+                                output.spaced('(arguments[' + (i - offset) + ']', '===', 'undefined)', '?')
+                                output.space()
+                                output.with_parens(def():
+                                    a.defaults[arg.name].print(output)
+                                )
+                                output.space()
+                                output.print(':')
+                                output.space()
+                            output.print('arguments[' + (i - offset) + ']')
                             output.semicolon()
                             output.newline()
-                    )
-                    output.indent()
-                    output.print("var")
-                    output.space()
-                    output.assign(node.argnames.starargs)
-                    output.print("[].slice.call")
-                    output.with_parens(def():
-                        output.print("arguments")
-                        output.comma()
-                        output.print(node.argnames.length - offset)
-                    )
-                    output.semicolon()
-                    output.newline()
+                    if a.kwargs or a.has_defaults:
+                        # Look for an options object
+                        kw = (a.kwargs) ? a.kwargs.name : '_$rapyd$_kwargs_obj'
+                        output.indent()
+                        output.spaced('var', kw, '=', 'arguments[arguments.length-1]')
+                        output.end_statement()
+                        # Ensure kwargs is the options object
+                        output.indent()
+                        output.spaced('if', '(typeof', kw, '!==', '"object"', '||', kw, '[symbolfor("_$rapyd$_kwargs_obj")]', '!==', 'true)', kw, '=', '{}')
+                        output.end_statement()
+                        # Read values from the kwargs object for any formal parameters
+                        if a.has_defaults:
+                            for dname in Object.keys(a.defaults):
+                                output.indent()
+                                output.spaced('if', '(Object.prototype.hasOwnProperty.call(' + kw + ',', '"' + dname + '"))')
+                                output.with_block(def():
+                                    output.indent()
+                                    output.spaced(dname, '=', kw + '.' + dname)
+                                    output.end_statement()
+                                    if a.kwargs:
+                                        output.indent()
+                                        output.spaced('delete', kw + '.' + dname)
+                                        output.end_statement()
+                                )
+                                output.newline()
 
-                # initialize default function arguments, if any
-                for arg in dir(node.argnames.defaults):
-                    output.indent()
-                    output.print("if")
-                    output.space()
-                    output.with_parens(def():
-                        output.print("typeof " + arg)
-                        output.space()
-                        output.print("===")
-                        output.space()
-                        output.print('"undefined"')
-                    )
-                    output.space()
-                    output.assign(arg)
-                    force_statement(node.argnames.defaults[arg], output)
-                    output.semicolon()
-                    output.newline()
+                    if a.starargs:
+                        # Define the *args parameter, putting in whatever is left after assigning the formal parameters and the options object
+                        nargs = a.length - offset
+                        output.indent()
+                        output.spaced('var', a.starargs.name, '=', 'Array.prototype.slice.call(arguments,', nargs, ')')
+                        output.end_statement()
+                        # Remove the options object, if present
+                        output.indent()
+                        output.spaced('if', '(typeof', kw, '===', '"object"', '&&', kw, '[symbolfor("_$rapyd$_kwargs_obj")]', '===', 'true)', a.starargs.name, '.pop()')
+                        output.end_statement()
 
             # rebind parent's methods and bind own methods
             # for now we'll make a naive assumption that a function
@@ -1283,7 +1309,7 @@ def OutputStream(options):
                 self.name.print(output)
 
             output.with_parens(def():
-                if not self.argnames.starargs:
+                if not self.argnames or self.argnames.is_simple_func == True or self.argnames.is_simple_func == undefined:
                     self.argnames.forEach(def(arg, i):
                         if i:
                             output.comma()
@@ -1329,7 +1355,7 @@ def OutputStream(options):
                 output.print(name)
 
                 output.with_parens(def():
-                    if not stmt.argnames.starargs:
+                    if not self.argnames or self.argnames.is_simple_func == True or self.argnames.is_simple_func == undefined:
                         stmt.argnames.forEach(def(arg, i):
                             # only strip first argument if the method isn't static
                             if self.static.indexOf(name) != -1:
@@ -1701,11 +1727,24 @@ def OutputStream(options):
         if isinstance(self, AST_New) and no_constructor_parens(self, output):
             return
 
-        output_kwargs = def():
-            if self.args.kwargs and self.args.kwargs.length:
-                if self.args.length:
-                    output.comma()
+        has_kwarg_items = self.args.kwarg_items and self.args.kwarg_items.length
+        has_kwarg_formals = self.args.kwargs and self.args.kwargs.length
+        has_kwargs =  has_kwarg_items or has_kwarg_formals
 
+        output_kwargs = def():
+            output.print('desugar_kwargs(')
+            if has_kwarg_items:
+                self.args.kwarg_items.forEach(def(kwname, i):
+                    if i > 0:
+                        output.print(',')
+                        output.space()
+                    kwname.print(output)
+                )
+                if has_kwarg_formals:
+                    output.print(',')
+                    output.space()
+
+            if has_kwarg_formals:
                 output.print('{')
                 self.args.kwargs.forEach(def(pair, i):
                     if i: output.comma()
@@ -1715,29 +1754,45 @@ def OutputStream(options):
                     pair[1].print(output)
                 )
                 output.print('}')
+            output.print(')')
 
         if self.args.starargs:
             obj = (self.expression.expression ? self.expression.expression.name : "this")
-            last = self.args.length - 1
             output.print(".apply")
             output.with_parens(def():
                 output.print(obj)
                 output.comma()
-                output.with_square(def():
-                    # basic arguments
-                    self.args.forEach(def(expr, i):
-                        if i != last:
-                            if i: output.comma()
-                            expr.print(output)
-                    )
+                # basic arguments
+                i = 0
+                while i < self.args.length:
+                    expr = self.args[i]
+                    is_first = i == 0
+                    if not is_first:
+                        output.print('.concat(')
+                    if expr.is_array:
+                        expr.print(output)
+                        i += 1
+                    else:
+                        output.print('[')
+                        while i < self.args.length and not self.args[i].is_array:
+                            self.args[i].print(output)
+                            if i + 1 < self.args.length and not self.args[i+1].is_array:
+                                output.print(',')
+                                output.space()
+                            i += 1
+                        output.print(']')
+                    if not is_first:
+                        output.print(')')
 
-                    # now kwargs
+                # now kwargs
+                if has_kwargs:
+                    if self.args.length:
+                        output.print('.concat(')
+                    output.print('[')
                     output_kwargs()
-                )
-                output.print(".concat")
-                output.with_parens(def():
-                    self.args[last].print(output)
-                )
+                    output.print(']')
+                    if self.args.length:
+                        output.print(')')
             )
         else:
             output.with_parens(def():
@@ -1749,7 +1804,11 @@ def OutputStream(options):
                 )
 
                 # kwargs as hash
-                output_kwargs()
+                if has_kwargs:
+                    if self.args.length:
+                        output.print(',')
+                        output.space()
+                    output_kwargs()
             )
     )
     DEFPRINT(AST_New, def(self, output):
