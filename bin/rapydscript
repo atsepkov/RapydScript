@@ -160,7 +160,7 @@ function generate_baselib() {
     Object.keys(OUTPUT_OPTIONS.baselib).forEach(function(key) {
         output += String(OUTPUT_OPTIONS.baselib[key]) + '\n\n';
     });
-    write_output(output);
+    return output;
 }
 
 function compile_self() {
@@ -170,16 +170,31 @@ function compile_self() {
     OUTPUT_OPTIONS.write_name = false;
     BEAUTIFY = true;
 
+    var start_time = new Date().getTime();
+
+    function timed(name, cont) {
+        var t1 = new Date().getTime();
+        sys.print('Compiling', name, '...');
+        var ret = cont();
+        sys.print('Compiled in', (new Date().getTime() - t1)/1000, 'seconds\n');
+        return ret;
+    }
     parse_baselib();
     ARGS.o = path.join(lib_path, "baselib.js");
-    generate_baselib();
+    var compiled = {'baselib': timed('baselib', generate_baselib)}
     RapydScript.FILENAMES.slice(1).forEach(function (fname) {
-        ARGS.o = path.join(lib_path, fname + '.js');
         var src = path.join(src_path, fname + '.pyj');
-        var toplevel = parse_file(fs.readFileSync(src, "utf-8"), src);
-        var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
-        toplevel.print(output);
-        write_output(output.get());
+        timed(fname, function() {
+            var toplevel = parse_file(fs.readFileSync(src, "utf-8"), src);
+            var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
+            toplevel.print(output);
+            compiled[fname] = output.get();
+        });
+    });
+    sys.print('Compiling RapydScript succeeded (', (new Date().getTime() - start_time)/1000, 'seconds ), writing output...');
+    Object.keys(compiled).forEach(function (fname) {
+        ARGS.o = path.join(lib_path, fname + '.js');
+        write_output(compiled[fname]);
     });
 }
 
