@@ -16,12 +16,14 @@ module.exports = function(RapydScript, argv, base_path, src_path, baselib) {
     var vm = require('vm');
     var test_dir = path.join(base_path, 'test');
 
-    if (argv.test)
-        var files = [argv.test + '.pyj'];
-    else
+    if (argv.files.length) {
+        var files = [];
+		argv.files.forEach(function(fname) { files.push(fname + '.pyj') });
+	} else {
         var files = fs.readdirSync(test_dir).filter(function(name){
             return /^[^_].*\.pyj$/.test(name);
         });
+	}
     files.forEach(function(file){
         var ast;
         var filepath = path.join(test_dir, file);

@@ -77,6 +77,10 @@ if (argv.self) {
     process.exit(0);
 }
 
+if (argv.test) {
+    require('../tools/test')(RapydScript, argv, base_path, src_path, parse_baselib(true));
+} 
+
 var running_repl = false;
 if (files.length == 0) {
     if (process.stdin.isTTY) {
@@ -86,11 +90,6 @@ if (files.length == 0) {
         files = [ "-" ];
     }
 }
-
-// Tests {{{
-if (argv.test || argv.test === '') {
-    require('../tools/test')(RapydScript, argv, base_path, src_path, parse_baselib(true));
-} // }}}
 
 if (argv.comments) {
     if (/^\//.test(argv.comments)) {

@@ -199,10 +199,11 @@ executed and their result assigned to an appropriately
 named variable.
 */});
 
-opt("test", 't', 'string', false, function(){/*
+opt("test", 't', 'bool', false, function(){/*
 Run RapydScript tests and exit. You can specify the
-name of a test file to only run tests from that file.
-For example, --test baselib
+name of individual test files to only run tests 
+from those files. For example:
+--test baselib functions
 */});
 
 opt("self", undefined, 'bool', false, function(){/*
