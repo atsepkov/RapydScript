@@ -42,23 +42,30 @@ function colored(string, color, bold) {
     return prefix.join('') + string + ansi(0);
 }
 
-module.exports = function(lib_path, ps1, ps2, show_js) {
+function defaults(options) {
+    options = options || {};
+    if (!options.input) options.input = process.stdin;
+    if (!options.output) options.output = process.stdout;
+    if (!options.show_js) options.show_js = true;
+    if (!options.ps1) options.ps1 = '>>> ';
+    if (!options.ps2) options.ps2 = '... ';
+    return options;
+}
+
+module.exports = function(lib_path, options) {
 	var output_options = {'omit_baselib':true, 'write_name':false, 'private_scope':false, 'beautify':true};
-    var rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
+    options = defaults(options);
+    var rl = readline.createInterface(options);
 	var baselib = fs.readFileSync(path.join(lib_path, 'baselib.js'), 'utf-8');
-	ps1 = colored(ps1 || '>>> ', 'green');
-	ps2 = colored(ps2 || '... ', 'yellow');
-    if (show_js === undefined) show_js = true;
-	var ctx = create_ctx(baselib, show_js);
+	ps1 = colored(options.ps1, 'green');
+	ps2 = colored(options.ps2, 'yellow');
+	var ctx = create_ctx(baselib, options.show_js);
     var buffer = [];
     var more = false;
     var LINE_CONTINUATION_CHARS = ':\\';
 
     console.log(colored('Welcome to the RapydScript REPL! Press Ctrl+C then Ctrl+D to quit.', 'green', true));
-    if (show_js)
+    if (options.show_js)
         console.log(colored('Use show_js=False to stop the REPL from showing the compiled JavaScript.', 'green', true));
     else
         console.log(colored('Use show_js=True to have the REPL show the compiled JavaScript before executing it.', 'green', true));
