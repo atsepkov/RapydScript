@@ -14,7 +14,7 @@ var readline = require('readline');
 var util = require('util');
 var RapydScript = require('./compiler');
 
-function create_ctx(baselib, show_js) {
+function create_ctx(baselib, show_js, console) {
     var ctx = vm.createContext({'console':console, 'show_js': !!show_js, 'RapydScript':RapydScript});
 	vm.runInContext(baselib, ctx, {'filename':'baselib.js'});
 	var b = vm.runInContext('this', ctx);
@@ -49,27 +49,29 @@ function defaults(options) {
     if (!options.show_js) options.show_js = true;
     if (!options.ps1) options.ps1 = '>>> ';
     if (!options.ps2) options.ps2 = '... ';
+    if (!options.console) options.console = console;
+    if (!options.readline) options.readline = readline;
     return options;
 }
 
 module.exports = function(lib_path, options) {
 	var output_options = {'omit_baselib':true, 'write_name':false, 'private_scope':false, 'beautify':true};
     options = defaults(options);
-    var rl = readline.createInterface(options);
+    var rl = options.readline.createInterface(options);
 	var baselib = fs.readFileSync(path.join(lib_path, 'baselib.js'), 'utf-8');
 	ps1 = colored(options.ps1, 'green');
 	ps2 = colored(options.ps2, 'yellow');
-	var ctx = create_ctx(baselib, options.show_js);
+	var ctx = create_ctx(baselib, options.show_js, options.console);
     var buffer = [];
     var more = false;
     var LINE_CONTINUATION_CHARS = ':\\';
 
-    console.log(colored('Welcome to the RapydScript REPL! Press Ctrl+C then Ctrl+D to quit.', 'green', true));
+    options.console.log(colored('Welcome to the RapydScript REPL! Press Ctrl+C then Ctrl+D to quit.', 'green', true));
     if (options.show_js)
-        console.log(colored('Use show_js=False to stop the REPL from showing the compiled JavaScript.', 'green', true));
+        options.console.log(colored('Use show_js=False to stop the REPL from showing the compiled JavaScript.', 'green', true));
     else
-        console.log(colored('Use show_js=True to have the REPL show the compiled JavaScript before executing it.', 'green', true));
-    console.log();
+        options.console.log(colored('Use show_js=True to have the REPL show the compiled JavaScript before executing it.', 'green', true));
+    options.console.log();
 
     function resetbuffer() { buffer = []; }
 
@@ -89,21 +91,21 @@ module.exports = function(lib_path, options) {
     function runjs(js) {
         var result;
         if (vm.runInContext('show_js', ctx)) {
-            console.log(colored('---------- Compiled JavaScript ---------', 'green', true));
-            console.log(js);
-            console.log(colored('---------- Running JavaScript ---------', 'green', true));
+            options.console.log(colored('---------- Compiled JavaScript ---------', 'green', true));
+            options.console.log(js);
+            options.console.log(colored('---------- Running JavaScript ---------', 'green', true));
         }
         try {
             // Despite what the docs say node does not actually output any errors by itself
             // so, in case this bug is fixed alter, we turn it off explicitly.
             result = vm.runInContext(js, ctx, {'filename':'<repl>', 'displayErrors':false});
         } catch(e) {
-            if (e.stack) console.error(e.stack);
-            else console.error(e.toString());
+            if (e.stack) options.console.error(e.stack);
+            else options.console.error(e.toString());
         }
 
         if (result !== undefined) {
-            console.log(util.inspect(result, {'colors':true}));
+            options.console.log(util.inspect(result, {'colors':true}));
         }
     }
 
@@ -118,8 +120,8 @@ module.exports = function(lib_path, options) {
             });
         } catch(e) {
             if (e.is_eof && e.line == buffer.length && e.col > 0) return true;
-            if (e.message && e.line !== undefined) console.log(e.line + ':' + e.col + ':' + e.message);
-            else console.log(e.toString());
+            if (e.message && e.line !== undefined) options.console.log(e.line + ':' + e.col + ':' + e.message);
+            else options.console.log(e.toString());
             return false;
         }
         var output = RapydScript.OutputStream(output_options);
@@ -154,13 +156,13 @@ module.exports = function(lib_path, options) {
 	})
 	
 	.on('close', function() {
-		console.log('Bye!');
+		options.console.log('Bye!');
 		process.exit(0);
 	})
 
 	.on('SIGINT', function() {
         rl.clearLine();
-		console.log('Keyboard Interrupt');
+		options.console.log('Keyboard Interrupt');
         resetbuffer();
         more = false;
 		prompt();
