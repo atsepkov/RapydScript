@@ -15,7 +15,7 @@ var util = require('util');
 var RapydScript = require('./compiler');
 
 function create_ctx(baselib, show_js) {
-    var ctx = vm.createContext({'console':console, 'show_js': !!show_js});
+    var ctx = vm.createContext({'console':console, 'show_js': !!show_js, 'RapydScript':RapydScript});
 	vm.runInContext(baselib, ctx, {'filename':'baselib.js'});
 	var b = vm.runInContext('this', ctx);
 	for (var key in b) {
