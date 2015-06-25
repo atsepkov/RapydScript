@@ -57,7 +57,7 @@ module.exports = function(lib_path, ps1, ps2, show_js) {
     var more = false;
     var LINE_CONTINUATION_CHARS = ':\\';
 
-    console.log(colored('Welcome to the RapydScript REPL! Press Ctrl+D to quit.', 'green', true));
+    console.log(colored('Welcome to the RapydScript REPL! Press Ctrl+C then Ctrl+D to quit.', 'green', true));
     if (show_js)
         console.log(colored('Use show_js=False to stop the REPL from showing the compiled JavaScript.', 'green', true));
     else
@@ -65,6 +65,19 @@ module.exports = function(lib_path, ps1, ps2, show_js) {
     console.log();
 
     function resetbuffer() { buffer = []; }
+
+    function prompt() {
+        var lw = '';
+        if (more && buffer.length) {
+            var prev_line = buffer[buffer.length - 1];
+            if (prev_line.trimRight().substr(prev_line.length - 1) == ':') lw = '    ';
+            prev_line = prev_line.match(/^\s+/);
+            if (prev_line) lw += prev_line;
+        }
+        rl.setPrompt((more) ? ps2 : ps1);
+        rl.prompt();
+        if (lw) rl.write(lw);
+    }
 
     function runjs(js) {
         var result;
@@ -97,8 +110,9 @@ module.exports = function(lib_path, ps1, ps2, show_js) {
                 'libdir': lib_path,
             });
         } catch(e) {
-            if (e.is_eof) return true;
-            console.log(e.toString());
+            if (e.is_eof && e.line == buffer.length && e.col > 0) return true;
+            if (e.message && e.line !== undefined) console.log(e.line + ':' + e.col + ':' + e.message);
+            else console.log(e.toString());
             return false;
         }
         var output = RapydScript.OutputStream(output_options);
@@ -111,7 +125,6 @@ module.exports = function(lib_path, ps1, ps2, show_js) {
     function push(line) {
         buffer.push(line);
         var rl = line.trimRight();
-
         if (rl && LINE_CONTINUATION_CHARS.indexOf(rl.substr(rl.length - 1)) > -1)
             return true;
         var source = buffer.join('\n');
@@ -121,17 +134,15 @@ module.exports = function(lib_path, ps1, ps2, show_js) {
         return incomplete;
     }
 
-    function prompt() {
-        rl.setPrompt((more) ? ps2 : ps1);
-        rl.prompt();
-    }
-
 	rl.on('line', function(line) {
-        if (more && line.trimLeft()) buffer.push(line);
-        else {
-            if (more && !line.trimLeft()) line = line.trimLeft();
-            more = push(line);
-        }
+        if (more) {
+            // We are in a block 
+            var line_is_empty = !line.trimLeft();
+            if (line_is_empty && buffer.length && !buffer[buffer.length - 1].trimLeft()) {
+                // We have two empty lines, evaluate the block
+                more = push(line.trimLeft());
+            } else buffer.push(line);
+        } else more = push(line);  // Not in a block, evaluate line
 		prompt();
 	})
 	
