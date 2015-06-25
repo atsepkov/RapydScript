@@ -4,7 +4,7 @@
 "use strict";
 
 var start_time = new Date().getTime();
-var RapydScript = require("../tools/node");
+var RapydScript = require("../tools/compiler");
 var sys = RapydScript.sys
 var argv = require('../tools/cli').argv;
 var path = require('path');
@@ -99,7 +99,7 @@ function compile_self() {  // {{{
     }
 
     sha1sum = crypto.createHash('sha1');
-    RapydScript.FILES.concat([module.filename, path.join(base_path, 'tools', 'node.js')]).forEach(function (fpath) {
+    RapydScript.FILES.concat([module.filename, path.join(base_path, 'tools', 'compiler.js')]).forEach(function (fpath) {
         sha1sum.update(fs.readFileSync(fpath));
     });
     hashes['#compiler#'] = sha1sum.digest('hex');

@@ -8,7 +8,7 @@
     "language",
     "compiler"
   ],
-  "main": "tools/node.js",
+  "main": "tools/compiler.js",
   "scripts": {
 	  "test": "bin/rapydscript --test",
 	  "build-self": "bin/rapydscript --self"
