@@ -120,6 +120,7 @@ function parse_args() {  // {{{
 	}
 
 	function handle_opt(arg) {
+		var oarg = arg;
 		if (arg[0] === '-') arg = arg.substr(1);
 		if (state !== undefined) ans[state] = '';
 		state = undefined;
@@ -131,6 +132,11 @@ function parse_args() {  // {{{
 		} else val = undefined;
 
 		name = name_map[arg.replace('-', '_')];
+		if (!name) {
+			print_usage();
+			console.error('The option:', '-' + oarg, 'is not recognized');
+			process.exit(1);
+		}
 
 		if (options['boolean'].hasOwnProperty(name)) {
 			if (!val) val = 'true';
