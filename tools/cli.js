@@ -121,9 +121,14 @@ function parse_args() {  // {{{
 
 	function handle_opt(arg) {
 		var oarg = arg;
-		if (arg[0] === '-') arg = arg.substr(1);
+        var is_long_opt = (arg[0] === '-') ? true : false;
+		if (is_long_opt) arg = arg.substr(1);
 		if (state !== undefined) ans[state] = '';
 		state = undefined;
+        if (!is_long_opt && arg.length > 1) {
+            arg.split('').forEach(handle_opt);
+            return;
+        }
 		var val = arg.indexOf('=');
 		if (val > -1) {
 			var t = arg.substr(val + 1);
