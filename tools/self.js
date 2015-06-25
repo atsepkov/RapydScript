@@ -4,7 +4,7 @@
  *
  * Distributed under terms of the MIT license.
  */
-"use strict;"
+"use strict;";
 
 var path = require('path');
 var crypto = require('crypto');
@@ -12,7 +12,7 @@ var fs = require('fs');
 var RapydScript = require('./compiler');
 
 module.exports = function compile_self(base_path, src_path, lib_path, start_time) {
-    var output_options = {'beautify': true, 'private_scope': false, 'omit_baselib': true, 'write_name': false}
+    var output_options = {'beautify': true, 'private_scope': false, 'omit_baselib': true, 'write_name': false};
 	var baselib = RapydScript.parse_baselib(src_path, true);
 
     function timed(name, cont) {
@@ -51,8 +51,8 @@ module.exports = function compile_self(base_path, src_path, lib_path, start_time
     RapydScript.FILENAMES.forEach(function (fname) {
         var src = path.join(src_path, fname + '.pyj');
         var h = crypto.createHash('sha1');
-        h.update(fs.readFileSync(src))
-        hashes[fname] = h.digest('hex')
+        h.update(fs.readFileSync(src));
+        hashes[fname] = h.digest('hex');
     });
     compiler_changed = (hashes['#compiler#'] != saved_hashes['#compiler#']) ? true : false;
     function changed(name) {
@@ -67,8 +67,7 @@ module.exports = function compile_self(base_path, src_path, lib_path, start_time
         return output;
     }
 
-    var compiled = {};
-    if (changed('baselib')) compiled['baselib'] = timed('baselib', generate_baselib);
+    if (changed('baselib')) compiled.baselib = timed('baselib', generate_baselib);
     RapydScript.FILENAMES.slice(1).forEach(function (fname) {
         if (changed(fname)) {
             var src = path.join(src_path, fname + '.pyj');
@@ -85,4 +84,4 @@ module.exports = function compile_self(base_path, src_path, lib_path, start_time
         fs.writeFileSync(path.join(lib_path, fname + '.js'), compiled[fname], "utf8");
     });
     fs.writeFileSync(signatures, JSON.stringify(hashes, null, 4));
-}
+};

@@ -4,7 +4,7 @@
  *
  * Distributed under terms of the MIT license.
  */
-"use strict;"
+"use strict;";
 var path = require('path');
 var fs = require('fs');
 var RapydScript = require('./compiler');
@@ -16,13 +16,14 @@ module.exports = function(argv, base_path, src_path, lib_path) {
     var all_ok = true;
     var vm = require('vm');
     var test_dir = path.join(base_path, 'test');
-	var baselib = RapydScript.parse_baselib(src_path, true)
+	var baselib = RapydScript.parse_baselib(src_path, true);
+    var files, ok;
 
     if (argv.files.length) {
-        var files = [];
-		argv.files.forEach(function(fname) { files.push(fname + '.pyj') });
+        files = [];
+		argv.files.forEach(function(fname) { files.push(fname + '.pyj'); });
 	} else {
-        var files = fs.readdirSync(test_dir).filter(function(name){
+        files = fs.readdirSync(test_dir).filter(function(name){
             return /^[^_].*\.pyj$/.test(name);
         });
 	}
@@ -55,7 +56,7 @@ module.exports = function(argv, base_path, src_path, lib_path) {
         fs.writeFileSync(jsfile, code);
         try {
             vm.runInNewContext(code, {'assert':require('assert'), 'RapydScript':RapydScript, 'console':console}, {'filename':jsfile});
-			var ok = true;
+			ok = true;
             fs.unlinkSync(jsfile);
         } catch (e) {
             if (e.stack) {
@@ -69,4 +70,4 @@ module.exports = function(argv, base_path, src_path, lib_path) {
     });
     if (!all_ok) console.log('There were some test failures!!');
     process.exit((all_ok) ? 0 : 1);
-}
+};

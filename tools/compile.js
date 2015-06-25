@@ -4,7 +4,7 @@
  *
  * Distributed under terms of the MIT license.
  */
-"use strict;"
+"use strict;";
 
 var fs = require('fs');
 var path = require('path');
@@ -56,7 +56,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
             console.log(output);
         }
         if (argv.execute) {
-            console.log('\n------------ Running script -------------\n')
+            console.log('\n------------ Running script -------------\n');
             vm.runInNewContext(output, {'console':console}, {'filename':files[0]});
         }
     }
@@ -73,6 +73,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
     }
 
     function compile_single_file(err, code) {
+        var output;
         if (err) {
             console.error("ERROR: can't read file: " + file);
             process.exit(1);
@@ -82,7 +83,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
         });
 
         try {
-            var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
+            output = RapydScript.OutputStream(OUTPUT_OPTIONS);
         } catch(ex) {
             if (ex instanceof RapydScript.DefaultsError) {
                 console.error(ex.msg);
@@ -122,7 +123,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
 
     if (argv.comments) {
         if (/^\//.test(argv.comments)) {
-            OUTPUT_OPTIONS.comments = new Function("return(" + argv.comments + ")")();
+            OUTPUT_OPTIONS.comments = new Function("return(" + argv.comments + ")")();  // jshint ignore:line
         } else if (argv.comments == "all") {
             OUTPUT_OPTIONS.comments = true;
         } else {
@@ -133,7 +134,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
                     // multiline comment
                     return /@preserve|@license|@cc_on/i.test(text);
                 }
-            }
+            };
         }
     }
 
@@ -141,12 +142,12 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
         OUTPUT_OPTIONS.baselib = RapydScript.parse_baselib(src_path, OUTPUT_OPTIONS.beautify);
     }
 
-    if (files.filter(function(el){ return el == "-" }).length > 1) {
+    if (files.filter(function(el){ return el == "-"; }).length > 1) {
         console.error("ERROR: Can read a single file from STDIN (two or more dashes specified)");
         process.exit(1);
     }
 
     setImmediate(read_whole_file, files[0], compile_single_file);
 
-}
+};
 

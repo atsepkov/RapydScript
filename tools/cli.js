@@ -4,7 +4,7 @@
  *
  * Distributed under terms of the BSD license.
  */
-"use strict;"
+"use strict;";
 
 var path = require('path');
 
@@ -15,7 +15,7 @@ function repeat(str, num) {
 
 function wrap(lines, width) {
 	var ans = [];
-	var prev = ''
+	var prev = '';
 	lines.forEach(function (line) {
 		line = prev + line;
 		prev = '';
@@ -43,9 +43,9 @@ function print_usage() {  // {{{
 	var COL_WIDTH = 79;
 	var OPT_WIDTH = 23;
 
-	Object.getOwnPropertyNames(options['alias']).forEach(function (name) {
+	Object.getOwnPropertyNames(options.alias).forEach(function (name) {
 		var optstr = '  --' + name.replace('_', '-');
-		options['alias'][name].forEach(function (alias) {
+		options.alias[name].forEach(function (alias) {
 			optstr += ', ' + ((alias.length > 1) ? '--' : '-') + alias.replace('_', '-');
 		});
 		var ht = wrap(help[name].split('\n'), COL_WIDTH - OPT_WIDTH);
@@ -86,20 +86,20 @@ function opt(name, aliases, type, default_val, help_text) {
 	if (!match) {
 		throw new TypeError('Multiline comment missing for: ' + name);
 	}
-	var help_text = match[1];
+	help_text = match[1];
 
-	if (!type || type == 'bool') options['boolean'][name] = true;
-	else if (type == 'string') options['string'][name] = true;
+	if (!type || type == 'bool') options.boolean[name] = true;
+	else if (type == 'string') options.string[name] = true;
 	
-	if (default_val !== undefined) options['default'][name] = default_val;
+	if (default_val !== undefined) options.default[name] = default_val;
 
 	if (aliases && aliases.length) {
 		aliases.split(',').forEach(function(alias) {
 			if (seen.hasOwnProperty(alias)) throw "The option name:" + alias + " has already been used.";
 			seen[alias] = true;
 		});
-		options['alias'][name] = aliases.split(',');
-	} else options['alias'][name] = [];
+		options.alias[name] = aliases.split(',');
+	} else options.alias[name] = [];
 
 	if (seen.hasOwnProperty(name)) throw "The option name:" + name + " has already been used.";
 	seen[name] = true;
@@ -111,11 +111,11 @@ function opt(name, aliases, type, default_val, help_text) {
 function parse_args() {  // {{{
 	var ans = {'files':[]};
 	var name_map = {};
-	var state = undefined;
+	var state;
 
 	function plain_arg(arg) {
 		if (state !== undefined) ans[state] = arg;
-		else ans['files'].push(arg);
+		else ans.files.push(arg);
 		state = undefined;
 	}
 
@@ -142,8 +142,7 @@ function parse_args() {  // {{{
 			console.error('The option:', '-' + oarg, 'is not recognized');
 			process.exit(1);
 		}
-
-		if (options['boolean'].hasOwnProperty(name)) {
+		if (options.boolean.hasOwnProperty(name)) {
 			if (!val) val = 'true';
 			if (val === 'true' || val === '1') ans[name] = true;
 			else if (val === 'false' || val === '0') ans[name] = false;
@@ -155,11 +154,11 @@ function parse_args() {  // {{{
 		}
 	}
 
-	Object.getOwnPropertyNames(options['default']).forEach(function(name) { ans[name] = options['default'][name]; });
+	Object.getOwnPropertyNames(options.default).forEach(function(name) { ans[name] = options['default'][name]; });
 
-	Object.getOwnPropertyNames(options['alias']).forEach(function(name) { 
+	Object.getOwnPropertyNames(options.alias).forEach(function(name) { 
 		name_map[name] = name;
-		options['alias'][name].forEach(function (alias) { name_map[alias] = name; });
+		options.alias[name].forEach(function (alias) { name_map[alias] = name; });
 	});
 
 	process.argv.slice(2).forEach(function(arg) {

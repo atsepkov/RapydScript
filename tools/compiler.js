@@ -7,9 +7,10 @@ var RapydScript = vm.createContext({
 });
 
 exports.parse_baselib = function(src_path, beautify) {
+    var baselibAst;
     try {
         var baselibPath = path.join(src_path, 'baselib.pyj');
-        var baselibAst = RapydScript.parse(fs.readFileSync(baselibPath, "utf-8"), {
+        baselibAst = RapydScript.parse(fs.readFileSync(baselibPath, "utf-8"), {
             readfile: fs.readFileSync,
         });
     } catch(e) {
@@ -27,8 +28,8 @@ exports.parse_baselib = function(src_path, beautify) {
         omit_baselib: true,  // We are generating baselib here, cannot depend on it
     });
     baselibAst.print(outputStream);
-    return eval(outputStream.toString());
-}
+    return eval(outputStream.toString());  // jshint ignore:line
+};
 
 function load_global(file) {
     try {
@@ -40,7 +41,7 @@ function load_global(file) {
         console.error("ERROR in file: " + file + " / " + ex);
         process.exit(1);
     }
-};
+}
 
 var FILENAMES = exports.FILENAMES = [
     "baselib",
@@ -48,7 +49,7 @@ var FILENAMES = exports.FILENAMES = [
     "ast",
     "parse",
     "output",
-]
+];
 
 var FILES = exports.FILES = FILENAMES.map(function(file){
     return path.join(path.dirname(module.filename), '..', 'lib', file + '.js');
@@ -79,9 +80,7 @@ exports.minify = function(files, options) {
     // 1. parse
     var toplevel = null;
     files.forEach(function(file){
-        var code = options.fromString
-            ? file
-            : fs.readFileSync(file, "utf8");
+        var code = (options.fromString) ? file : fs.readFileSync(file, "utf8");
         toplevel = RapydScript.parse(code, {
             filename: options.fromString ? "?" : file,
             toplevel: toplevel
@@ -144,7 +143,7 @@ exports.describe_ast = function() {
                 });
             });
         }
-    };
+    }
     doitem(RapydScript.AST_Node);
     return out + "";
 };
