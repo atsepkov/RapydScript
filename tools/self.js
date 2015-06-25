@@ -9,9 +9,11 @@
 var path = require('path');
 var crypto = require('crypto');
 var fs = require('fs');
+var RapydScript = require('./compiler');
 
-module.exports = function compile_self(RapydScript, baselib, base_path, src_path, lib_path, start_time) {
+module.exports = function compile_self(base_path, src_path, lib_path, start_time) {
     var output_options = {'beautify': true, 'private_scope': false, 'omit_baselib': true, 'write_name': false}
+	var baselib = RapydScript.parse_baselib(src_path, true);
 
     function timed(name, cont) {
         var t1 = new Date().getTime();

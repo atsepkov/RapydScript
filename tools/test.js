@@ -7,14 +7,16 @@
 "use strict;"
 var path = require('path');
 var fs = require('fs');
+var RapydScript = require('./compiler');
 
-module.exports = function(RapydScript, argv, base_path, src_path, baselib) {
+module.exports = function(argv, base_path, src_path, lib_path) {
     // run all tests and exit
     var assert = require("assert");
     var os = require('os');
     var all_ok = true;
     var vm = require('vm');
     var test_dir = path.join(base_path, 'test');
+	var baselib = RapydScript.parse_baselib(src_path, true)
 
     if (argv.files.length) {
         var files = [];
