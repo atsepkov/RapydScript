@@ -69,7 +69,7 @@ readline = {
     'createInterface': def(options):
         return rl
 }
-repl(base_path + '/lib', {'console':FakeConsole(), 'readline':readline, 'terminal':false, 'show_js':false})
+repl(base_path + '/lib', {'console':FakeConsole(), 'readline':readline, 'terminal':false, 'show_js':false, 'histfile':false})
 eq = assert.equal
 eq('>>> ', stdout[-1])
 clear()

@@ -35,6 +35,16 @@ function ansi(code) {
 
 var colors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
 
+var homedir = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
+var cachedir = expanduser(process.env.XDG_CACHE_HOME || '~/.cache');
+
+function expanduser(x) {
+  if (!x) return x;
+  if (x === '~') return homedir;
+  if (x.slice(0, 2) != '~/') return path;
+  return path.join(homedir, x.slice(2));
+}
+
 function colored(string, color, bold) {
     var prefix = [];
     if (bold) prefix.push(ansi(1));
@@ -52,8 +62,27 @@ function defaults(options) {
     if (!options.console) options.console = console;
     if (!options.readline) options.readline = readline;
     if (options.terminal === undefined) options.terminal = options.output.isTTY;
+    if (options.histfile === undefined) options.histfile = path.join(cachedir, 'rapydscript-repl.history');
+        
     options.colored = (options.terminal) ? colored : (function (string) { return string; });
     return options;
+}
+
+function read_history(options) {
+    if (options.histfile) {
+        try {
+            return fs.readFileSync(options.histfile, 'utf-8').split('\n');
+        } catch (e) { return []; }
+    }
+}
+
+function write_history(options, history) {
+    if (options.histfile) {
+        history = history.join('\n');
+        try {
+            return fs.writeFileSync(options.histfile, history, 'utf-8');
+        } catch (e) {}
+    }
 }
 
 module.exports = function(lib_path, options) {
@@ -159,6 +188,7 @@ module.exports = function(lib_path, options) {
 	
 	.on('close', function() {
 		options.console.log('Bye!');
+        if (rl.history) write_history(options, rl.history);
 		process.exit(0);
 	})
 
@@ -174,5 +204,6 @@ module.exports = function(lib_path, options) {
 		prompt();
 	});
 
+    rl.history = read_history(options);
 	prompt();
 };
