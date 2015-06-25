@@ -8,6 +8,7 @@
 
 var fs = require('fs');
 var path = require('path');
+var vm = require('vm');
 var RapydScript = require("./compiler");
 
 function read_whole_file(filename, cb) {
@@ -54,6 +55,10 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
         } else {
             console.log(output);
         }
+        if (argv.execute) {
+            console.log('\n------------ Running script -------------\n')
+            vm.runInNewContext(output, {'console':console}, {'filename':files[0]});
+        }
     }
 
     function time_it(name, cont) {
@@ -66,7 +71,6 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
         }
         return ret;
     }
-
 
     function compile_single_file(err, code) {
         if (err) {
@@ -133,7 +137,10 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
         }
     }
 
-    RapydScript.parse_baselib(src_path, OUTPUT_OPTIONS.beautify);
+    if (!argv.omit_baselib) {
+        OUTPUT_OPTIONS.baselib = RapydScript.parse_baselib(src_path, OUTPUT_OPTIONS.beautify);
+    }
+
     if (files.filter(function(el){ return el == "-" }).length > 1) {
         console.error("ERROR: Can read a single file from STDIN (two or more dashes specified)");
         process.exit(1);

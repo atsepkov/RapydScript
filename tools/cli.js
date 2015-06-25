@@ -238,6 +238,12 @@ opt("stats", undefined, 'bool', false, function(){/*
 Display operations run time on STDERR.
 */});
 
+opt("execute", 'x,exec', 'bool', false, function(){/*
+When compiling RapydScript code, after outputting
+it, execute it in node itself. This acts as a poor
+man's REPL :)
+*/});
+
 var argv = module.exports.argv = parse_args();
 
 if (argv.help) {
