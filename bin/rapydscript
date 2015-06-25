@@ -6,101 +6,16 @@
 var start_time = new Date().getTime();
 var RapydScript = require("../tools/node");
 var sys = RapydScript.sys
-var optimist = require("optimist");
-var fs = require("fs");
-var path = require("path");
-var ARGS = optimist
-    .usage("$0 [options] input1.pyj [input2.pyj ...] \n" +
-"Compile RapydScript files into javascript. You can either " +
-"specify the input files on the command line or pipe a single file into " +
-"stdin.\n\n" +
-
-"If you specify no files and stdin is a terminal, " +
-"a RapydScript REPL will be started.")
-
-    .describe("o", "Output file (default STDOUT).")
-    .describe("b", "Remove the module wrapper that prevents RapydScript \
-scope from bleeding into other JavaScript logic.")
-    .describe("i", "Automatically bind function methods to functions themselves \
-instead of using @bound decorator [experimental].")
-    .describe("p", "Prettify output/specify output options.")
-    .describe("m", "Omit baselib functions (use this if you have a different way of ensuring they're imported, such as including baselib.js).")
-    .describe("t", "Run RapydScript tests")
-    .describe("w", "When testing, run only the specified test file, for e.g., --test -w classes")
-    .describe('self', 'Compile the compiler itself. It will only actually compile if something has changed since the last time it was called. To force a recompilation, simply delete lib/signatures.json')
-
-    .describe("comments", "Preserve copyright comments in the output. \
-By default this works like Google Closure, keeping JSDoc-style comments that contain \"@license\" or \"@preserve\". \
-You can optionally pass one of the following arguments to this flag:\n\
-- \"all\" to keep all comments\n\
-- a valid JS regexp (needs to start with a slash) to keep only comments that match.\n\
-\
-Note that currently not *all* comments can be kept when compression is on, \
-because of dead code removal or cascading statements into sequences.")
-
-    .describe("stats", "Display operations run time on STDERR.")
-//    .describe("wrap", "Embed everything in a big function, making the “exports” and “global” variables available. \
-//You need to pass an argument to this option to specify the name that your module will take when included in, say, a browser.")
-//    .describe("export-all", "Only used when --wrap, this tells RapydScript to add code to automatically export all globals.")
-    .describe("v", "Verbose")
-    .describe("V", "Print version number and exit.")
-
-    .alias("o", "output")
-    .alias("b", "bare")
-    .alias("v", "verbose")
-    .alias("i", "auto-bind")
-    .alias("p", "prettify")
-    .alias("m", "omit-baselib")
-    .alias("V", "version")
-    .alias("t", "test")
-
-    .string("comments")
-    .string("wrap")
-    .boolean("p")
-    .boolean("v")
-    .boolean("stats")
-    .boolean("V")
-//    .boolean("export-all")
-   .boolean("self")
-   .boolean('N')
-   .boolean('t')
-   .boolean('m')
-
-    .wrap(80)
-
-    .argv
-;
-
-normalize(ARGS);
-
-if (ARGS.version || ARGS.V) {
-    var json = require("../package.json");
-    sys.print(json.name + ' ' + json.version);
-    process.exit(0);
-}
-
-if (ARGS.ast_help) {
-    var desc = RapydScript.describe_ast();
-    sys.print(typeof desc == "string" ? desc : JSON.stringify(desc, null, 2));
-    process.exit(0);
-}
-
-if (ARGS.h || ARGS.help) {
-    sys.print(optimist.help());
-    process.exit(0);
-}
+var argv = require('../tools/cli').argv;
+var path = require('path');
+var fs = require('fs');
 
 // configure settings for the output
-var BEAUTIFY = getOptions("p", true);
-var NO_MODULE_WRAPPER = getOptions("b", false);
-var AUTO_BIND = getOptions("i", false);
-var OMIT_BASELIB = getOptions("m", false);
-
 var OUTPUT_OPTIONS = {
-    beautify: BEAUTIFY ? true : false,
-    private_scope: NO_MODULE_WRAPPER ? false : true,
-    auto_bind: AUTO_BIND ? true : false,
-    omit_baselib: OMIT_BASELIB ? true : false,
+    beautify: argv.beautify,
+    private_scope: !argv.bare,
+    auto_bind: argv.auto_bind,
+    omit_baselib: argv.omit_baselib
 };
 
 var base_path = path.normalize(path.join(path.dirname(module.filename), ".."));
@@ -113,12 +28,12 @@ function parse_file(code, file, toplevel) {
         toplevel: toplevel,
         readfile: fs.readFileSync,
         basedir: path.dirname(file),
-        auto_bind: AUTO_BIND ? true : false,
+        auto_bind: argv.auto_bind,
         libdir: path.join(src_path, 'lib'),
     });
 }
 
-function parse_baselib() {
+function parse_baselib(beautify) {
     try {
         var baselibPath = path.join(src_path, 'baselib.pyj');
         var baselibAst = RapydScript.parse(fs.readFileSync(baselibPath, "utf-8"), {
@@ -134,7 +49,7 @@ function parse_baselib() {
     }
     var outputStream = RapydScript.OutputStream({
         private_scope: false,
-        beautify: BEAUTIFY ? true : false,
+        beautify: (beautify !== undefined) ? beautify : OUTPUT_OPTIONS.beautify,
         write_name: false,
         omit_baselib: true,  // We are generating baselib here, cannot depend on it
     });
@@ -144,8 +59,8 @@ function parse_baselib() {
 }
 
 function write_output(output) {
-    if (ARGS.o) {
-        fs.writeFileSync(ARGS.o, output, "utf8");
+    if (argv.output) {
+        fs.writeFileSync(argv.output, output, "utf8");
     } else {
         sys.print(output);
     }
@@ -164,7 +79,6 @@ function compile_self() {  // {{{
     OUTPUT_OPTIONS.private_scope = false;
     OUTPUT_OPTIONS.omit_baselib = true;
     OUTPUT_OPTIONS.write_name = false;
-    BEAUTIFY = true;
 
 
     function timed(name, cont) {
@@ -216,16 +130,16 @@ function compile_self() {  // {{{
     });
     sys.print('Compiling RapydScript succeeded (', (new Date().getTime() - start_time)/1000, 'seconds ), writing output...');
     Object.keys(compiled).forEach(function (fname) {
-        ARGS.o = path.join(lib_path, fname + '.js');
+        argv.output = path.join(lib_path, fname + '.js');
         write_output(compiled[fname]);
     });
     fs.writeFileSync(signatures, JSON.stringify(hashes, null, 4));
 }  // }}}
 
-var files = ARGS._.slice();
+var files = argv.files.slice();
 
 // Output the baselib as bare functions for use of the compiler itself
-if (ARGS.self) {
+if (argv.self) {
     if (files.length > 0) {
         sys.error("WARN: Ignoring input files since --self was passed");
     }
@@ -233,22 +147,30 @@ if (ARGS.self) {
     process.exit(0);
 }
 
-// generate baselib with current settings
-if (!OMIT_BASELIB || ARGS.t || !ARGS.test) {
-    parse_baselib();
+var running_repl = false;
+if (files.length == 0) {
+    if (process.stdin.isTTY) {
+        require('../tools/repl').repl(RapydScript, fs.readFileSync(path.join(lib_path, 'baselib.js'), 'utf-8'));
+        running_repl = true;
+    } else {
+        files = [ "-" ];
+    }
 }
 
-
 // Tests {{{
-if (ARGS.t || ARGS.test) {
+if (argv.test || argv.test === '') {
     // run all tests and exit
     var assert = require("assert");
     var os = require('os');
     var all_ok = true;
     var vm = require('vm');
     var test_dir = path.join(base_path, 'test');
-    if (ARGS.w)
-        var files = [ARGS.w + '.pyj'];
+
+    OUTPUT_OPTIONS.beautify = true;
+    parse_baselib();
+
+    if (argv.test)
+        var files = [argv.test + '.pyj'];
     else
         var files = fs.readdirSync(test_dir).filter(function(name){
             return /^[^_].*\.pyj$/.test(name);
@@ -301,13 +223,10 @@ if (ARGS.t || ARGS.test) {
     process.exit((all_ok) ? 0 : 1);
 } // }}}
 
-//if (BEAUTIFY);
-//    RapydScript.merge(OUTPUT_OPTIONS, BEAUTIFY);
-
-if (ARGS.comments) {
-    if (/^\//.test(ARGS.comments)) {
-        OUTPUT_OPTIONS.comments = new Function("return(" + ARGS.comments + ")")();
-    } else if (ARGS.comments == "all") {
+if (argv.comments) {
+    if (/^\//.test(argv.comments)) {
+        OUTPUT_OPTIONS.comments = new Function("return(" + argv.comments + ")")();
+    } else if (argv.comments == "all") {
         OUTPUT_OPTIONS.comments = true;
     } else {
         OUTPUT_OPTIONS.comments = function(node, comment) {
@@ -318,16 +237,6 @@ if (ARGS.comments) {
                 return /@preserve|@license|@cc_on/i.test(text);
             }
         }
-    }
-}
-
-var running_repl = false;
-if (files.length == 0) {
-    if (process.stdin.isTTY) {
-        require('../tools/repl').repl(RapydScript, OUTPUT_OPTIONS.baselib);
-        running_repl = true;
-    } else {
-        files = [ "-" ];
     }
 }
 
@@ -342,20 +251,6 @@ function compile_single_file(err, code) {
     time_it("parse", function(){
         TOPLEVEL = parse_file(code, files[0], TOPLEVEL);
     });
-
-    if (ARGS.wrap) {
-        TOPLEVEL = TOPLEVEL.wrap_commonjs(ARGS.wrap, ARGS.export_all);
-    }
-
-    if (ARGS.enclose) {
-        var arg_parameter_list = ARGS.enclose;
-
-        if (!(Array.isArray(arg_parameter_list))) {
-            arg_parameter_list = [arg_parameter_list];
-        }
-
-        TOPLEVEL = TOPLEVEL.wrap_enclose(arg_parameter_list);
-    }
 
     try {
         var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
@@ -382,7 +277,7 @@ function compile_single_file(err, code) {
         setImmediate(read_whole_file, files[0], compile_single_file);
         return;
     }
-    if (ARGS.stats) {
+    if (argv.stats) {
         sys.error(RapydScript.string_template("Timing information (compressed {count} files):", {
             count: num_of_files
         }));
@@ -396,6 +291,7 @@ function compile_single_file(err, code) {
 }
 
 if (!running_repl) {
+    parse_baselib();
     if (files.filter(function(el){ return el == "-" }).length > 1) {
         sys.error("ERROR: Can read a single file from STDIN (two or more dashes specified)");
         process.exit(1);
@@ -405,47 +301,6 @@ if (!running_repl) {
 }
 
 /* -----[ functions ]----- {{{ */ 
-
-function normalize(o) {
-    for (var i in o) if (o.hasOwnProperty(i) && /-/.test(i)) {
-        o[i.replace(/-/g, "_")] = o[i];
-        delete o[i];
-    }
-}
-
-function getOptions(x, constants) {
-    x = ARGS[x];
-    if (!x) return null;
-    var ret = {};
-    if (x !== true) {
-        var ast;
-        try {
-            ast = RapydScript.parse(x);
-        } catch(ex) {
-            if (ex instanceof RapydScript.JS_Parse_Error) {
-                sys.error("Error parsing arguments in: " + x);
-                process.exit(1);
-            }
-        }
-        ast.walk(new RapydScript.TreeWalker(function(node){
-            if (node instanceof RapydScript.AST_Toplevel) return; // descend
-            if (node instanceof RapydScript.AST_SimpleStatement) return; // descend
-            if (node instanceof RapydScript.AST_Seq) return; // descend
-            if (node instanceof RapydScript.AST_Assign) {
-                var name = node.left.print_to_string({ beautify: false }).replace(/-/g, "_");
-                var value = node.right;
-                if (constants)
-                    value = new Function("return (" + value.print_to_string() + ")")();
-                ret[name] = value;
-                return true;    // no descend
-            }
-            sys.error(node.TYPE)
-            sys.error("Error parsing arguments in: " + x);
-            process.exit(1);
-        }));
-    }
-    return ret;
-}
 
 function read_whole_file(filename, cb) {
     if (filename == "-") {
@@ -465,7 +320,7 @@ function read_whole_file(filename, cb) {
 function time_it(name, cont) {
     var t1 = new Date().getTime();
     var ret = cont();
-    if (ARGS.stats) {
+    if (argv.stats) {
         var spent = new Date().getTime() - t1;
         if (STATS[name]) STATS[name] += spent;
         else STATS[name] = spent;

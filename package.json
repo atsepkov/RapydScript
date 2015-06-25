@@ -30,7 +30,6 @@
       "url": "https://github.com/atsepkov/RapydScript.git"
   },
   "dependencies": {
-    "optimist": "~0.3.5"
   },
   "bin": {
     "rapydscript": "bin/rapydscript"

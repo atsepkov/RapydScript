@@ -40,7 +40,7 @@ RapydScript making use of GlowScript, another project done by a member of our co
 
 Installation
 ------------
-First make sure you have installed the latest version of [node.js](http://nodejs.org/) (You may need to restart your computer after this step). You may also need to install `optimist` library.
+First make sure you have installed the latest version of [node.js](http://nodejs.org/) (You may need to restart your computer after this step). 
 
 From NPM for use as a command line app:
 
