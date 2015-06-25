@@ -15,9 +15,9 @@ module.exports = function compile_self(RapydScript, baselib, base_path, src_path
 
     function timed(name, cont) {
         var t1 = new Date().getTime();
-        sys.print('Compiling', name, '...');
+        console.log('Compiling', name, '...');
         var ret = cont();
-        sys.print('Compiled in', (new Date().getTime() - t1)/1000, 'seconds\n');
+        console.log('Compiled in', (new Date().getTime() - t1)/1000, 'seconds\n');
         return ret;
     }
 
@@ -78,7 +78,7 @@ module.exports = function compile_self(RapydScript, baselib, base_path, src_path
             });
         }
     });
-    sys.print('Compiling RapydScript succeeded (', (new Date().getTime() - start_time)/1000, 'seconds ), writing output...');
+    console.log('Compiling RapydScript succeeded (', (new Date().getTime() - start_time)/1000, 'seconds ), writing output...');
     Object.keys(compiled).forEach(function (fname) {
         fs.writeFileSync(path.join(lib_path, fname + '.js'), compiled[fname], "utf8");
     });

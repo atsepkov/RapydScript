@@ -2,12 +2,33 @@ var path = require("path");
 var fs = require("fs");
 var vm = require("vm");
 
-sys = exports.sys = { print:console.log, error:console.error }
-
 var RapydScript = vm.createContext({
-    sys           : sys,
     console       : console,
 });
+
+exports.parse_baselib = function(src_path, beautify) {
+    try {
+        var baselibPath = path.join(src_path, 'baselib.pyj');
+        var baselibAst = RapydScript.parse(fs.readFileSync(baselibPath, "utf-8"), {
+            readfile: fs.readFileSync,
+        });
+    } catch(e) {
+        if (e.code == "ENOENT") {
+            throw "Failed to locate baselib module.";
+        }
+        else {
+            throw e;
+        }
+    }
+    var outputStream = RapydScript.OutputStream({
+        private_scope: false,
+        beautify: beautify,
+        write_name: false,
+        omit_baselib: true,  // We are generating baselib here, cannot depend on it
+    });
+    baselibAst.print(outputStream);
+    return eval(outputStream.toString());
+}
 
 function load_global(file) {
     try {
@@ -16,7 +37,7 @@ function load_global(file) {
     } catch(ex) {
         // XXX: in case of a syntax error, the message is kinda
         // useless. (no location information).
-        sys.error("ERROR in file: " + file + " / " + ex);
+        console.error("ERROR in file: " + file + " / " + ex);
         process.exit(1);
     }
 };
@@ -36,7 +57,7 @@ var FILES = exports.FILES = FILENAMES.map(function(file){
 FILES.forEach(load_global);
 
 RapydScript.AST_Node.warn_function = function(txt) {
-    sys.error(txt);
+    console.error(txt);
 };
 
 // XXX: perhaps we shouldn't export everything but heck, I'm lazy.

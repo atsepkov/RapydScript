@@ -36,7 +36,7 @@ module.exports = function(RapydScript, argv, base_path, src_path, baselib) {
                 libdir: path.join(src_path, 'lib'),
             });
         } catch(ex) {
-            sys.print(file + ":\t" + ex + "\n");
+            console.log(file + ":\t" + ex + "\n");
             return;
         }
         // generate output
@@ -57,14 +57,14 @@ module.exports = function(RapydScript, argv, base_path, src_path, baselib) {
             fs.unlinkSync(jsfile);
         } catch (e) {
             if (e.stack) {
-                sys.print(file + ":\t" + e.stack + "\n\n");
+                console.log(file + ":\t" + e.stack + "\n\n");
             } else {
-                sys.print(file + ":\t" + e + "\n\n");
+                console.log(file + ":\t" + e + "\n\n");
             }
         }
-		if (ok) sys.print(file + ":\ttest completed successfully\n");
-        else { all_ok = false; sys.print(file + ":\ttest failed\n"); }
+		if (ok) console.log(file + ":\ttest completed successfully\n");
+        else { all_ok = false; console.log(file + ":\ttest failed\n"); }
     });
-    if (!all_ok) sys.print('There were some test failures!!');
+    if (!all_ok) console.log('There were some test failures!!');
     process.exit((all_ok) ? 0 : 1);
 }
