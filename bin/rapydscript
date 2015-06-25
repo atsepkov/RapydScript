@@ -66,76 +66,6 @@ function write_output(output) {
     }
 }
 
-function generate_baselib() {
-    var output = '';
-    Object.keys(OUTPUT_OPTIONS.baselib).forEach(function(key) {
-        output += String(OUTPUT_OPTIONS.baselib[key]) + '\n\n';
-    });
-    return output;
-}
-
-function compile_self() {  // {{{
-    OUTPUT_OPTIONS.beautify = true;
-    OUTPUT_OPTIONS.private_scope = false;
-    OUTPUT_OPTIONS.omit_baselib = true;
-    OUTPUT_OPTIONS.write_name = false;
-
-
-    function timed(name, cont) {
-        var t1 = new Date().getTime();
-        sys.print('Compiling', name, '...');
-        var ret = cont();
-        sys.print('Compiled in', (new Date().getTime() - t1)/1000, 'seconds\n');
-        return ret;
-    }
-
-    var saved_hashes = {}, hashes = {}, compiled = {}, crypto = require('crypto');
-    var compiler_changed = false, sha1sum;
-    var signatures = path.join(lib_path, 'signatures.json');
-    try {
-        saved_hashes = JSON.parse(fs.readFileSync(signatures, 'utf-8'));
-    } catch (e) {
-        if (e.code != 'ENOENT') throw (e);
-    }
-
-    sha1sum = crypto.createHash('sha1');
-    RapydScript.FILES.concat([module.filename, path.join(base_path, 'tools', 'compiler.js')]).forEach(function (fpath) {
-        sha1sum.update(fs.readFileSync(fpath));
-    });
-    hashes['#compiler#'] = sha1sum.digest('hex');
-    RapydScript.FILENAMES.forEach(function (fname) {
-        var src = path.join(src_path, fname + '.pyj');
-        var h = crypto.createHash('sha1');
-        h.update(fs.readFileSync(src))
-        hashes[fname] = h.digest('hex')
-    });
-    compiler_changed = (hashes['#compiler#'] != saved_hashes['#compiler#']) ? true : false;
-    function changed(name) {
-        return compiler_changed || hashes[name] != saved_hashes[name];
-    }
-
-    parse_baselib();
-    var compiled = {};
-    if (changed('baselib')) compiled['baselib'] = timed('baselib', generate_baselib);
-    RapydScript.FILENAMES.slice(1).forEach(function (fname) {
-        if (changed(fname)) {
-            var src = path.join(src_path, fname + '.pyj');
-            timed(fname, function() {
-                var toplevel = parse_file(fs.readFileSync(src, "utf-8"), src);
-                var output = RapydScript.OutputStream(OUTPUT_OPTIONS);
-                toplevel.print(output);
-                compiled[fname] = output.get();
-            });
-        }
-    });
-    sys.print('Compiling RapydScript succeeded (', (new Date().getTime() - start_time)/1000, 'seconds ), writing output...');
-    Object.keys(compiled).forEach(function (fname) {
-        argv.output = path.join(lib_path, fname + '.js');
-        write_output(compiled[fname]);
-    });
-    fs.writeFileSync(signatures, JSON.stringify(hashes, null, 4));
-}  // }}}
-
 var files = argv.files.slice();
 
 // Output the baselib as bare functions for use of the compiler itself
@@ -143,7 +73,7 @@ if (argv.self) {
     if (files.length > 0) {
         sys.error("WARN: Ignoring input files since --self was passed");
     }
-    compile_self();
+    require('../tools/self')(RapydScript, parse_baselib(true), base_path, src_path, lib_path, start_time);
     process.exit(0);
 }
 
