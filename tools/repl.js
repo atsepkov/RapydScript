@@ -46,11 +46,13 @@ function defaults(options) {
     options = options || {};
     if (!options.input) options.input = process.stdin;
     if (!options.output) options.output = process.stdout;
-    if (!options.show_js) options.show_js = true;
+    if (options.show_js === undefined) options.show_js = true;
     if (!options.ps1) options.ps1 = '>>> ';
     if (!options.ps2) options.ps2 = '... ';
     if (!options.console) options.console = console;
     if (!options.readline) options.readline = readline;
+    if (options.terminal === undefined) options.terminal = options.output.isTTY;
+    options.colored = (options.terminal) ? colored : (function (string) { return string; });
     return options;
 }
 
@@ -59,18 +61,18 @@ module.exports = function(lib_path, options) {
     options = defaults(options);
     var rl = options.readline.createInterface(options);
 	var baselib = fs.readFileSync(path.join(lib_path, 'baselib.js'), 'utf-8');
-	ps1 = colored(options.ps1, 'green');
-	ps2 = colored(options.ps2, 'yellow');
+	ps1 = options.colored(options.ps1, 'green');
+	ps2 = options.colored(options.ps2, 'yellow');
 	var ctx = create_ctx(baselib, options.show_js, options.console);
     var buffer = [];
     var more = false;
     var LINE_CONTINUATION_CHARS = ':\\';
 
-    options.console.log(colored('Welcome to the RapydScript REPL! Press Ctrl+C then Ctrl+D to quit.', 'green', true));
+    options.console.log(options.colored('Welcome to the RapydScript REPL! Press Ctrl+C then Ctrl+D to quit.', 'green', true));
     if (options.show_js)
-        options.console.log(colored('Use show_js=False to stop the REPL from showing the compiled JavaScript.', 'green', true));
+        options.console.log(options.colored('Use show_js=False to stop the REPL from showing the compiled JavaScript.', 'green', true));
     else
-        options.console.log(colored('Use show_js=True to have the REPL show the compiled JavaScript before executing it.', 'green', true));
+        options.console.log(options.colored('Use show_js=True to have the REPL show the compiled JavaScript before executing it.', 'green', true));
     options.console.log();
 
     function resetbuffer() { buffer = []; }
@@ -91,9 +93,9 @@ module.exports = function(lib_path, options) {
     function runjs(js) {
         var result;
         if (vm.runInContext('show_js', ctx)) {
-            options.console.log(colored('---------- Compiled JavaScript ---------', 'green', true));
+            options.console.log(options.colored('---------- Compiled JavaScript ---------', 'green', true));
             options.console.log(js);
-            options.console.log(colored('---------- Running JavaScript ---------', 'green', true));
+            options.console.log(options.colored('---------- Running JavaScript ---------', 'green', true));
         }
         try {
             // Despite what the docs say node does not actually output any errors by itself
@@ -105,7 +107,7 @@ module.exports = function(lib_path, options) {
         }
 
         if (result !== undefined) {
-            options.console.log(util.inspect(result, {'colors':true}));
+            options.console.log(util.inspect(result, {'colors':options.terminal}));
         }
     }
 

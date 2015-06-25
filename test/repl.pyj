@@ -1,0 +1,79 @@
+stdout = []
+def clear():
+    stdout.length = 0
+
+class FakeConsole:
+
+    def log(self):
+        Array.prototype.slice.call(arguments).forEach(def (arg):
+            stdout.push((arg or '').toString())
+        )
+        stdout.push('\n')
+
+    def error(self):
+        Array.prototype.slice.call(arguments).forEach(def (arg):
+            stdout.push((arg or '').toString())
+        )
+        stdout.push('\n')
+
+class FakeReadline:
+
+    def __init__(self):
+        self.listeners = {}
+        self._prompt = ''
+
+    def setPrompt(self, prompt):
+        self._prompt = prompt
+
+    def write(self, data):
+        stdout.push(data)
+
+    def clearLine(self):
+        pass
+
+    def on(self, event, callback):
+        self.listeners[event] = callback
+        return self
+
+    def prompt(self):
+        stdout.push(self._prompt)
+
+    def send_line(self, text):
+        self.listeners['line'](text)
+
+repl = require('./repl');
+rl = FakeReadline()
+
+send_line = bind(rl.send_line, rl)
+
+def send_text(text):
+    for line in text.split('\n'):
+        send_line(line)
+
+def check(text, output):
+    send_text(text)
+    eq(output, stdout[0])
+    clear()
+
+def check_in(text, output):
+    send_text(text)
+    assert.ok(output in stdout)
+    clear()
+
+def check_not_in(text, output):
+    send_text(text)
+    assert.ok(output not in stdout)
+    clear()
+
+readline = {
+    'createInterface': def(options):
+        return rl
+}
+repl(base_path + '/lib', {'console':FakeConsole(), 'readline':readline, 'terminal':false, 'show_js':false})
+eq = assert.equal
+eq('>>> ', stdout[-1])
+clear()
+check('1', '1')
+check_in('if 1:\n  2\n  \n  ', '2')
+check_not_in('if 1:\n  2\n ', '2')
+check_in('1 +\n1\n\n', '2')

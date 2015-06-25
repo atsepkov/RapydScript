@@ -50,12 +50,17 @@ module.exports = function(argv, base_path, src_path, lib_path) {
         ast.print(output);
 
         // test that output performs correct JS operations
-        var testcontent = "exports.run = function(){" + output.toString() + "};";
         var jsfile = path.join(os.tmpdir(), file + '.js');
         var code = output.toString();
         fs.writeFileSync(jsfile, code);
         try {
-            vm.runInNewContext(code, {'assert':require('assert'), 'RapydScript':RapydScript, 'console':console}, {'filename':jsfile});
+            vm.runInNewContext(code, {
+                'assert':require('assert'), 
+                'require':require, 
+                'RapydScript':RapydScript, 
+                'console':console,
+                'base_path': base_path
+            }, {'filename':jsfile});
 			ok = true;
             fs.unlinkSync(jsfile);
         } catch (e) {
