@@ -72,7 +72,7 @@ Once you have installed RapydScript, compiling your application is as simple as 
 
 By default this will dump the output to STDOUT, but you can specify the output file using `--output` option. The generated file can then be referenced in your html page the same way as you would with a typical JavaScript file. If you're only using RapydScript for classes and functions, then you're all set. If you're using additional Python methods, such as `range()`, `print()`, `list.append()`, `list.remove()`, then you will want to link RapydScript's stdlib.js in your html page as well. There are two ways of doing this, one is to include it as a JavaScript file in your HTML, the other is to include it as an `import` in your source code and let RapydScript pull it in automatically.
 
-RapydScript2 can take multiple input files. It's recommended that you pass the input files first, then pass the options. RapydScript will parse input files in sequence and apply any compression options. The files are parsed in the same global scope, that is, a reference from a file to some variable/function declared in another file will be matched properly.
+RapydScript can take multiple input files. It's recommended that you pass the input files first, then pass the options. RapydScript will parse input files in sequence and apply any compression options. The files are parsed in the same global scope, that is, a reference from a file to some variable/function declared in another file will be matched properly.
 
 If you want to read from STDIN instead, pass a single dash instead of input
 files.
