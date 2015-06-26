@@ -160,6 +160,14 @@ module.exports = function(lib_path, options) {
         var output = RapydScript.OutputStream(output_options);
         toplevel.print(output);
         output = output.toString();
+        if (classes) {
+            var exports = {};
+            toplevel.exports.forEach(function (name) { exports[name] = true; });
+            Object.getOwnPropertyNames(classes).forEach(function (name) {
+                if (!exports.hasOwnProperty(name) && !toplevel.classes.hasOwnProperty(name))
+                    toplevel.classes[name] = classes[name];
+            });
+        }
         runjs(output);
         return false;
     }

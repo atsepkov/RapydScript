@@ -88,3 +88,4 @@ class A:
 ''')
 clear()
 check_in('b = A(1)\nb.a', '1')
+check_in('c = A(2)\nc.a', '2')
