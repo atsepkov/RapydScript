@@ -91,7 +91,11 @@ NATIVE_CLASSES = {
     'Uint16Array': {},
     'Uint32Array': {},
     'Uint8Array': {},
-    'Uint8ClampedArray': {}
+    'Uint8ClampedArray': {},
+    'Map': {},
+    'WeakMap': {},
+    'Set': {},
+    'WeakSet': {},
 }
 COMMON_STATIC = [ "call", "apply", "bind", "toString" ]
 
