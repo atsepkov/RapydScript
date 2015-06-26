@@ -77,3 +77,14 @@ check('1', '1')
 check_in('if 1:\n  2\n  \n  ', '2')
 check_not_in('if 1:\n  2\n ', '2')
 check_in('1 +\n1\n\n', '2')
+send_text(
+'''
+class A:
+
+    def __init__(self, a):
+        self. a = a
+
+
+''')
+clear()
+check_in('b = A(1)\nb.a', '1')
