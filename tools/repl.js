@@ -96,6 +96,7 @@ module.exports = function(lib_path, options) {
     var buffer = [];
     var more = false;
     var LINE_CONTINUATION_CHARS = ':\\';
+    var toplevel;
 
     options.console.log(options.colored('Welcome to the RapydScript REPL! Press Ctrl+C then Ctrl+D to quit.', 'green', true));
     if (options.show_js)
@@ -141,13 +142,14 @@ module.exports = function(lib_path, options) {
     }
 
     function compile_source(source, output_options) {
-        var toplevel;
+        var classes = (toplevel) ? toplevel.classes : undefined;
         try {
             toplevel = RapydScript.parse(source, {
                 'filename':'<repl>',
                 'readfile': fs.readFileSync,
                 'basedir': process.cwd(),
                 'libdir': lib_path,
+                'classes': classes
             });
         } catch(e) {
             if (e.is_eof && e.line == buffer.length && e.col > 0) return true;

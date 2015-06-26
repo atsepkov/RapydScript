@@ -791,7 +791,8 @@ def parse($TEXT, options):
         filename: None,     # name of the file being parsed
         auto_bind: False,   # whether auto-binding of methods to classes is enabled
         module_id:'__main__', # The id of the module being parsed
-        toplevel: None
+        toplevel: None,
+        classes: undefined  # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
     })
     module_id = options.module_id
     IMPORTED = options.IMPORTED or {}
@@ -811,6 +812,11 @@ def parse($TEXT, options):
         labels: [],
         decorators: [],
     }
+
+    if options.classes:
+        for cname in options.classes:
+            obj = options.classes[cname]
+            S.classes[0][cname] = { 'static':obj.static, 'bound':obj.bound }
 
     S.token = next()
     def is_(type, value):
