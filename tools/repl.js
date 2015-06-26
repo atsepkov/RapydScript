@@ -37,6 +37,7 @@ var colors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
 
 var homedir = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
 var cachedir = expanduser(process.env.XDG_CACHE_HOME || '~/.cache');
+var all_keywords = RapydScript.ALL_KEYWORDS.split(' ');
 
 function expanduser(x) {
   if (!x) return x;
@@ -85,9 +86,109 @@ function write_history(options, history) {
     }
 }
 
+function global_names(ctx) {
+    return Object.getOwnPropertyNames(vm.runInContext('this', ctx)).concat(all_keywords);
+}
+
+function object_names(obj, prefix) {
+    if (obj === null || obj === undefined) return [];
+    var groups = [], prefix_len = prefix.length, p;
+
+    function prefix_filter(name) { return (prefix_len) ? (name.substr(0, prefix_len) === prefix) : true; }
+
+    function add(o) {
+        var items = Object.getOwnPropertyNames(o).filter(prefix_filter);
+        if (items.length) groups.push(items);
+    }
+
+    if (typeof obj === 'object' || typeof obj === 'function') {
+        add(obj);
+        p = Object.getPrototypeOf(obj);
+    } else p = obj.constructor ? obj.constructor.prototype : null; 
+
+    // Walk the prototype chain
+    try {
+        var sentinel = 5;
+        while (p !== null && sentinel > 0) {
+            add(p);
+            p = Object.getPrototypeOf(p);
+            // Circular refs possible? Let's guard against that.
+            sentinel--;
+        }
+    } catch (e) {
+        // console.error("completion error walking prototype chain:" + e);
+    }
+    if (!groups.length) return [];
+    var seen = {}, ans = [];
+    function uniq(name) {
+        if (Object.prototype.hasOwnProperty.call(seen, name)) return false;
+        seen[name] = true;
+        return true;
+    }
+    for (var i = 0; i < groups.length; i++) {
+        var group = groups[i];
+        group.sort();
+        ans = ans.concat(group.filter(uniq));
+        ans.push('');  // group separator
+
+    }
+    while (ans.length && ans[ans.length - 1] === '') ans.pop();
+    return ans;
+}
+
+function prefix_matches(prefix, items) {
+    var len = prefix.length;
+    var ans = items.filter(function(item) { return item.substr(0, len) === prefix; });
+    ans.sort();
+    return ans;
+}
+
+function find_completions(line, ctx) {
+    try {
+        t = RapydScript.tokenizer(line, '<repl>');
+    } catch(e) { return []; }
+    var tokens = [], token;
+    while (true) {
+        try {
+            token = t();
+        } catch (e) { return []; }
+        if (token.type === 'eof') break;
+        if (token.type === 'punc' && '(){},;:'.indexOf(token.value) > -1)
+            tokens = [];
+        tokens.push(token);
+    }
+    if (!tokens.length) {
+        // New line or trailing space
+        return [global_names(ctx), ''];
+    }
+    var last_tok = tokens[tokens.length - 1];
+    if (last_tok.value === '.' || (last_tok.type === 'name' && RapydScript.IDENTIFIER_PAT.test(last_tok.value))) {
+        last_tok = last_tok.value;
+        if (last_tok === '.') {
+            tokens.push({'value':''});
+            last_tok = '';
+        }
+        if (tokens.length > 1 && tokens[tokens.length - 2].value === '.') {
+            // A compound expression
+            var prefix = '', result;
+            tokens.slice(0, tokens.length - 2).forEach(function (tok) { prefix += tok.value; });
+            if (prefix) {
+                try {
+                    result = vm.runInContext(prefix, ctx, {'displayErrors':false});
+                } catch(e) { return []; }
+                return [object_names(result, last_tok), last_tok];
+            }
+        } else {
+            return [prefix_matches(last_tok, global_names(ctx)), last_tok];
+        }
+    }
+    return [];
+}
+
 module.exports = function(lib_path, options) {
 	var output_options = {'omit_baselib':true, 'write_name':false, 'private_scope':false, 'beautify':true};
     options = defaults(options);
+    options.completer = completer;
     var rl = options.readline.createInterface(options);
 	var baselib = fs.readFileSync(path.join(lib_path, 'baselib.js'), 'utf-8');
 	ps1 = options.colored(options.ps1, 'green');
@@ -106,6 +207,10 @@ module.exports = function(lib_path, options) {
     options.console.log();
 
     function resetbuffer() { buffer = []; }
+
+    function completer(line) {
+        return find_completions(line, ctx);
+    }
 
     function prompt() {
         var lw = '';

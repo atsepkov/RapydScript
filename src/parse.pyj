@@ -55,6 +55,8 @@ RESERVED_WORDS = "abstract boolean byte char double enum export extends final fl
 
 KEYWORDS_BEFORE_EXPRESSION = "return new del raise elif else if"
 
+ALL_KEYWORDS = RESERVED_WORDS + " " + KEYWORDS_BEFORE_EXPRESSION
+
 KEYWORDS = makePredicate(KEYWORDS)
 RESERVED_WORDS = makePredicate(RESERVED_WORDS)
 KEYWORDS_BEFORE_EXPRESSION = makePredicate(KEYWORDS_BEFORE_EXPRESSION)
@@ -186,6 +188,7 @@ UNICODE = {  # {{{
 }  # }}}
 
 BASELIB = {}
+IDENTIFIER_PAT = /^[a-z_$][_a-z0-9$]*$/i
 
 class ImportError(Error):
 
@@ -208,7 +211,7 @@ def is_unicode_connector_punctuation(ch):
     return UNICODE.connector_punctuation.test(ch)
 
 def is_identifier(name):
-    return not RESERVED_WORDS(name) and /^[a-z_$][a-z0-9_$]*$/i.test(name)
+    return not RESERVED_WORDS(name) and IDENTIFIER_PAT.test(name)
 
 def is_identifier_start(code):
     return code == 36 or code == 95 or is_letter(code)
