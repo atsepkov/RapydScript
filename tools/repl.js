@@ -15,7 +15,7 @@ var util = require('util');
 var RapydScript = require('./compiler');
 
 function create_ctx(baselib, show_js, console) {
-    var ctx = vm.createContext({'console':console, 'show_js': !!show_js, 'RapydScript':RapydScript});
+    var ctx = vm.createContext({'console':console, 'show_js': !!show_js, 'RapydScript':RapydScript, 'require':require});
 	vm.runInContext(baselib, ctx, {'filename':'baselib.js'});
 	var b = vm.runInContext('this', ctx);
 	for (var key in b) {
@@ -38,6 +38,7 @@ var colors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
 var homedir = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
 var cachedir = expanduser(process.env.XDG_CACHE_HOME || '~/.cache');
 var all_keywords = RapydScript.ALL_KEYWORDS.split(' ');
+var enum_global = "var global = Function('return this')(); Object.getOwnPropertyNames(global);";
 
 function expanduser(x) {
   if (!x) return x;
@@ -53,7 +54,7 @@ function colored(string, color, bold) {
     return prefix.join('') + string + ansi(0);
 }
 
-function defaults(options) {
+function repl_defaults(options) {
     options = options || {};
     if (!options.input) options.input = process.stdin;
     if (!options.output) options.output = process.stdout;
@@ -64,6 +65,8 @@ function defaults(options) {
     if (!options.readline) options.readline = readline;
     if (options.terminal === undefined) options.terminal = options.output.isTTY;
     if (options.histfile === undefined) options.histfile = path.join(cachedir, 'rapydscript-repl.history');
+    if (options.baselib === undefined) options.baselib = fs.readFileSync(path.join(options.lib_path, 'baselib.js'), 'utf-8');
+    if (!options.enum_global) options.enum_global = enum_global;
         
     options.colored = (options.terminal) ? colored : (function (string) { return string; });
     return options;
@@ -86,8 +89,24 @@ function write_history(options, history) {
     }
 }
 
-function global_names(ctx) {
-    return Object.getOwnPropertyNames(vm.runInContext('this', ctx)).concat(all_keywords);
+// Completion {{{
+
+function global_names(ctx, options) {
+    try {
+        var ans = vm.runInContext(options.enum_global, ctx);
+        ans = ans.concat(all_keywords);
+        ans.sort();
+        var seen = {};
+        ans.filter(function (item) { 
+            if (Object.prototype.hasOwnProperty.call(seen, item)) return false;
+            seen[item] = true;
+            return true;
+        });
+        return ans;
+    } catch(e) {
+        console.log(e.stack || e.toString());
+    }
+    return [];
 }
 
 function object_names(obj, prefix) {
@@ -143,7 +162,7 @@ function prefix_matches(prefix, items) {
     return ans;
 }
 
-function find_completions(line, ctx) {
+function find_completions(line, ctx, options) {
     try {
         t = RapydScript.tokenizer(line, '<repl>');
     } catch(e) { return []; }
@@ -159,7 +178,7 @@ function find_completions(line, ctx) {
     }
     if (!tokens.length) {
         // New line or trailing space
-        return [global_names(ctx), ''];
+        return [global_names(ctx, options), ''];
     }
     var last_tok = tokens[tokens.length - 1];
     if (last_tok.value === '.' || (last_tok.type === 'name' && RapydScript.IDENTIFIER_PAT.test(last_tok.value))) {
@@ -179,21 +198,21 @@ function find_completions(line, ctx) {
                 return [object_names(result, last_tok), last_tok];
             }
         } else {
-            return [prefix_matches(last_tok, global_names(ctx)), last_tok];
+            return [prefix_matches(last_tok, global_names(ctx, options)), last_tok];
         }
     }
     return [];
 }
+// }}}
 
-module.exports = function(lib_path, options) {
+module.exports = function(options) {
 	var output_options = {'omit_baselib':true, 'write_name':false, 'private_scope':false, 'beautify':true};
-    options = defaults(options);
+    options = repl_defaults(options);
     options.completer = completer;
     var rl = options.readline.createInterface(options);
-	var baselib = fs.readFileSync(path.join(lib_path, 'baselib.js'), 'utf-8');
 	ps1 = options.colored(options.ps1, 'green');
 	ps2 = options.colored(options.ps2, 'yellow');
-	var ctx = create_ctx(baselib, options.show_js, options.console);
+	var ctx = create_ctx(options.baselib, options.show_js, options.console);
     var buffer = [];
     var more = false;
     var LINE_CONTINUATION_CHARS = ':\\';
@@ -209,7 +228,7 @@ module.exports = function(lib_path, options) {
     function resetbuffer() { buffer = []; }
 
     function completer(line) {
-        return find_completions(line, ctx);
+        return find_completions(line, ctx, options);
     }
 
     function prompt() {
@@ -221,8 +240,11 @@ module.exports = function(lib_path, options) {
             if (prev_line) lw += prev_line;
         }
         rl.setPrompt((more) ? ps2 : ps1);
-        rl.prompt();
-        if (lw) rl.write(lw);
+        if (rl.sync_prompt) rl.prompt(lw);
+        else {
+            rl.prompt();
+            if (lw) rl.write(lw);
+        }
     }
 
     function runjs(js) {
@@ -253,13 +275,13 @@ module.exports = function(lib_path, options) {
                 'filename':'<repl>',
                 'readfile': fs.readFileSync,
                 'basedir': process.cwd(),
-                'libdir': lib_path,
+                'libdir': options.lib_path,
                 'classes': classes
             });
         } catch(e) {
             if (e.is_eof && e.line == buffer.length && e.col > 0) return true;
             if (e.message && e.line !== undefined) options.console.log(e.line + ':' + e.col + ':' + e.message);
-            else options.console.log(e.toString());
+            else options.console.log(e.stack || e.toString());
             return false;
         }
         var output = RapydScript.OutputStream(output_options);
@@ -279,8 +301,8 @@ module.exports = function(lib_path, options) {
 
     function push(line) {
         buffer.push(line);
-        var rl = line.trimRight();
-        if (rl && LINE_CONTINUATION_CHARS.indexOf(rl.substr(rl.length - 1)) > -1)
+        var ll = line.trimRight();
+        if (ll && LINE_CONTINUATION_CHARS.indexOf(ll.substr(ll.length - 1)) > -1)
             return true;
         var source = buffer.join('\n');
         if (!source.trim()) { resetbuffer(); return false; }

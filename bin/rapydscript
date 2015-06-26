@@ -29,7 +29,7 @@ if (argv.test) {
 } else 
 
 if (argv.files.length === 0 && process.stdin.isTTY) {
-    load('repl')(lib_path);
+    load('repl')({'lib_path':lib_path});
 } else {
     load('compile')(start_time, argv, base_path, src_path, lib_path);
 }
