@@ -672,6 +672,7 @@ def OutputStream(options):
             if module_.module_id != '__main__':
                 print_module(module_, output)
 
+    def write_main_name(output):
         if output.option('write_name'):
             output.newline()
             output.indent()
@@ -851,7 +852,18 @@ def OutputStream(options):
 
                     output.prologue(self)
                     write_imports(self, output)
-                    display_complex_body(self, True, output)
+                    output.newline()
+                    output.indent()
+                    output.with_parens(def():
+                        output.print("function()")
+                        output.with_block(def():
+                            write_main_name(output)
+                            output.newline()
+                            display_complex_body(self, True, output)
+                            output.newline()
+                        )
+                    )
+                    output.print("();")
                     output.newline()
                 )
             )
@@ -861,6 +873,7 @@ def OutputStream(options):
             if is_main:
                 output.prologue(self)
                 write_imports(self, output)
+                write_main_name(output)
 
             if self.strict:
                 declare_vars(self.localvars, output)
