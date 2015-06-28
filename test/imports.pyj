@@ -45,3 +45,6 @@ def inner():
 inner()
 b = AClass(1)
 eq(b, this)
+
+# Test global symbol declared in other module
+eq(GLOBAL_SYMBOL, 'i am global')

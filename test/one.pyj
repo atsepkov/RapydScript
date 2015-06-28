@@ -1,4 +1,5 @@
 # vim:fileencoding=utf-8
+nonlocal GLOBAL_SYMBOL
 
 def toplevel_func(a):
     return a + 'toplevel'
@@ -19,3 +20,5 @@ if True:
     true_var = 'true'
 else:
     false_var = 'false'
+
+GLOBAL_SYMBOL = 'i am global'

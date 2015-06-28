@@ -2475,11 +2475,13 @@ def parse($TEXT, options):
         def uniq(element, index, arr):
             return arr.lastIndexOf(element) == index
 
+        toplevel.nonlocalvars = scan_for_nonlocal_defs(toplevel.body)
         assignments = scan_for_local_vars(toplevel.body).filter(uniq)
         callables = scan_for_top_level_callables(toplevel.body).filter(uniq)
         toplevel.localvars = []
         assignments.forEach(def(item):
-            toplevel.localvars.push(new_symbol(AST_SymbolVar, item))
+            if (toplevel.nonlocalvars.indexOf(item) < 0):
+                toplevel.localvars.push(new_symbol(AST_SymbolVar, item))
         )
         toplevel.exports = toplevel.localvars.concat(callables).filter(uniq)
         toplevel.submodules = []

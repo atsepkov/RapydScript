@@ -657,6 +657,18 @@ def OutputStream(options):
             output.print('if (typeof _$rapyd$_modules !== "object") var _$rapyd$_modules = {};')
             output.newline()
 
+        # Declare all variable names exported from the modules as global symbols
+        nonlocalvars = {}
+        for module_ in imports:
+            for name in module_.nonlocalvars:
+                nonlocalvars[name] = True
+        nonlocalvars = Object.getOwnPropertyNames(nonlocalvars).join(', ')
+        if nonlocalvars.length:
+            output.indent()
+            output.print('var ' + nonlocalvars);
+            output.semicolon()
+            output.newline()
+
         # Create the module objects
         for module_ in imports:
             if module_.module_id != '__main__':
