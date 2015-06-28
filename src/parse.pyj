@@ -1742,21 +1742,6 @@ def parse($TEXT, options):
 
         return a
 
-    def new_vardefs(no_in, in_const):
-        a = []
-        while True:
-            a.push(new AST_VarDef({
-                start: S.token,
-                name: new_symbol((in_const ? AST_SymbolConst : AST_SymbolVar)),
-                value: (is_("operator", "=") ? (next(), expression(False, no_in)) : None),
-                end: prev()
-            }))
-            if not is_("punc", ","):
-                break
-
-            next()
-        return a
-
     nonlocal_ = def(no_in):
         return new AST_Var({
             start: prev(),
