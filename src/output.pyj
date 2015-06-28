@@ -654,7 +654,7 @@ def OutputStream(options):
         )
         if imports.length > 1:
             output.indent()
-            output.print('if (typeof _$rapyd$_modules !== "object") var _$rapyd$_modules = {};')
+            output.print('var _$rapyd$_modules = {};')
             output.newline()
 
         # Declare all variable names exported from the modules as global symbols
