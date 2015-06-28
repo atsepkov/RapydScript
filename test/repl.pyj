@@ -70,7 +70,7 @@ readline = {
         rl.completer = options.completer
         return rl
 }
-repl(base_path + '/lib', {'console':FakeConsole(), 'readline':readline, 'terminal':false, 'show_js':false, 'histfile':false})
+repl({'lib_path':base_path + '/lib', 'console':FakeConsole(), 'readline':readline, 'terminal':false, 'show_js':false, 'histfile':false})
 eq = assert.equal
 eq('>>> ', stdout[-1])
 clear()
