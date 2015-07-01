@@ -1387,7 +1387,7 @@ def parse($TEXT, options):
                     break
         if src_code is None:
             raise "Failed Import: '" + key + "' module doesn't exist in either '" + options.basedir + "' or '" + options.libdir + "'"
-        contents = parse(src_code, {
+        parse(src_code, {
                 filename: filename,
                 toplevel: None,
                 readfile: options.readfile,
@@ -1396,7 +1396,7 @@ def parse($TEXT, options):
                 module_id: key,
                 IMPORTED: IMPORTED,
                 IMPORTING: IMPORTING,
-        })
+        })  # This function will add the module to IMPORTED itself
         if len(package_module_id) > 0:
             IMPORTED[package_module_id].submodules.push(key)
 
