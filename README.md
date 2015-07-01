@@ -771,8 +771,16 @@ RapydScript's module system works almost exactly like Python's. Modules are
 files ending with the suffix ```.pyj``` and packages are directories containing
 an ```__init__.pyj``` file. The only caveat is that star imports are not
 currently supported (this is by design, star imports are easily abused).
+You can import from mosules, just like you would in python:
 
-Also, currently, aliasing with ```as``` is not supported, this is on my TODO list.
+	from mypackage.mymodule import something, something_else
+
+Currently, aliasing with ```as``` is not supported, this is on my TODO list.
+
+When you import modules, the RapydScript compiler automatically generates a
+single large JavaScript file contianing all the imported packages/modules and
+their dependencies, recursively. This makes it very easy to integrate the
+output of RapydScript into your website.
 
 Exception Handling
 ------------------
@@ -881,34 +889,6 @@ Note that `b` is not affected by shadowing. It's the assignment operator that tr
 				a += 1
 
 Shadowing is preferred in most cases, since it can't accidently damage outside logic, and if you want to edit an external variable, you're usually better off assigning function's return value to it. There are cases, however, when using `nonlocal` makes the code cleaner. There is also `global`, but it is rarely a good solution, and use of `nonlocal` is preferred to it.
-
-
-Importing
----------
-Like Python, RapydScript allows you to import additional modules into your code. Unlike Python, however, (and like RapydML) the current implementation of the importing logic is naive. This means that RaoydScript doesn't separate different modules into separate namespaces, nor does it support module aliasing yet (eventually I do want that functionality).
-
-For those unfamiliar with importing, let's imagine we're writing a very large program. This program is several thousand lines of code. We could dump it all into the same file, but that wouldn't be too clean (especially when we have multiple developers working on it). Alternatively, we could separate different chunks of the program into different files. Let's imagine, for example, that we're writing a videogame. We've already written a module that implements 'BasicCharacter' class, used by NPCs, monsters, and the main character. We've saved this class to Basic.pyj (that's the extension RapydScript prefers). Now let's create the main character in a different module:
-
-	import Basic
-	
-	class MainCharacter(BasicCharacter):
-		"""
-		This is the main character class, similar to basic but it implements attack and hp
-		"""
-		def __init__(self):
-			BasicCharacter.__init__(self)
-			self.hp = 100
-			self.damage = 10
-		
-		def attack(self, something):
-			something.getHurt(self.damage)
-		
-		def getHurt(self, damage):
-			self.hp -= damage
-
-With RapydScript's importing, you don't need to worry about including each JavaScript file individually in your html. All your .pyj files will get concatenated into a single .js file that you can then include in your page. The name of the .js file will match the name of the file you used input for the RapydScript compiler.
-
-RapydScript already adds several modules you can import by default, like `stdlib` and `yql`. Check out the examples or the documentation in the modules themselves for usage.
 
 
 Available Libraries
