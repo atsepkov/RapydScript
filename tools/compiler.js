@@ -1,10 +1,17 @@
 var path = require("path");
 var fs = require("fs");
 var vm = require("vm");
+var crypto = require('crypto');
 
 var RapydScript = vm.createContext({
     console       : console,
     readfile      : fs.readFileSync,
+    writefile     : fs.writeFileSync,
+    sha1sum       : function (data) { 
+        var h = crypto.createHash('sha1');
+        h.update(data);
+        return h.digest('hex');
+    },
 });
 
 exports.parse_baselib = function(src_path, beautify) {
