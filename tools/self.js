@@ -26,7 +26,6 @@ module.exports = function compile_self(base_path, src_path, lib_path, start_time
 	function parse_file(code, file) {
 		return RapydScript.parse(code, {
 			filename: file,
-			readfile: fs.readFileSync,
 			basedir: path.dirname(file),
 			auto_bind: false,
 			libdir: path.join(src_path, 'lib'),

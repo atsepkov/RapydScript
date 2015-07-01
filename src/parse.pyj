@@ -1368,7 +1368,7 @@ def parse($TEXT, options):
         def safe_read(base_path):
             for i, path in enumerate([base_path + '.pyj', base_path + '/__init__.pyj']):
                 try:
-                    return [options.readfile(path, "utf-8"), path]
+                    return [readfile(path, "utf-8"), path]
                 except as e:
                     if e.code == 'ENOENT' or e.code == 'EPERM' or e.code == 'EACCESS':
                         if i == 1:
@@ -1390,7 +1390,6 @@ def parse($TEXT, options):
         parse(src_code, {
                 filename: filename,
                 toplevel: None,
-                readfile: options.readfile,
                 basedir: options.basedir,
                 libdir: options.libdir,
                 module_id: key,

@@ -4,15 +4,14 @@ var vm = require("vm");
 
 var RapydScript = vm.createContext({
     console       : console,
+    readfile      : fs.readFileSync,
 });
 
 exports.parse_baselib = function(src_path, beautify) {
     var baselibAst;
     try {
         var baselibPath = path.join(src_path, 'baselib.pyj');
-        baselibAst = RapydScript.parse(fs.readFileSync(baselibPath, "utf-8"), {
-            readfile: fs.readFileSync,
-        });
+        baselibAst = RapydScript.parse(fs.readFileSync(baselibPath, "utf-8"));
     } catch(e) {
         if (e.code == "ENOENT") {
             throw "Failed to locate baselib module.";

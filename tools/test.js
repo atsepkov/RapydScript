@@ -34,12 +34,14 @@ module.exports = function(argv, base_path, src_path, lib_path) {
             ast = RapydScript.parse(fs.readFileSync(filepath, "utf-8"), {
                 filename: file,
                 toplevel: ast,
-                readfile: fs.readFileSync,
                 basedir: test_dir,
                 libdir: path.join(src_path, 'lib'),
             });
-        } catch(ex) {
-            console.log(file + ":\t" + ex + "\n");
+        } catch(e) {
+            if (e.stack) 
+                console.log(file + ":\n" + e.stack + "\n\n");
+             else 
+                console.log(file + ": " + e + "\n\n");
             return;
         }
         // generate output
@@ -57,20 +59,21 @@ module.exports = function(argv, base_path, src_path, lib_path) {
             vm.runInNewContext(code, {
                 'assert':require('assert'), 
                 'require':require, 
+                'fs':fs,
                 'RapydScript':RapydScript, 
                 'console':console,
                 'base_path': base_path
             }, {'filename':jsfile});
-			ok = true;
             fs.unlinkSync(jsfile);
+            ok = true;
         } catch (e) {
-            if (e.stack) {
-                console.log(file + ":\t" + e.stack + "\n\n");
-            } else {
-                console.log(file + ":\t" + e + "\n\n");
-            }
+            ok = false;
+            if (e.stack) 
+                console.log(file + ":\n" + e.stack + "\n\n");
+             else 
+                console.log(file + ": " + e + "\n\n");
         }
-		if (ok) console.log(file + ":\ttest completed successfully\n");
+		if (ok) console.log(file + ": test completed successfully\n");
         else { all_ok = false; console.log(file + ":\ttest failed\n"); }
     });
     if (!all_ok) console.log('There were some test failures!!');
