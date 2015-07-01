@@ -1400,46 +1400,66 @@ def parse($TEXT, options):
         if len(package_module_id) > 0:
             IMPORTED[package_module_id].submodules.push(key)
 
-    def read_import():
-        tmp = name = expression(False)
-        key = ''
-        while isinstance(tmp, AST_Dot):
-            key = "." + tmp.property + key
-            tmp = tmp.expression
-        key = tmp.name + key
-        do_import(key)
-        return name, key
-
     import_ = def(from_import):
-        name, key = read_import()
-        argnames = None
-        classes = IMPORTED[key].classes
-        if from_import:
-            expect_token("keyword", "import")
-            argnames = []
-            argnames.push(as_symbol(AST_SymbolVar))
-            while is_("punc", ","):
+        ans = new AST_Imports({'imports':[]})
+        while True:
+            tmp = name = expression(False)
+            key = ''
+            while isinstance(tmp, AST_Dot):
+                key = "." + tmp.property + key
+                tmp = tmp.expression
+            key = tmp.name + key
+            alias = None
+            if not from_import and is_('keyword', 'as'):
                 next()
-                argnames.push(as_symbol(AST_SymbolVar))
-            # Put imported class names in the outermost scope
-            for argvar in argnames:
-                obj = classes[argvar.name]
-                if obj:
-                    S.classes[-1][argvar.name] = { "static": obj.static, bound: obj.bound }
-        else:
-            for i in dir(classes):
-                obj = classes[i]
-                if isinstance(obj, AST_Class):
-                    S.classes[-1][key + '.' + obj.name.name] = { 'static': obj.static, bound: obj.bound }
+                alias = as_symbol(AST_SymbolAlias)
+            imp = new AST_Import({
+                'module': name,
+                'key': key,
+                'alias': alias,
+                'argnames':None,
+                'body':def():
+                    return IMPORTED[key]
+            })
+            ans.imports.push(imp)
+            if from_import:
+                break
+            if is_('punc', ','):
+                next()
+            else:
+                break
 
-        return new AST_Import({
-            module: name,
-            key: key,
-            body: def():
-                return IMPORTED[key]
-            ,
-            argnames: argnames
-        })
+        for imp in ans['imports']:
+            do_import(imp.key)
+            classes = IMPORTED[key].classes
+            if from_import:
+                expect_token("keyword", "import")
+                imp.argnames = argnames = []
+                while True:
+                    aname = as_symbol(AST_ImportedVar)
+                    if is_('keyword', 'as'):
+                        next()
+                        aname.alias = as_symbol(AST_SymbolAlias)
+                    argnames.push(aname)
+                    if is_('punc', ','):
+                        next()
+                    else:
+                        break
+
+                # Put imported class names in the outermost scope
+                for argvar in argnames:
+                    obj = classes[argvar.name]
+                    if obj:
+                        key = (argvar.alias) ? argvar.alias.name : argvar.name
+                        S.classes[-1][key] = { "static": obj.static, bound: obj.bound }
+            else:
+                for i in dir(classes):
+                    obj = classes[i]
+                    if isinstance(obj, AST_Class):
+                        key = (imp.alias) ? imp.alias.name : imp.key
+                        S.classes[-1][key + '.' + obj.name.name] = { 'static': obj.static, bound: obj.bound }
+
+        return ans
 
     class_ = def():
         name = as_symbol(AST_SymbolDefun)

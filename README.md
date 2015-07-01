@@ -787,14 +787,12 @@ RapydScript's module system works almost exactly like Python's. Modules are
 files ending with the suffix ```.pyj``` and packages are directories containing
 an ```__init__.pyj``` file. The only caveat is that star imports are not
 currently supported (this is by design, star imports are easily abused).
-You can import from mosules, just like you would in python:
+You can import things from modules, just like you would in python:
 
 	from mypackage.mymodule import something, something_else
 
-Currently, aliasing with ```as``` is not supported, this is on my TODO list.
-
 When you import modules, the RapydScript compiler automatically generates a
-single large JavaScript file contianing all the imported packages/modules and
+single large JavaScript file containing all the imported packages/modules and
 their dependencies, recursively. This makes it very easy to integrate the
 output of RapydScript into your website.
 
