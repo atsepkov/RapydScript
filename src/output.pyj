@@ -737,14 +737,16 @@ def OutputStream(options):
                             if Object.prototype.hasOwnProperty.call(a.defaults, arg.name):
                                 output.spaced('(arguments[' + i + ']', '===', 'undefined', '||',
                                               '(', i, '===', 'arguments.length-1', '&&', 'typeof', kw, '===', '"object"', '&&',
-                                              kw, '[symbolfor("_$rapyd$_kwargs_obj")]', '===', 'true))', '?')
-                                output.space()
+                                              kw, '[symbolfor("_$rapyd$_kwargs_obj")]', '===', 'true))', '?', '')
                                 output.with_parens(def():
                                     a.defaults[arg.name].print(output)
                                 )
                                 output.space()
                                 output.print(':')
                                 output.space()
+                            else:
+                                output.spaced('(', i, '===', 'arguments.length-1', '&&', 'typeof', kw, '===', '"object"', '&&',
+                                              kw, '[symbolfor("_$rapyd$_kwargs_obj")]', '===', 'true)', '?', 'undefined', ':', '')
                             output.print('arguments[' + i + ']')
                             output.end_statement()
                     if a.kwargs or a.has_defaults:
