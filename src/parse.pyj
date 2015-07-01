@@ -1435,6 +1435,9 @@ def parse($TEXT, options):
             if from_import:
                 expect_token("keyword", "import")
                 imp.argnames = argnames = []
+                bracketed = is_('punc', '(')
+                if bracketed:
+                    next()
                 while True:
                     aname = as_symbol(AST_ImportedVar)
                     if is_('keyword', 'as'):
@@ -1444,6 +1447,11 @@ def parse($TEXT, options):
                     if is_('punc', ','):
                         next()
                     else:
+                        if bracketed:
+                            if is_('punc', ')'):
+                                next()
+                            else:
+                                continue
                         break
 
                 # Put imported class names in the outermost scope

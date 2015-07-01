@@ -1,5 +1,6 @@
 from one import toplevel_var, toplevel_func as tf, TopLevel, true_var, false_var
-from two import toplevel_var2, toplevel_func2, TopLevel2 as TL2
+from two import (toplevel_var2,
+                 toplevel_func2, TopLevel2 as TL2)
 
 def AClass(x):
     return this
