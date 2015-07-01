@@ -15,6 +15,12 @@
 # Pythonic shortcut for converting an object to string
 str = String
 
+def options_object(f):
+    return def():
+        if JS('typeof arguments[arguments.length - 1] === "object"'):
+            arguments[arguments.length - 1][symbolfor('_$rapyd$_kwargs_obj')] = True
+        return f.apply(this, arguments)
+
 ###########################################################
 # Errors
 ###########################################################

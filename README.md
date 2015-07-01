@@ -377,6 +377,22 @@ each time the function is called.  This makes it slightly less efficient, but
 prevents the common bug in python caused by using a mutable object literal as
 the default value for an optional argument.
 
+When creating callbacks to pass to other JavaScript libraries, it is often the
+case that the external library expects a function that receives an *options
+object* as its last argument. There is a convenient decorator in the standard
+library that makes this easy:
+
+	from stdlib import options_object
+
+	@options_object
+	def callback(a, b, opt1=default1, opt2=default2):
+	   pass
+
+Now when you pass callback into the external library and it is called with an
+object containing options, they will be automatically converted by RapydScript
+into the names optional parameters you specified in the function definition.
+
+
 Inferred Tuple Packing/Unpacking
 --------------------------------
 Like Python, RapydScript allows inferred tuple packing/unpacking and assignment. While inferred/implicit logic is usually bad, it can sometimes make the code cleaner, and based on the order of statements in the Zen of Python, 'beautiful' takes priority over 'explicit'. For example, if you wanted to swap two variables, the following looks cleaner than explicitly declaring a temporary variable:
