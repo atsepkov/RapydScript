@@ -727,14 +727,17 @@ def OutputStream(options):
                     a = node.argnames
                     kw = 'arguments[arguments.length-1]'
                     # Define all formal parameters
-                    for i, arg in enumerate(a):
-                        if i >= offset:
+                    for c, arg in enumerate(a):
+                        i = c - offset
+                        if i >= 0:
                             output.indent()
                             output.print("var")
                             output.space()
                             output.assign(arg)
                             if Object.prototype.hasOwnProperty.call(a.defaults, arg.name):
-                                output.spaced('(arguments[' + (i - offset) + ']', '===', 'undefined)', '?')
+                                output.spaced('(arguments[' + i + ']', '===', 'undefined', '||',
+                                              '(', i, '===', 'arguments.length-1', '&&', 'typeof', kw, '===', '"object"', '&&',
+                                              kw, '[symbolfor("_$rapyd$_kwargs_obj")]', '===', 'true))', '?')
                                 output.space()
                                 output.with_parens(def():
                                     a.defaults[arg.name].print(output)
@@ -742,9 +745,8 @@ def OutputStream(options):
                                 output.space()
                                 output.print(':')
                                 output.space()
-                            output.print('arguments[' + (i - offset) + ']')
-                            output.semicolon()
-                            output.newline()
+                            output.print('arguments[' + i + ']')
+                            output.end_statement()
                     if a.kwargs or a.has_defaults:
                         # Look for an options object
                         kw = (a.kwargs) ? a.kwargs.name : '_$rapyd$_kwargs_obj'
