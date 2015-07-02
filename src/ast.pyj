@@ -375,9 +375,12 @@ AST_Import = DEFNODE("Import", "module key alias argnames body", {
     _walk: def(visitor):
         node = this
         return visitor._visit(node, def():
-            node.argnames.forEach(def(arg):
-                arg._walk(visitor)
-            )
+            if node.alias:
+                node.alias._walk(visitor)
+            if node.argnames:
+                node.argnames.forEach(def(arg):
+                    arg._walk(visitor)
+                )
         )
     ,
 
