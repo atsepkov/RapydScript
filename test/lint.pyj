@@ -1,5 +1,5 @@
 # vim:fileencoding=utf-8
-# License: GPL v3
+# License: BSD
 # Copyright: 2015, Kovid Goyal <kovid at kovidgoyal.net>
 
 linter = require('../tools/lint.js')
