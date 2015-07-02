@@ -1429,11 +1429,11 @@ def parse($TEXT, options):
     import_ = def(from_import):
         ans = new AST_Imports({'imports':[]})
         while True:
-            tmp = name = expression(False)
+            tok = tmp = name = last_tok = expression(False)
             key = ''
             while isinstance(tmp, AST_Dot):
                 key = "." + tmp.property + key
-                tmp = tmp.expression
+                tmp = last_tok = tmp.expression
             key = tmp.name + key
             alias = None
             if not from_import and is_('keyword', 'as'):
@@ -1447,6 +1447,7 @@ def parse($TEXT, options):
                 'body':def():
                     return IMPORTED[key]
             })
+            imp.start, imp.end = tok.start, last_tok.end
             ans.imports.push(imp)
             if from_import:
                 break
