@@ -119,7 +119,11 @@
         if source.hasOwnProperty(i) and overwrite or JS('typeof target[i]') == 'undefined': target[i] = source[i]
 ,
 "print": def _$rapyd$_print():
-    if JS('typeof console') == 'object': console.log.apply(console, arguments)
+    if JS('typeof console') == 'object':
+        args = []
+        for JS('var i = 0; i < arguments.length; i++'):
+            args.push(arguments[i].toString())
+        console.log.apply(console, args)
 ,
 "range": def range(start, stop, step):
     if arguments.length <= 1:
