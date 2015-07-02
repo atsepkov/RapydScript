@@ -55,7 +55,11 @@ module.exports = function compile_self(base_path, src_path, lib_path, start_time
         var raw = fs.readFileSync(src, 'utf-8');
         // Remove copyright comment as it is unreadable in the output JS anyway
         var idx = raw.indexOf('"use strict');
-        if (idx > -1) raw = raw.substr(idx);
+        if (idx > -1) {
+            var cmt = raw.substr(0, idx);
+            var nlines = cmt.split('\n').length;
+            raw = (new Array(nlines)).join('\n') + raw.substr(idx);
+        }
         sources[src] = raw;
         source_hash.update(raw);
         h.update(raw);
