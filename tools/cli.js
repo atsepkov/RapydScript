@@ -216,6 +216,14 @@ from those files. For example:
 --test baselib functions
 */});
 
+opt("lint", 'l', 'bool', false, function(){/*
+Run the RapydScript linter and exit. This will
+find various possible problems in the .pyj files
+you specify and write messages about them to stdout.
+The main check it performs is for unused/undefined 
+symbols, like pyflakes does for python.
+*/});
+
 opt("self", undefined, 'bool', false, function(){/*
 Compile the compiler itself. It will only actually 
 compile if something has changed since the last time 
