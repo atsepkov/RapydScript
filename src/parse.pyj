@@ -800,7 +800,6 @@ def parse($TEXT, options):
         auto_bind: False,   # whether auto-binding of methods to classes is enabled
         module_id:'__main__', # The id of the module being parsed
         toplevel: None,
-        for_linting: False, # If True certain actions are not performed, such as importing modules
         classes: undefined  # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
     })
     module_id = options.module_id
@@ -1367,13 +1366,6 @@ def parse($TEXT, options):
         package_module_id = key.split('.')[:-1].join('.')
         if len(package_module_id) > 0:
             do_import(package_module_id)
-
-        if options.for_linting:
-            IMPORTED[key] = {is_cached:True, classes:{}, outputs:{}, module_id:key,
-                             submodules:[], nonlocalvars:[], baselib:{}, outputs:{}}
-            if len(package_module_id) > 0:
-                IMPORTED[package_module_id].submodules.push(key)
-            return
 
         def safe_read(base_path):
             for i, path in enumerate([base_path + '.pyj', base_path + '/__init__.pyj']):
