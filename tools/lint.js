@@ -17,7 +17,6 @@ var MESSAGES = {
     'unused-local' : '"{name}" is defined but not used',
     'loop-shadowed': 'The loop variable "{name}" was previously used in this scope at line: {line}',
     'extra-semicolon': 'This semi-colon is not needed',
-    'eol-semicolon': 'Semi-colons at the end of the line are unnecessary',
 };
 
 BUILTINS = {'this':true, 'self':true, 'window':true, 'document':true};
@@ -157,7 +156,7 @@ function Scope(is_toplevel, parent_scope, filename) {
 
 }
 
-function Linter(toplevel, filename, code) {
+function Linter(toplevel, filename) {
 
     this.scopes = [];
     this.walked_scopes = [];
@@ -262,7 +261,7 @@ function Linter(toplevel, filename, code) {
     };
 
     this.handle_comprehension = function() {
-        this.handle_scope();  // Comprehensions create their own scope
+        this.handle_scope();  // Comprehension create their own scopes
         this.handle_for_in();
     };
 
@@ -337,14 +336,6 @@ function Linter(toplevel, filename, code) {
 
     this.resolve = function() {
         var messages = this.messages;
-
-        code.split('\n').forEach(function(line) {
-            line = line.trimRight();
-            if (line[line.length - 1] === ';') {
-                var ident = 'eol-semicolon';
-                messages.push({filename:filename, ident:ident, message:MESSAGES[ident], level:WARN, name:';'});
-            }
-        });
         this.walked_scopes.forEach(function (scope) {
             messages = messages.concat(scope.messages());
         });
@@ -370,7 +361,7 @@ function lint_code(code, options) {
         return;
     }
 
-    var linter = new Linter(toplevel, filename, code);
+    var linter = new Linter(toplevel, filename);
     toplevel.walk(linter);
     var messages = linter.resolve();
     messages.forEach(reportcb);
