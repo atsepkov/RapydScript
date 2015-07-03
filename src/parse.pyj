@@ -100,7 +100,6 @@ NATIVE_CLASSES = {
     'WeakMap': {},
     'Set': {},
     'WeakSet': {},
-    'Symbol': {},
 }
 COMMON_STATIC = [ "call", "apply", "bind", "toString" ]
 
