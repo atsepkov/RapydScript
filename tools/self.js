@@ -47,18 +47,12 @@ module.exports = function compile_self(base_path, src_path, lib_path, start_time
         sha1sum.update(fs.readFileSync(fpath));
     });
     hashes['#compiler#'] = sha1sum.digest('hex');
-    source_hash = crypto.createHash('sha1');
-    sources = {};
     RapydScript.FILENAMES.forEach(function (fname) {
         var src = path.join(src_path, fname + '.pyj');
         var h = crypto.createHash('sha1');
-        var raw = fs.readFileSync(src, 'utf-8');
-        sources[src] = raw;
-        source_hash.update(raw);
-        h.update(raw);
+        h.update(fs.readFileSync(src));
         hashes[fname] = h.digest('hex');
     });
-    source_hash = source_hash.digest('hex');
     compiler_changed = (hashes['#compiler#'] != saved_hashes['#compiler#']) ? true : false;
     function changed(name) {
         return compiler_changed || hashes[name] != saved_hashes[name];
@@ -77,10 +71,7 @@ module.exports = function compile_self(base_path, src_path, lib_path, start_time
         if (changed(fname)) {
             var src = path.join(src_path, fname + '.pyj');
             timed(fname, function() {
-                var raw = sources[src];
-                if (fname === 'parse')
-                    raw = raw.replace('__COMPILER_VERSION__', source_hash);
-                var toplevel = parse_file(raw, src);
+                var toplevel = parse_file(fs.readFileSync(src, "utf-8"), src);
                 var output = RapydScript.OutputStream(output_options);
                 toplevel.print(output);
                 compiled[fname] = output.get();

@@ -833,23 +833,21 @@ def OutputStream(options):
     def declare_exports(module_id, exports, submodules, output):
         seen = {}
         for symbol in exports:
+            output.newline()
+            output.indent()
+            output.print('_$rapyd$_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
+            seen[symbol.name] = True
+            output.semicolon()
+            output.newline()
+        for sub_module_id in submodules:
             if not seen.hasOwnProperty(module_id):
+                key = sub_module_id.split('.')[-1]
                 output.newline()
                 output.indent()
-                output.print('_$rapyd$_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
-                seen[symbol.name] = True
+                output.print('_$rapyd$_modules["' + module_id + '"]["' + key + '"] = ')
+                output.print('_$rapyd$_modules["' + sub_module_id + '"]')
                 output.semicolon()
                 output.newline()
-
-    def declare_submodules(module_id, submodules, output):
-        seen = {}
-        for sub_module_id in submodules:
-            if not seen.hasOwnProperty(sub_module_id):
-                seen[sub_module_id] = True
-                key = sub_module_id.split('.')[-1]
-                output.indent()
-                output.spaced('_$rapyd$_modules["' + module_id + '"]["' + key + '"]', '=', '_$rapyd$_modules["' + sub_module_id + '"]')
-                output.end_statement()
 
     def unpack_tuple(tuple, output, in_statement):
         tuple.elements.forEach(def(elem, i):
@@ -926,12 +924,6 @@ def OutputStream(options):
 
     )
     def print_module(self, output):
-
-        def output_module(output):
-            declare_vars(self.localvars, output)
-            display_body(self.body, True, output)
-            declare_exports(self.module_id, self.exports, self.submodules, output)
-
         output.newline()
         output.indent()
         output.with_parens(def():
@@ -945,32 +937,9 @@ def OutputStream(options):
                     output.print('"' + self.module_id + '"')
                     output.semicolon()
                     output.newline()
-                def output_key(beautify, auto_bind):
-                    return 'beautify:' + beautify + ' auto_bind:' + auto_bind
-                okey = output_key(output.option('beautify'), output.option('auto_bind'))
-                if self.is_cached and okey in self.outputs:
-                    output.print(self.outputs[okey])
-                    declare_submodules(self.module_id, self.submodules, output)
-                else:
-                    output_module(output)
-                    declare_submodules(self.module_id, self.submodules, output)
-                    if self.srchash and self.filename:
-                        cached = {version:COMPILER_VERSION, 'signature':self.srchash, classes: {}, baselib:self.baselib, nonlocalvars:self.nonlocalvars, outputs:{}}
-                        for cname in Object.keys(self.classes):
-                            cobj = self.classes[cname]
-                            cached.classes[cname] = {name:{name:cobj.name.name}, 'static':cobj.static, 'bound':cobj.bound}
-                        for beautify in [True, False]:
-                            for auto_bind in [True, False]:
-                                co = OutputStream({beautify:beautify, auto_bind:auto_bind, private_scope:False, write_name:False})
-                                co.with_indent(output.indentation(), def():
-                                    output_module(co)
-                                )
-                                raw = co.toString()
-                                cached.outputs[output_key(beautify, auto_bind)] = raw
-                        try:
-                            writefile(self.filename + '-cached', JSON.stringify(cached, null, '\t'))
-                        except Error as e:
-                            console.error('Failed to write output cache file:', self.filename + '-cached', 'with error:', e)
+                declare_vars(self.localvars, output)
+                display_body(self.body, True, output)
+                declare_exports(self.module_id, self.exports, self.submodules, output)
             )
         )
         output.print("()")

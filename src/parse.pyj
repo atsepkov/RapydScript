@@ -47,8 +47,6 @@
 """
 "use strict"
 
-COMPILER_VERSION = '__COMPILER_VERSION__'
-
 KEYWORDS = "as break case class const continue debugger default def del do elif else except finally for from if import in instanceof is new nonlocal pass raise return switch til to try typeof var void while with or and not"
 
 KEYWORDS_ATOM = "False None True"
@@ -189,6 +187,7 @@ UNICODE = {  # {{{
     connector_punctuation: RegExp("[\\u005F\\u203F\\u2040\\u2054\\uFE33\\uFE34\\uFE4D-\\uFE4F\\uFF3F]")
 }  # }}}
 
+BASELIB = {}
 IDENTIFIER_PAT = /^[a-z_$][_a-z0-9$]*$/i
 
 class ImportError(Error):
@@ -803,7 +802,6 @@ def parse($TEXT, options):
         classes: undefined  # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
     })
     module_id = options.module_id
-    baselib_items = {}
     IMPORTED = options.IMPORTED or {}
     IMPORTING = options.IMPORTING or {}
     IMPORTING[module_id] = True
@@ -1144,9 +1142,9 @@ def parse($TEXT, options):
             elif tmp_ == "import":
                 return import_(False)
             elif tmp_ == "class":
-                baselib_items["extends"] = True
+                BASELIB["extends"] = True
                 if options.auto_bind:
-                    baselib_items["rebind_all"] = True
+                    BASELIB["rebind_all"] = True
                 return class_()
             elif tmp_ == "def":
                 start = prev()
@@ -1299,7 +1297,7 @@ def parse($TEXT, options):
     def for_in(init, list_comp):
         lhs = (isinstance(init, AST_Var) ? init.definitions[0].name : None)
         obj = expression(True)
-        baselib_items["iterable"] = True
+        BASELIB["iterable"] = True
         #        expect(")");
         if list_comp:
             return {
@@ -1389,18 +1387,7 @@ def parse($TEXT, options):
                     break
         if src_code is None:
             raise "Failed Import: '" + key + "' module doesn't exist in either '" + options.basedir + "' or '" + options.libdir + "'"
-
-        try:
-            cached = JSON.parse(readfile(filename + '-cached', 'utf-8'))
-        except:
-            cached = None
-
-        srchash = sha1sum(src_code)
-        if cached and cached['version'] == COMPILER_VERSION and cached['signature'] == srchash:
-            IMPORTED[key] = {is_cached:True, classes:cached['classes'], outputs:cached['outputs'], module_id:key,
-                             submodules:[], nonlocalvars:cached['nonlocalvars'], baselib:cached['baselib']}
-        else:
-            parse(src_code, {
+        parse(src_code, {
                 filename: filename,
                 toplevel: None,
                 basedir: options.basedir,
@@ -1408,15 +1395,9 @@ def parse($TEXT, options):
                 module_id: key,
                 IMPORTED: IMPORTED,
                 IMPORTING: IMPORTING,
-            })  # This function will add the module to IMPORTED itself
-
-        IMPORTED[key].srchash = srchash
+        })  # This function will add the module to IMPORTED itself
         if len(package_module_id) > 0:
             IMPORTED[package_module_id].submodules.push(key)
-
-        for bitem in Object.keys(IMPORTED[key].baselib):
-            baselib_items[bitem] = True
-
 
     import_ = def(from_import):
         ans = new AST_Imports({'imports':[]})
@@ -1479,10 +1460,11 @@ def parse($TEXT, options):
                         key = (argvar.alias) ? argvar.alias.name : argvar.name
                         S.classes[-1][key] = { "static": obj.static, bound: obj.bound }
             else:
-                for cname in Object.keys(classes):
-                    obj = classes[cname]
-                    key = (imp.alias) ? imp.alias.name : imp.key
-                    S.classes[-1][key + '.' + obj.name.name] = { 'static': obj.static, bound: obj.bound }
+                for i in dir(classes):
+                    obj = classes[i]
+                    if isinstance(obj, AST_Class):
+                        key = (imp.alias) ? imp.alias.name : imp.key
+                        S.classes[-1][key + '.' + obj.name.name] = { 'static': obj.static, bound: obj.bound }
 
         return ans
 
@@ -1566,7 +1548,7 @@ def parse($TEXT, options):
                 S.classes[S.classes.length - 2][in_class].static.push(name.name)
                 staticmethod = True
             elif name.name != "__init__" and options.auto_bind:
-                baselib_items["bind"] = True
+                BASELIB["bind"] = True
                 S.classes[S.classes.length - 2][in_class].bound[name.name] = True
 
         expect("(")
@@ -1626,7 +1608,7 @@ def parse($TEXT, options):
                 a.defaults = defaults
                 a.is_simple_func = not a.starargs and not a.kwargs and not a.has_defaults
                 if not a.is_simple_func:
-                    baselib_items['symbolfor()'] = True
+                    BASELIB['symbolfor()'] = True
                 return a
             .call(this, []),
             localvars: [],
@@ -2005,8 +1987,8 @@ def parse($TEXT, options):
                 else:
                     a.push(arg)
         if a.kwargs:
-            baselib_items['symbolfor()'] = True
-            baselib_items['desugar_kwargs()'] = True
+            BASELIB['symbolfor()'] = True
+            BASELIB['desugar_kwargs()'] = True
         next()
         return a
 
@@ -2019,7 +2001,7 @@ def parse($TEXT, options):
                 # list comprehension
                 next()
                 forloop = for_(True)
-                baselib_items["iterable"] = True
+                BASELIB["iterable"] = True
                 ret = new AST_ListComprehension({
                     statement: expr[0],
                     init: forloop.init,
@@ -2032,7 +2014,7 @@ def parse($TEXT, options):
 
             if is_("operator", "til"):
                 # up to but not including upper limit
-                baselib_items['range'] = True
+                BASELIB['range'] = True
                 next()
                 expr.push(expression(False))
                 ret = subscripts(new AST_Call({
@@ -2047,7 +2029,7 @@ def parse($TEXT, options):
                 return ret
             elif is_("operator", "to"):
                 # now add a tiny number to make sure we include the upper limit
-                baselib_items['range'] = True
+                BASELIB['range'] = True
                 next()
                 expr.push(new AST_Binary({
                     left: expression(False),
@@ -2207,7 +2189,7 @@ def parse($TEXT, options):
 
             if is_("punc", ":"):
                 # slice [n:m:o?]
-                baselib_items["eslice"] = True
+                BASELIB["eslice"] = True
                 next()
                 if is_("punc", "]"):
                     unexpected()
@@ -2333,7 +2315,7 @@ def parse($TEXT, options):
                     or tmp_ == "getattr"
                     or tmp_ == "setattr"
                     or tmp_ == "hasattr":
-                        baselib_items[tmp_] = True
+                        BASELIB[tmp_] = True
                         # NOTE: there is intentionally no return here, we want these functions to go through regular logic
                         # after they trigger the appropriate baselib flag
                     elif tmp_ == "type":
@@ -2353,7 +2335,7 @@ def parse($TEXT, options):
                             end: prev()
                         })
                     elif tmp_ == 'symbolfor':
-                        baselib_items[tmp_ + '()'] = True
+                        BASELIB[tmp_ + '()'] = True
 
                 # fall-through to basic function call
                 return subscripts(new AST_Call({
@@ -2408,7 +2390,7 @@ def parse($TEXT, options):
             if no_in:
                 op = None
             else:
-                baselib_items[op] = True
+                BASELIB[op] = True
 
         prec = (op != None ? PRECEDENCE[op] : None)
         if prec != None and prec > min_prec:
@@ -2589,14 +2571,13 @@ def parse($TEXT, options):
                 toplevel.localvars.push(new_symbol(AST_SymbolVar, item))
         )
         toplevel.exports = toplevel.localvars.concat(callables).filter(uniq)
-        toplevel.filename = options.filename
         toplevel.submodules = []
         toplevel.classes = scan_for_classes(toplevel.body)
         toplevel.import_order = Object.keys(IMPORTED).length
         toplevel.module_id = module_id
         IMPORTED[module_id] = toplevel
         toplevel.imports = IMPORTED
-        toplevel.baselib = baselib_items
+        toplevel.baselib = BASELIB
         IMPORTING[module_id] = False
         return toplevel
     .call(this)
