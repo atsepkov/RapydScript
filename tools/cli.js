@@ -226,8 +226,12 @@ function parse_args() {  // {{{
 		options.alias[name].forEach(function (alias) { name_map[alias] = name; });
 	});
 
+    var options_ended = false;
+
 	all_args.forEach(function(arg) {
-		if (arg === '-') plain_arg(arg);
+        if (options_ended) plain_arg(arg);
+        else if (arg === '--') options_ended = true;
+		else if (arg === '-') plain_arg(arg);
 
 		else if (arg[0] === '-') handle_opt(arg.substr(1));
 
