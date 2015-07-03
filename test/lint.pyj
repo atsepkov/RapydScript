@@ -9,22 +9,11 @@ def lint(code):
                                    pass
 })
 
-def err_test(code, ident, line, name):
+def err_test(code, ident, line):
     msgs = lint(code)
     assert.equal(len(msgs), 1, 'failed to find error in: ' + code)
     assert.equal(msgs[0].ident, ident, 'incorrect ident: ' + msgs[0].ident + ' for: ' + code)
     if line != undefined:
         assert.equal(msgs[0].start_line, line, 'incorrect line: ' + msgs[0].start_line + ' for: ' + code)
-    if name != undefined:
-        assert.equal(msgs[0].name, name, 'incorrect name: ' + msgs[0].name + ' for: ' + code)
 
-def ok_test(code):
-    msgs = lint(code)
-    assert.equal(msgs.length, 0, 'Got unexpected msg: ' + (msgs[0] or {}).message + ' for code: ' + code)
-
-err_test('import foo', 'unused-import', 1, 'foo')
-err_test('import foo.boo', 'unused-import', 1, 'foo')
-err_test('import foo as boo', 'unused-import', 1, 'boo')
-err_test('from x import foo', 'unused-import', 1, 'foo')
-err_test('from x import foo as boo', 'unused-import', 1, 'boo')
-ok_test('import foo\nfoo')
+err_test('import foo', 'unused-import', 1)

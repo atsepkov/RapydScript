@@ -50,7 +50,6 @@ function msg_from_node(filename, ident, name, node, level) {
         ident: ident,
         message: msg,
         level: level || ERROR,
-        name:name,
     };
 }
 
