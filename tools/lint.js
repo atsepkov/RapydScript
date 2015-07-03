@@ -337,19 +337,35 @@ function Linter(toplevel, filename, code) {
 
     this.resolve = function() {
         var messages = this.messages;
+        var line_filters = {};
 
-        code.split('\n').forEach(function(line) {
+        code.split('\n').forEach(function(line, num) {
             line = line.trimRight();
+            num++;
             if (line[line.length - 1] === ';') {
                 var ident = 'eol-semicolon';
-                messages.push({filename:filename, ident:ident, message:MESSAGES[ident], level:WARN, name:';'});
+                messages.push({filename:filename, ident:ident, message:MESSAGES[ident],
+                    level:WARN, name:';', start_line:num, start_col:line.lastIndexOf(';')});
             }
+            var parts = line.split(' ');
+            var last = parts[parts.length - 1], filters;
+            if (last && last.substr(0, 4).toLowerCase().replace('#', '') === 'noqa') {
+                parts = last.split(':').slice(1);
+                if (parts.length) {
+                    filters = {};
+                    parts = parts[0].split(',');
+                    for (var i = 0; i < parts.length; i++) filters[parts[i].trim()] = true;
+                } else filters = MESSAGES;
+            }
+            if (filters) line_filters[num] = filters;
         });
+
         this.walked_scopes.forEach(function (scope) {
             messages = messages.concat(scope.messages());
         });
         messages = messages.filter(function(msg) {
-            return (msg.ident != 'undef' || !BUILTINS.hasOwnProperty(msg.name));
+            var ignore = (msg.start_line !== undefined && line_filters.hasOwnProperty(msg.start_line) && line_filters[msg.start_line].hasOwnProperty(msg.ident));
+            return !ignore && (msg.ident != 'undef' || !BUILTINS.hasOwnProperty(msg.name));
         });
         messages.sort(function (a, b) { return cmp(a.start_line, b.start_line) || cmp(a.start_col, b.start_col_); });
         return messages;
