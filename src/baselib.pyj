@@ -120,7 +120,10 @@
 ,
 "print": def _$rapyd$_print():
     if JS('typeof console') == 'object':
-        console.log.apply(console, arguments)
+        args = []
+        for JS('var i = 0; i < arguments.length; i++'):
+            args.push(arguments[i].toString())
+        console.log.apply(console, args)
 ,
 "range": def range(start, stop, step):
     if arguments.length <= 1:
