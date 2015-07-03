@@ -7,6 +7,7 @@
 "use strict;";
 
 var path = require('path');
+var utils = require('./utils');
 
 function OptionGroup(name) {
     this.name = name;
@@ -31,7 +32,7 @@ var groups = {}, group;
 
 function create_group(name, usage, description) {
     group = new OptionGroup(name);
-    var match = comment_contents.exec(description.toString());
+    var match = utils.comment_contents.exec(description.toString());
     if (!match) {
         throw new TypeError('Multiline comment missing for: ' + name);
     }
@@ -50,30 +51,6 @@ show the version and exit
 
 }
 
-// Utilities {{{
-var comment_contents = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)[ \t]*\*\//;
-
-function repeat(str, num) {
-    return new Array( num + 1 ).join( str );
-}
-
-function wrap(lines, width) {
-	var ans = [];
-	var prev = '';
-	lines.forEach(function (line) {
-		line = prev + line;
-		prev = '';
-		if (line.length > width) {
-			prev = line.substr(width);
-			line = line.substr(0, width - 1);
-			if (line.substr(line.length - 1 !== ' ')) line += '-';
-		} 
-		ans.push(line);
-	});
-	if (prev) ans = ans.concat(wrap([prev]));
-	return ans;
-}  // }}}
-
 function print_usage(group) {  // {{{
 	var COL_WIDTH = 79;
 	var OPT_WIDTH = 23;
@@ -91,10 +68,10 @@ function print_usage(group) {  // {{{
         console.log('Sub-commands:');
         Object.keys(groups).forEach(function (name) {
             console.log();
-            var dt = wrap(groups[name].description.split('\n'), COL_WIDTH - OPT_WIDTH);
-            console.log((name + repeat(' ', OPT_WIDTH)).slice(0, OPT_WIDTH), dt[0]);
+            var dt = utils.wrap(groups[name].description.split('\n'), COL_WIDTH - OPT_WIDTH);
+            console.log((name + utils.repeat(' ', OPT_WIDTH)).slice(0, OPT_WIDTH), dt[0]);
             dt.slice(1).forEach(function (line) {
-                console.log(repeat(' ', OPT_WIDTH), line);
+                console.log(utils.repeat(' ', OPT_WIDTH), line);
             });
         });
         return;
@@ -112,15 +89,15 @@ function print_usage(group) {  // {{{
 		options.alias[name].forEach(function (alias) {
 			optstr += ', ' + ((alias.length > 1) ? '--' : '-') + alias.replace('_', '-');
 		});
-		var ht = wrap(help[name].split('\n'), COL_WIDTH - OPT_WIDTH);
+		var ht = utils.wrap(help[name].split('\n'), COL_WIDTH - OPT_WIDTH);
 
 		if (optstr.length > OPT_WIDTH) console.log(optstr);
 		else {
-			console.log((optstr + repeat(' ', OPT_WIDTH)).slice(0, OPT_WIDTH), ht[0]);
+			console.log((optstr + utils.repeat(' ', OPT_WIDTH)).slice(0, OPT_WIDTH), ht[0]);
 			ht = ht.splice(1);
 		}
 		ht.forEach(function (line) {
-			console.log(repeat(' ', OPT_WIDTH), line);
+			console.log(utils.repeat(' ', OPT_WIDTH), line);
 		});
 		console.log();
 	});
@@ -130,7 +107,7 @@ function print_usage(group) {  // {{{
 // Process options {{{
 
 function opt(name, aliases, type, default_val, help_text) {
-	var match = comment_contents.exec(help_text.toString());
+	var match = utils.comment_contents.exec(help_text.toString());
     var options = group.options;
     var seen = group.seen;
     var help = group.help;
@@ -317,6 +294,24 @@ possible problems in the .pyj files you specify and
 write messages about them to stdout.
 The main check it performs is for unused/undefined 
 symbols, like pyflakes does for python.
+*/});
+
+opt("globals", 'g,b,builtins', 'string', '', function(){/*
+Comma separated list of additional names that the linter will
+treat as global symbols. It ignores undefined errors for
+global symbols.
+*/});
+
+opt("noqa", 'e,ignore,exclude', 'string', '', function(){/*
+Comma separated list of linter checks to skip. The linter
+will not report errors corresponding to these checks.
+The check names are output in the linter's normal output, you
+can also list all check names with --noqa-list.
+*/});
+
+opt("noqa_list", '', 'bool', false, function(){/*
+List all available linter checks, with a brief
+description, and exit.
 */});
 
 create_group('test', '[test1 test2...]', function(){/*

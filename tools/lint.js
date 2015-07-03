@@ -9,6 +9,7 @@
 var fs = require('fs');
 var RapydScript = require("./compiler");
 var path = require('path');
+var utils = require('./utils');
 
 var WARN = 1, ERROR = 2;
 var MESSAGES = {
@@ -158,7 +159,7 @@ function Scope(is_toplevel, parent_scope, filename) {
 
 }
 
-function Linter(toplevel, filename, code) {
+function Linter(toplevel, filename, code, options) {
 
     this.scopes = [];
     this.walked_scopes = [];
@@ -166,6 +167,7 @@ function Linter(toplevel, filename, code) {
     this.in_assign = false;
     this.branches = [];
     this.messages = [];
+    this.builtins = utils.merge(BUILTINS, options.builtins || {});
 
     this.add_binding = function(name, binding_node) {
         var scope = this.scopes[this.scopes.length - 1];
@@ -374,10 +376,12 @@ function Linter(toplevel, filename, code) {
         this.walked_scopes.forEach(function (scope) {
             messages = messages.concat(scope.messages());
         });
+        noqa = options.noqa || {};
         messages = messages.filter(function(msg) {
             var ignore = (msg.start_line !== undefined && line_filters.hasOwnProperty(msg.start_line) && line_filters[msg.start_line].hasOwnProperty(msg.ident));
-            return !ignore && (msg.ident != 'undef' || !BUILTINS.hasOwnProperty(msg.name));
-        });
+            var filter = noqa.hasOwnProperty(msg.ident);
+            return !ignore && !filter && (msg.ident != 'undef' || !this.builtins.hasOwnProperty(msg.name));
+        }, this);
         messages.sort(function (a, b) { return cmp(a.start_line, b.start_line) || cmp(a.start_col, b.start_col_); });
         return messages;
     };
@@ -397,7 +401,7 @@ function lint_code(code, options) {
         return;
     }
 
-    var linter = new Linter(toplevel, filename, code);
+    var linter = new Linter(toplevel, filename, code, options);
     toplevel.walk(linter);
     var messages = linter.resolve();
     messages.forEach(reportcb);
@@ -434,12 +438,27 @@ module.exports.cli = function(argv, base_path, src_path, lib_path) {
     var files = argv.files.slice();
     var num_of_files = files.length || 1;
 
+    if (argv.noqa_list) {
+        Object.keys(MESSAGES).forEach(function(ident) {
+            var i = (ident + utils.repeat(' ', 20)).slice(0, 20);
+            var h = utils.wrap(MESSAGES[ident].split('\n'), 59);
+            console.log(i + h[0]);
+            h.slice(1).forEach(function(t) { console.log(utils.repeat(' ', 20) + t); });
+            console.log();
+        });
+        process.exit(0);
+    }
+
     if (files.filter(function(el){ return el == "-"; }).length > 1) {
         console.error("ERROR: Can read a single file from STDIN (two or more dashes specified)");
         process.exit(1);
     }
 
     var all_ok = true;
+    var builtins = {};
+    var noqa = {};
+    if (argv.globals) argv.globals.split(',').forEach(function(sym) { builtins[sym] = true; });
+    if (argv.noqa) argv.noqa.split(',').forEach(function(sym) { noqa[sym] = true; });
 
     function lint_single_file(err, code) {
         var output;
@@ -447,7 +466,7 @@ module.exports.cli = function(argv, base_path, src_path, lib_path) {
             console.error("ERROR: can't read file: " + file);
             process.exit(1);
         }
-        if (lint_code(code, {filename:files[0]}).length) all_ok = false;
+        if (lint_code(code, {filename:files[0], builtins:builtins, noqa:noqa}).length) all_ok = false;
 
         files = files.slice(1);
         if (files.length) {
