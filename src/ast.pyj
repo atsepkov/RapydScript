@@ -173,8 +173,11 @@ AST_BlockStatement = DEFNODE("BlockStatement", None, {
     $documentation: "A block statement"
 }, AST_Block)
 
-AST_EmptyStatement = DEFNODE("EmptyStatement", None, {
+AST_EmptyStatement = DEFNODE("EmptyStatement", 'stype', {
     $documentation: "The empty statement (empty block or simply a semicolon)",
+    $propdoc: {
+        stype: "[string] the type of empty statement. Is ; for semicolons",
+    },
     _walk: def(visitor):
         return visitor._visit(this)
 }, AST_Statement)

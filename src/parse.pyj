@@ -1106,7 +1106,7 @@ def parse($TEXT, options):
                 return simple_statement()
             elif tmp_ == ";":
                 next()
-                return new AST_EmptyStatement()
+                return new AST_EmptyStatement({stype:';', start:prev(), end:prev()})
             else:
                 unexpected()
         elif tmp_ == "name":
@@ -1168,7 +1168,7 @@ def parse($TEXT, options):
                 return if_()
             elif tmp_ == "pass":
                 semicolon()
-                return new AST_EmptyStatement()
+                return new AST_EmptyStatement({stype:'pass', start:prev(), end:prev()})
             elif tmp_ == "return":
                 if S.in_function == 0:
                     croak("'return' outside of function")
@@ -2383,7 +2383,7 @@ def parse($TEXT, options):
                 if is_("name") and (peek().value == "@" or peek().value == "def" or peek().value == "class"):
                     S.decorators.push(S.token.value)
                     next()
-                    return new AST_EmptyStatement()
+                    return new AST_EmptyStatement({stype:'@', start:prev(), end:prev()})
                 else:
                     unexpected()
 
