@@ -42,6 +42,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
         return RapydScript.parse(code, {
             filename: file,
             toplevel: toplevel,
+            readfile: fs.readFileSync,
             basedir: path.dirname(file),
             auto_bind: argv.auto_bind,
             libdir: path.join(src_path, 'lib'),
@@ -56,7 +57,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
         }
         if (argv.execute) {
             console.log('\n------------ Running script -------------\n');
-            vm.runInNewContext(output, {'console':console, 'require':require}, {'filename':files[0]});
+            vm.runInNewContext(output, {'console':console}, {'filename':files[0]});
         }
     }
 

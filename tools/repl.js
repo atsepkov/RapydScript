@@ -273,6 +273,7 @@ module.exports = function(options) {
         try {
             toplevel = RapydScript.parse(source, {
                 'filename':'<repl>',
+                'readfile': fs.readFileSync,
                 'basedir': process.cwd(),
                 'libdir': options.lib_path,
                 'classes': classes
