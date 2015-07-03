@@ -638,6 +638,8 @@ An important distinction between Python and RapydScript is that RapydScript does
 
 Notice that `Something` class has no `__init__` method. Like in Python, this method is optional for classes. If you omit it, an empty constructor will automatically get created for you by RapydScript (or when inheriting, the parent's constructor will be used). Also notice that we never inherited from SomethingElse class, yet we can invoke its methods. This brings us to the next point, the only real advantage of inheriting from another class (which you can't gain by calling the other classes method as shown above) is that the omitted methods are automatically copied from the parent. Admittedly, we might also care about `isinstance()` method, to have it work with the non-main parent, which is equivalent to JavaScript's `instanceof` operator.
 
+**NOTE:** If you compile your code without `--screw-ie8` flag, the constructor will be executed every time you create a subclass of the given class. In most cases this will not hurt you, but in some cases you could see odd side-effects. For example, having a `print()` statement in the parent constructor will cause its contents to be output for every subclass, even if you do not explicitly create an instance. `--screw-ie8` option fixes this issue, at the expense of compatibility with Internet Explorer 6-8.
+
 There is also a convenience function in RapydScript called `mixin` that lets you assign all methods of a given class to another, like Python's multiple inheritance:
 
 	mixin(Snake, Animal, false)     # add Animal's methods to Snake, don't overwrite ones already declared in Snake
@@ -691,9 +693,6 @@ Like Python, RapydScript allows static methods. Marking the method static with `
 			return a+1
 
 Some methods in the native JavaScript classes, such as `String.fromCharCode()` have also been marked as static to make things easier for the developer.
-
-Note that currently classes do not support class level variables, unlike
-Python.
 
 
 ### External Classes
@@ -1013,8 +1012,6 @@ below:
   right thing, but ``x = someobj.somethod; x()`` will not. RS could work around
   it, but at significant performance cost. See the section above on method
   binding for details.
-
-- Classes in RapydSCript do not support class level variables, unlike Python.
 
 - RapydScript automatically appends 'new' keyword when using classes generated
   by it, native JavaScript objects like `Image` and `RegExp` and classes from
