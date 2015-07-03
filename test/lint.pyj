@@ -9,17 +9,14 @@ def lint(code):
                                    pass
 })
 
-def err_test(code, ident, line, name, other_line):
+def err_test(code, ident, line, name):
     msgs = lint(code)
-    assert.ok(len(msgs) > 0, 'failed to find error in: ' + code)
-    assert.equal(len(msgs), 1, 'found ' + (len(msgs) - 1) + ' extra errors in: ' + code)
+    assert.equal(len(msgs), 1, 'failed to find error in: ' + code)
     assert.equal(msgs[0].ident, ident, 'incorrect ident: ' + msgs[0].ident + ' for: ' + code)
     if line != undefined:
         assert.equal(msgs[0].start_line, line, 'incorrect line: ' + msgs[0].start_line + ' for: ' + code)
     if name != undefined:
         assert.equal(msgs[0].name, name, 'incorrect name: ' + msgs[0].name + ' for: ' + code)
-    if other_line != undefined:
-        assert.equal(msgs[0].other_line, other_line, 'incorrect other_line: ' + msgs[0].other_line + ' for: ' + code)
 
 def ok_test(code):
     msgs = lint(code)
@@ -72,7 +69,6 @@ err_test('def f():\n [x for x in [1,2]]; return x', 'undef', 2, 'x')
 ok_test('def f():\n for x in "":\n  pass\n return x')
 ok_test('def f():\n for x in "":\n  x += 1\n')
 ok_test('def f():\n for x, y in "":\n  pass\n return x, y')
-err_test('def f():\n a = 1\n for a in "":\n  a', 'loop-shadowed', 3, 'a', 2)
 
 # Builtins
 for k in 'String Symbol this self window Map'.split(' '):
