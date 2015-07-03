@@ -76,13 +76,7 @@ err_test('def f():\n a = 1\n for a in "":\n  a', 'loop-shadowed', 3, 'a', 2)
 
 # Semi-colons
 err_test('a=1;;a', 'extra-semicolon', 1, ';')
-err_test('a=1;', 'eol-semicolon', 1, ';')
 
 # Builtins
 for k in 'String Symbol this self window Map'.split(' '):
     ok_test(k)
-
-# noqa
-ok_test('f() # noqa')
-ok_test('f() # noqa:undef')
-err_test('f() # noqa:xxx', 'undef')
