@@ -229,8 +229,7 @@ function Linter(toplevel, filename) {
     };
 
     this.handle_scope = function() {
-        var node = this.current_node;
-        var nscope = new Scope(node instanceof RapydScript.AST_Toplevel, this.scopes[this.scopes.length - 1], filename);
+        var nscope = new Scope(this.current_node instanceof RapydScript.AST_Toplevel, this.scopes[this.scopes.length - 1], filename);
         if (this.scopes.length) this.scopes[this.scopes.length - 1].children.push(nscope);
         this.scopes.push(nscope);
     };
@@ -241,19 +240,9 @@ function Linter(toplevel, filename) {
         this.add_binding(node.name);
     };
 
-    this.handle_comprehension = function() {
-        var node = this.current_node;
-        this.handle_scope();  // Comprehension create their own scopes
-        if (node.init instanceof RapydScript.AST_SymbolRef) {
-            this.add_binding(node.init.name);
-            node.init.lint_visited = true;
-        }
-    };
-
     this._visit = function (node, cont) {
         if (node.lint_visited) return;
         this.current_node = node;
-        var scope_count = this.scopes.length;
 
         if (node instanceof RapydScript.AST_Lambda) {
             this.handle_lambda();
@@ -271,10 +260,9 @@ function Linter(toplevel, filename) {
             this.handle_decorator();
         } else if (node instanceof RapydScript.AST_SymbolFunarg) {
             this.handle_symbol_funarg();
-        } else if (node instanceof RapydScript.AST_ListComprehension) {
-            this.handle_comprehension();
         }
-        // TODO: deal with symbolrefs inside for loops shadowing local variables
+        // TODO: deal with symbolrefs inside comprehensions/for loops shadowing local variables
+        // TODO: deal with repeated bindings in conditionals
 
         if (node instanceof RapydScript.AST_Scope) {
             this.handle_scope();
@@ -283,7 +271,7 @@ function Linter(toplevel, filename) {
         // print (node.TYPE);
         if (cont !== undefined) cont();
 
-        if (this.scopes.length > scope_count) {
+        if (node instanceof RapydScript.AST_Scope) {
             this.scopes[this.scopes.length - 1].finalize();
             this.walked_scopes.push(this.scopes.pop());
         }
