@@ -18,7 +18,6 @@ var MESSAGES = {
     'loop-shadowed': 'The loop variable "{name}" was previously used in this scope at line: {line}',
     'extra-semicolon': 'This semi-colon is not needed',
     'eol-semicolon': 'Semi-colons at the end of the line are unnecessary',
-    'func-in-branch': 'JavaScript in strict mode does not allow the definition of functions/classes inside a branch such as an if/try/switch',
 };
 
 BUILTINS = {'this':true, 'self':true, 'window':true, 'document':true};
@@ -164,7 +163,6 @@ function Linter(toplevel, filename, code) {
     this.walked_scopes = [];
     this.current_node = null;
     this.in_assign = false;
-    this.branches = [];
     this.messages = [];
 
     this.add_binding = function(name, binding_node) {
@@ -203,9 +201,6 @@ function Linter(toplevel, filename, code) {
     this.handle_lambda = function() {
         var node = this.current_node;
         var name = node.name;
-        if (this.branches.length) {
-            this.messages.push(msg_from_node(filename, 'func-in-branch', node.name, node));
-        }
         if (name) this.add_binding(name);
     };
 
@@ -302,10 +297,6 @@ function Linter(toplevel, filename, code) {
         if (node.lint_visited) return;
         this.current_node = node;
         var scope_count = this.scopes.length;
-        var branch_count = this.branches.length;
-        if (node instanceof RapydScript.AST_If || node instanceof RapydScript.AST_Switch || node instanceof RapydScript.AST_Try || node instanceof RapydScript.AST_Catch || node instanceof RapydScript.AST_Except) {
-            this.branches.push(1);
-        }
 
         if (node instanceof RapydScript.AST_Lambda) {
             this.handle_lambda();
@@ -342,8 +333,6 @@ function Linter(toplevel, filename, code) {
             this.scopes[this.scopes.length - 1].finalize();
             this.walked_scopes.push(this.scopes.pop());
         }
-
-        if (this.branches.length > branch_count) this.branches.pop();
     };
 
     this.resolve = function() {

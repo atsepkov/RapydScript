@@ -86,8 +86,3 @@ for k in 'String Symbol this self window Map'.split(' '):
 ok_test('f() # noqa')
 ok_test('f() # noqa:undef')
 err_test('f() # noqa:xxx', 'undef')
-
-# func in branch
-err_test('if 1:\n def f():\n  pass', 'func-in-branch', 2, 'f')
-err_test('if 1:\n pass\nelse:\n def f():\n  pass', 'func-in-branch', 4, 'f')
-err_test('try:\n def f():\n  pass\nexcept:\n pass', 'func-in-branch', 2, 'f')
