@@ -2,7 +2,7 @@
  * test.js
  * Copyright (C) 2015 Kovid Goyal <kovid at kovidgoyal.net>
  *
- * Distributed under terms of the BSD license.
+ * Distributed under terms of the MIT license.
  */
 "use strict;";
 var path = require('path');
