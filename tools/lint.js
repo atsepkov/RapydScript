@@ -16,7 +16,6 @@ var MESSAGES = {
     'unused-import': '"{name}" is imported but not used',
     'unused-local' : '"{name}" is defined but not used',
     'loop-shadowed': 'The loop variable "{name}" was previously used in this scope at line: {line}',
-    'extra-semicolon': 'This semi-colon is not needed',
 };
 
 BUILTINS = {'this':true, 'self':true, 'window':true, 'document':true};
@@ -162,7 +161,7 @@ function Linter(toplevel, filename) {
     this.walked_scopes = [];
     this.current_node = null;
     this.in_assign = false;
-    this.messages = [];
+    this.reports = [];
 
     this.add_binding = function(name, binding_node) {
         var scope = this.scopes[this.scopes.length - 1];
@@ -285,13 +284,6 @@ function Linter(toplevel, filename) {
         }
     };
 
-    this.handle_empty_statement = function() {
-        var node = this.current_node;
-        if (node.stype == ';') {
-            this.messages.push(msg_from_node(filename, 'extra-semicolon', ';', node, WARN));
-        }
-    };
-
     this._visit = function (node, cont) {
         if (node.lint_visited) return;
         this.current_node = node;
@@ -317,15 +309,13 @@ function Linter(toplevel, filename) {
             this.handle_comprehension();
         } else if (node instanceof RapydScript.AST_ForIn) {
             this.handle_for_in();
-        } else if (node instanceof RapydScript.AST_EmptyStatement) {
-            this.handle_empty_statement();
         }
 
         if (node instanceof RapydScript.AST_Scope) {
             this.handle_scope();
         } 
 
-        // console.log(node.TYPE);
+        // print (node.TYPE);
         if (cont !== undefined) cont();
 
         if (this.scopes.length > scope_count) {
@@ -335,7 +325,7 @@ function Linter(toplevel, filename) {
     };
 
     this.resolve = function() {
-        var messages = this.messages;
+        var messages = [];
         this.walked_scopes.forEach(function (scope) {
             messages = messages.concat(scope.messages());
         });
