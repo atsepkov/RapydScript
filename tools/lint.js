@@ -192,14 +192,10 @@ function Linter(toplevel, filename) {
         var node = this.current_node;
 
         if (node.left instanceof RapydScript.AST_SymbolRef) {
-            node.left.lint_visited = node.operator === '=';  // Could be compound assignment like: +=
-            if (node.operator === '=') {
-                // Only create a binding if the operator is not 
-                // a compound assignment operator
-                this.current_node = node.left;
-                this.add_binding(node.left.name);
-                this.current_node = node;
-            }
+            node.left.lint_visited = true;
+            this.current_node = node.left;
+            this.add_binding(node.left.name);
+            this.current_node = node;
         } else if (node.left instanceof RapydScript.AST_Array) {
             // destructuring assignment: a, b = 1, 2
             for (var i = 0; i < node.left.elements.length; i++) {
@@ -246,12 +242,8 @@ function Linter(toplevel, filename) {
     };
 
     this.handle_comprehension = function() {
-        this.handle_scope();  // Comprehension create their own scopes
-        this.handle_for_in();
-    };
-
-    this.handle_for_in = function() {
         var node = this.current_node;
+        this.handle_scope();  // Comprehension create their own scopes
         if (node.init instanceof RapydScript.AST_SymbolRef) {
             this.add_binding(node.init.name);
             node.init.lint_visited = true;
@@ -281,8 +273,6 @@ function Linter(toplevel, filename) {
             this.handle_symbol_funarg();
         } else if (node instanceof RapydScript.AST_ListComprehension) {
             this.handle_comprehension();
-        } else if (node instanceof RapydScript.AST_ForIn) {
-            this.handle_for_in();
         }
         // TODO: deal with symbolrefs inside for loops shadowing local variables
 
