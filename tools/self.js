@@ -53,9 +53,6 @@ module.exports = function compile_self(base_path, src_path, lib_path, start_time
         var src = path.join(src_path, fname + '.pyj');
         var h = crypto.createHash('sha1');
         var raw = fs.readFileSync(src, 'utf-8');
-        // Remove copyright comment as it is unreadable in the output JS anyway
-        var idx = raw.indexOf('"use strict');
-        if (idx > -1) raw = raw.substr(idx);
         sources[src] = raw;
         source_hash.update(raw);
         h.update(raw);
