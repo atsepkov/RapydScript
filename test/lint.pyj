@@ -22,24 +22,9 @@ def ok_test(code):
     msgs = lint(code)
     assert.equal(msgs.length, 0, 'Got unexpected msg: ' + (msgs[0] or {}).message + ' for code: ' + code)
 
-# Imports
 err_test('import foo', 'unused-import', 1, 'foo')
 err_test('import foo.boo', 'unused-import', 1, 'foo')
 err_test('import foo as boo', 'unused-import', 1, 'boo')
 err_test('from x import foo', 'unused-import', 1, 'foo')
 err_test('from x import foo as boo', 'unused-import', 1, 'boo')
 ok_test('import foo\nfoo')
-
-# Function arguments
-ok_test('def f(a):\n return a')
-ok_test('def f(a=1):\n return a')
-ok_test('def f(*a):\n return a')
-ok_test('def f(**a):\n return a')
-ok_test('def f(a):\n return 1')
-
-# Top level unused ignored
-ok_test('a=1\ndef f():\n pass')
-
-# Unused bindings
-err_test('def f():\n a=1', 'unused-local', 2, 'a')
-err_test('def f():\n def a():\n  pass', 'unused-local', 2, 'a')
