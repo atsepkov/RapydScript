@@ -619,12 +619,6 @@ AST_Try = DEFNODE("Try", "bcatch bfinally", {
 AST_Catch = DEFNODE("Catch", None, {
     $documentation: "A `catch` node; only makes sense as part of a `try` statement",
     $propdoc: {},
-    _walk: def(visitor):
-        node = this
-        return visitor._visit(node, def():
-            node.argname._walk(visitor)
-            walk_body(node, visitor)
-        )
 }, AST_Block)
 
 AST_Except = DEFNODE("Except", "argname errors", {
