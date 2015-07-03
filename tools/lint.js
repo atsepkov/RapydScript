@@ -17,6 +17,9 @@ var MESSAGES = {
     'unused-local' : '"{name}" is defined but not used',
 };
 
+BUILTINS = {'this':true, 'self':true, 'window':true, 'document':true};
+Object.keys(RapydScript.NATIVE_CLASSES).forEach(function (name) { BUILTINS[name] = true; });
+
 function cmp(a, b) {
     return (a < b) ? -1 : ((a > b) ? 1 : 0);
 }
@@ -303,6 +306,9 @@ function Linter(toplevel, filename) {
         var messages = [];
         this.walked_scopes.forEach(function (scope) {
             messages = messages.concat(scope.messages());
+        });
+        messages = messages.filter(function(msg) {
+            return (msg.ident != 'undef' || !BUILTINS.hasOwnProperty(msg.name));
         });
         messages.sort(function (a, b) { return cmp(a.start_line, b.start_line) || cmp(a.start_col, b.start_col_); });
         return messages;
