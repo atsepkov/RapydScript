@@ -2496,6 +2496,15 @@ def parse($TEXT, options):
             while is_("punc", ",") and not peek().nlb:
                 next()
                 if isinstance(expr, AST_Assign):
+                    # AST_Seq representation is ugly to decode for
+                    # assignments, let's convert data to array now
+                    # to avoid dealing with it
+                    #                    return new AST_TupleUnpack({
+                    #                        start    : start,
+                    #                        elements : left,
+                    #                        right    : expression(true, no_in),
+                    #                        end      : peek()
+                    #                    });
                     left[left.length - 1] = left.slice(-1)[0].left
                     return new AST_Assign({
                         start: start,

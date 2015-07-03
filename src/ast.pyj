@@ -878,6 +878,22 @@ AST_Array = DEFNODE("Array", "elements", {
         )
 })
 
+AST_TupleUnpack = DEFNODE("TupleUnpack", "elements right", {
+    $documentation: "An object used to represent tuple unpacking",
+    $propdoc: {
+        elements: "[AST_Node*] array of elements being assigned to",
+        right: "[AST_Node] right-hand side expression"
+    },
+    _walk: def(visitor):
+        node = this
+        return visitor._visit(node, def():
+            node.elements.forEach(def(el):
+                el._walk(visitor)
+            )
+            node.right._walk(visitor)
+        )
+})
+
 AST_Object = DEFNODE("Object", "properties", {
     $documentation: "An object literal",
     $propdoc: {
