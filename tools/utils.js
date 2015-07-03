@@ -21,6 +21,36 @@ function colored(string, color, bold) {
     return prefix.join('') + string + ansi(0);
 }
 
+function supports_color(stdout) {
+    stdout = stdout || process.stdout;
+	if (stdout && !stdout.isTTY) {
+		return false;
+	}
+
+	if (process.platform === 'win32') {
+		return false;
+	}
+
+	if ('COLORTERM' in process.env) {
+		return true;
+	}
+
+	if (process.env.TERM === 'dumb') {
+		return false;
+	}
+
+	if (/^screen|^xterm|^vt100|color|ansi|cygwin|linux/i.test(process.env.TERM)) {
+		return true;
+	}
+
+    return false;
+
+}
+
+function safe_colored(string) {
+    return string;
+}
+
 function repeat(str, num) {
     return new Array( num + 1 ).join( str );
 }
@@ -58,3 +88,4 @@ exports.repeat = repeat;
 exports.wrap = wrap;
 exports.merge = merge;
 exports.colored = colored;
+exports.safe_colored = (supports_color()) ? colored : safe_colored;
