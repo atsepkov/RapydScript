@@ -996,13 +996,7 @@ below:
   it, but at significant performance cost. See the section above on method
   binding for details.
 
-- Classes in RapydScript do not support class level variables, unlike Python.
-
-- The loop variables in list comprehensions do not leak into the surrounding
-  scope, unlike Python. So if you do ```[x for x in [1]]``` x will not be
-  defined outside the comprehension itself. This is arguably a mis-feature in
-  Python, which RapydScript corrects :) Note that loop variables in ordinary
-  for loops do leak into the surrounding scope, just as in Python.
+- Classes in RapydSCript do not support class level variables, unlike Python.
 
 - RapydScript automatically appends 'new' keyword when using classes generated
   by it, native JavaScript objects like `Image` and `RegExp` and classes from
