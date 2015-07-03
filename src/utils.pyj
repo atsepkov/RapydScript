@@ -227,49 +227,19 @@ def set_intersection(a, b):
         return b.indexOf(el) >= 0
     )
 
-# this function is taken from Acorn [1], written by Marijn Haverbeke
-# [1] https://github.com/marijnh/acorn
 def makePredicate(words):
     if not Array.isArray(words):
         words = words.split(" ")
-
-    f = ""
-    cats = []
-    for i in range(len(words)):
-        skip = False
-        for j in range(len(cats)):
-            if cats[j][0].length == words[i].length:
-                cats[j].push(words[i])
-                skip = True
-                break
-        if not skip:
-            cats.push([ words[i] ])
-
-    def compareTo(arr):
-        nonlocal f
-        if arr.length == 1:
-            return f += "return str === " + JSON.stringify(arr[0]) + ";"
-
-        f += "switch(str){"
-        for i in range(len(arr)):
-            f += "case " + JSON.stringify(arr[i]) + ":"
-        f += "return true}return false;"
-
-    # When there are more than three length categories, an outer
-    # switch first dispatches on the lengths, to save on comparisons.
-    if cats.length > 3:
-        cats.sort(def(a, b):
-            return b.length - a.length
-        )
-        f += "switch(str.length){"
-        for i in range(len(cats)):
-            cat = cats[i]
-            f += "case " + cat[0].length + ":"
-            compareTo(cat)
-        f += "}"
+    if type(Set) == 'function':
+        a = Set(words)
+        return def(x):
+            return a.has(x)
     else:
-        compareTo(words)
-    return Function("str", f)
+        a = {}
+        for k in words:
+            a[k] = True
+        return def(x):
+            return a.hasOwnProperty(x)
 
 def Dictionary():
     this._values = Object.create(None)
