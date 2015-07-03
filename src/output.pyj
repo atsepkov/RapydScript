@@ -950,7 +950,8 @@ def OutputStream(options):
         output.semicolon()
         output.newline()
 
-    DEFPRINT(AST_Imports, def(container, output):
+    DEFPRINT(AST_Import, def(self, output):
+        output.import(self.module)
         def add_aname(aname, key, from_import):
             output.print('var ')
             output.assign(aname)
@@ -959,24 +960,18 @@ def OutputStream(options):
             output.print('"]')
             if from_import:
                 output.print('.')
-                output.print(from_import)
+                output.print(aname)
             output.semicolon()
             output.newline()
             output.indent()
 
-        for self in container.imports:
-            output.import(self.module)
-            if self.argnames:
-                # A from import
-                for argname in self.argnames:
-                    akey = (argname.alias) ? argname.alias.name : argname.name
-                    add_aname(akey, self.key, argname.name)
-            else:
-                if self.alias:
-                    add_aname(self.alias.name, self.key, False)
-                else:
-                    bound_name = self.key.split('.', 1)[0]
-                    add_aname(bound_name, bound_name, False)
+        if self.argnames:
+            # A from import
+            for argname in self.argnames:
+                add_aname(argname.name, self.key, True)
+        else:
+            bound_name = self.key.split('.', 1)[0]
+            add_aname(bound_name, bound_name, False)
 
     )
     DEFPRINT(AST_LabeledStatement, def(self, output):

@@ -354,21 +354,13 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang impor
         return wrapped_tl
 }, AST_Scope)
 
-AST_Import = DEFNODE("Import", "module key alias argnames body", {
-    $documentation: "Container for a single import",
+AST_Import = DEFNODE("Import", "module key argnames body", {
+    $documentation: "Container for imports",
     $propdoc: {
         module: "[AST_SymbolVar] name of the module we're importing",
         key:  "[string] The key by which this module is stored in the global modules mapping",
-        alias: "[AST_SymbolAlias] The name this module is imported as, can be None. For import x as y statements.",
-        argnames: "[AST_ImportedVar*] names of objects to be imported",
+        argnames: "[AST_SymbolVar*] names of objects to be imported",
         body: "[AST_TopLevel] parsed contents of the imported file",
-    }
-}, AST_Statement)
-
-AST_Imports = DEFNODE('Imports', 'imports', {
-    $documentation: "Container for a single import",
-    $propdoc: {
-        'imports': "[AST_Import+] array of imports",
     }
 }, AST_Statement)
 
@@ -887,10 +879,6 @@ AST_Symbol = DEFNODE("Symbol", "scope name thedef", {
     $documentation: "Base class for all symbols"
 })
 
-AST_SymbolAlias = DEFNODE("SymbolAlias", None, {
-    $documentation: "An alias used in an import statement"
-}, AST_Symbol)
-
 AST_SymbolAccessor = DEFNODE("SymbolAccessor", None, {
     $documentation: "The name of a property accessor (setter/getter function)"
 }, AST_Symbol)
@@ -905,13 +893,6 @@ AST_SymbolDeclaration = DEFNODE("SymbolDeclaration", "init", {
 AST_SymbolVar = DEFNODE("SymbolVar", None, {
     $documentation: "Symbol defining a variable"
 }, AST_SymbolDeclaration)
-
-AST_ImportedVar = DEFNODE("ImportedVar", 'alias', {
-    $documentation: "Symbol defining an imported symbol",
-    $propdoc: {
-        alias: "AST_SymbolAlias the alias for this imported symbol"
-    }
-}, AST_SymbolVar)
 
 AST_SymbolConst = DEFNODE("SymbolConst", None, {
     $documentation: "A constant declaration"
