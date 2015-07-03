@@ -15,6 +15,7 @@ var MESSAGES = {
     'undef': 'undefined symbol: "{name}"',
     'unused-import': '"{name}" is imported but not used',
     'unused-local' : '"{name}" is defined but not used',
+    'loop-shadowed': 'The loop variable "{name}" was previously used in this scope at line: {line}',
 };
 
 BUILTINS = {'this':true, 'self':true, 'window':true, 'document':true};
@@ -33,10 +34,10 @@ function parse_file(code, filename) {
     });
 }
 
-function msg_from_node(filename, ident, name, node, level) {
+function msg_from_node(filename, ident, name, node, level, line) {
     name = name || ((node.name) ? ((node.name.name) ? node.name.name : node.name) : '');
     if (node instanceof RapydScript.AST_Lambda) name = node.name.name;
-    var msg = MESSAGES[ident].replace('{name}', name || '');
+    var msg = MESSAGES[ident].replace('{name}', name || '').replace('{line}', line || '');
     return {
         filename: filename, 
         start_line: (node.start) ? node.start.line : undefined,
@@ -47,6 +48,7 @@ function msg_from_node(filename, ident, name, node, level) {
         message: msg,
         level: level || ERROR,
         name:name,
+        other_line: line,
     };
 }
 
@@ -60,6 +62,7 @@ function Binding(name, node, options) {
     this.is_function = !!(options.is_function && !options.is_class);
     this.is_func_arg = !!options.is_func_arg;
 
+    this.is_loop = false;
     this.used = false;
 }
 
@@ -75,7 +78,7 @@ function Scope(is_toplevel, parent_scope, filename) {
     this.is_toplevel = !!is_toplevel;
     this.bindings = {};
     this.children = [];
-    this.redefinitions = [];
+    this.shadowed = [];
     this.undefined_references = {};
     this.unused_bindings = {};
 
@@ -84,7 +87,7 @@ function Scope(is_toplevel, parent_scope, filename) {
         var b = new Binding(name, node, options);
         if (already_bound) {
             if (this.bindings[name].used) b.used = true;
-            else this.redefinitions.push([this.bindings[name], b]);
+            this.shadowed.push([name, this.bindings[name], b]);
         }
         this.bindings[name] = b;
         return b;
@@ -138,6 +141,14 @@ function Scope(is_toplevel, parent_scope, filename) {
                 ans.push(msg_from_node(filename, 'unused-local', name, b.node));
             }
         }, this);
+
+        this.shadowed.forEach(function(x) {
+            var name = x[0], first = x[1], second = x[2];
+            if (second.is_loop && !first.is_loop) {
+                var line = (first.node.start) ? first.node.start.line : undefined;
+                ans.push(msg_from_node(filename, 'loop-shadowed', name, second.node, ERROR, line));
+            }
+        });
 
         return ans;
     };
@@ -256,7 +267,7 @@ function Linter(toplevel, filename) {
     this.handle_for_in = function() {
         var node = this.current_node;
         if (node.init instanceof RapydScript.AST_SymbolRef) {
-            this.add_binding(node.init.name);
+            this.add_binding(node.init.name).is_loop = true;
             node.init.lint_visited = true;
         } else if (node.init instanceof RapydScript.AST_Array) {
             // destructuring assignment: for a, b in []
@@ -265,7 +276,7 @@ function Linter(toplevel, filename) {
                 if (cnode instanceof RapydScript.AST_SymbolRef) {
                     this.current_node = cnode;
                     cnode.lint_visited = true;
-                    this.add_binding(cnode.name);
+                    this.add_binding(cnode.name).is_loop = true;
                     this.current_node = node;
                 }
             }
@@ -299,7 +310,6 @@ function Linter(toplevel, filename) {
         } else if (node instanceof RapydScript.AST_ForIn) {
             this.handle_for_in();
         }
-        // TODO: deal with symbolrefs inside for loops shadowing local variables
 
         if (node instanceof RapydScript.AST_Scope) {
             this.handle_scope();
