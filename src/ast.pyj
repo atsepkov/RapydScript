@@ -426,6 +426,10 @@ AST_Lambda = DEFNODE("Lambda", "name argnames uses_arguments decorators", {
             node.argnames.forEach(def(arg):
                 arg._walk(visitor)
             )
+            if node.argnames.starargs:
+                node.argnames.starargs._walk(visitor)
+            if node.argnames.kwargs:
+                node.argnames.kwargs._walk(visitor)
             walk_body(node, visitor)
         )
 }, AST_Scope)
