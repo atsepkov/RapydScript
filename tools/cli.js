@@ -8,51 +8,7 @@
 
 var path = require('path');
 
-function OptionGroup(name) {
-    this.name = name;
-    this.description = undefined;
-    this.options = {
-        'string': {},
-        'boolean': {},
-        'alias': {},
-        'default': {},
-        'unknown': function(opt) {
-            print_usage();
-            console.error('\n', opt, 'is not a recognized option');
-            process.exit(1);
-        }
-    };
-
-    this.help = {};
-    this.seen = {};
-}
-
-var groups = {}, group;
-
-function create_group(name, usage, description) {
-    group = new OptionGroup(name);
-    var match = comment_contents.exec(description.toString());
-    if (!match) {
-        throw new TypeError('Multiline comment missing for: ' + name);
-    }
-    group.description = match[1];
-    group.usage = name + ' [options] ' + usage;
-    groups[name] = group;
-
-opt('help', 'h', 'bool', false, function(){/*
-show this help message and exit
-*/});
-
-opt('version', 'V', 'bool', false, function(){/*
-show the version and exit
-*/});
-
-
-}
-
 // Utilities {{{
-var comment_contents = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)[ \t]*\*\//;
-
 function repeat(str, num) {
     return new Array( num + 1 ).join( str );
 }
@@ -74,38 +30,18 @@ function wrap(lines, width) {
 	return ans;
 }  // }}}
 
-function print_usage(group) {  // {{{
+function print_usage() {  // {{{
+	console.log('Usage:', path.basename(process.argv[1]), "input1.pyj [input2.pyj ...] \n\n" +
+"Compile RapydScript files into javascript. You can either \n" +
+"specify the input files on the command line or pipe a single\n" +
+"file into stdin.\n\n" +
+
+"If you specify no files and stdin is a terminal, a RapydScript\n" +
+"REPL will be started.");
+	console.log('\nOptions:');
+
 	var COL_WIDTH = 79;
 	var OPT_WIDTH = 23;
-
-    usage = (group) ? group.usage :  "[sub-command] ...";
-	console.log('Usage:', path.basename(process.argv[1]), usage, '\n');
-    if (!group) {
-        // Overall usage
-        help = ('RapydScript can perform many actions, depending on which' + 
-                '\nsub-command is invoked. With no arguments, it will start a REPL,' +
-                '\nunless STDIN is a pipe, in which case it will compile whatever' + 
-                '\nyou pass on STDIN and write the output to STDOUT. See the full' +
-                '\nlist of sub-commands below.');
-        console.log(help, '\n');
-        console.log('Sub-commands:');
-        Object.keys(groups).forEach(function (name) {
-            console.log();
-            var dt = wrap(groups[name].description.split('\n'), COL_WIDTH - OPT_WIDTH);
-            console.log((name + repeat(' ', OPT_WIDTH)).slice(0, OPT_WIDTH), dt[0]);
-            dt.slice(1).forEach(function (line) {
-                console.log(repeat(' ', OPT_WIDTH), line);
-            });
-        });
-        return;
-    }
-
-    // Group specific usage
-
-    console.log(group.description);
-	console.log('\nOptions:');
-    var options = group.options;
-    var help = group.help;
 
 	Object.getOwnPropertyNames(options.alias).forEach(function (name) {
 		var optstr = '  --' + name.replace('_', '-');
@@ -128,13 +64,25 @@ function print_usage(group) {  // {{{
 }  // }}}
 
 // Process options {{{
+var help = {};
+
+var options = {
+	'string': {},
+	'boolean': {},
+	'alias': {},
+	'default': {},
+	'unknown': function(opt) {
+		print_usage();
+		console.error('\n', opt, 'is not a recognized option');
+		process.exit(1);
+	}
+};
+
+var seen = {};
+var comment_contents = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)[ \t]*\*\//;
 
 function opt(name, aliases, type, default_val, help_text) {
 	var match = comment_contents.exec(help_text.toString());
-    var options = group.options;
-    var seen = group.seen;
-    var help = group.help;
-
 	if (!match) {
 		throw new TypeError('Multiline comment missing for: ' + name);
 	}
@@ -163,7 +111,7 @@ function opt(name, aliases, type, default_val, help_text) {
 function parse_args() {  // {{{
 	var ans = {'files':[]};
 	var name_map = {};
-	var state, options, group;
+	var state;
 
 	function plain_arg(arg) {
 		if (state !== undefined) ans[state] = arg;
@@ -190,14 +138,14 @@ function parse_args() {  // {{{
 
 		name = name_map[arg.replace('-', '_')];
 		if (!name) {
-			print_usage(group);
+			print_usage();
 			console.error('The option:', '-' + oarg, 'is not recognized');
 			process.exit(1);
 		}
 		if (options.boolean.hasOwnProperty(name)) {
 			if (!val) val = 'true';
-			if (val === 'true' || val === '1') val = true;
-			else if (val === 'false' || val === '0') val = false;
+			if (val === 'true' || val === '1') ans[name] = true;
+			else if (val === 'false' || val === '0') ans[name] = false;
 			else { console.error('The value:', val, 'is invalid for the boolean option:', name); process.exit(1); }
 			ans[name] = val;
 		} else {
@@ -206,19 +154,6 @@ function parse_args() {  // {{{
 		}
 	}
 
-    var all_args = process.argv.slice(2);
-    ans.auto_mode = false;
-    if (groups.hasOwnProperty(all_args[0])) {
-        ans.mode = all_args[0];
-        all_args = all_args.slice(1);
-    } else {
-        // this check is not robust, but, it will only fail if the repl mode takes any non-boolean options
-        var has_files = all_args.filter(function (a) { return a[0] !== '-'; }).length > 0;
-        ans.mode = (!has_files && process.stdin.isTTY) ? 'repl' : 'compile';
-        ans.auto_mode = true;
-    }
-    options = groups[ans.mode].options;
-
 	Object.getOwnPropertyNames(options.default).forEach(function(name) { ans[name] = options['default'][name]; });
 
 	Object.getOwnPropertyNames(options.alias).forEach(function(name) { 
@@ -226,7 +161,7 @@ function parse_args() {  // {{{
 		options.alias[name].forEach(function (alias) { name_map[alias] = name; });
 	});
 
-	all_args.forEach(function(arg) {
+	process.argv.slice(2).forEach(function(arg) {
 		if (arg === '-') plain_arg(arg);
 
 		else if (arg[0] === '-') handle_opt(arg.substr(1));
@@ -237,9 +172,12 @@ function parse_args() {  // {{{
 	return ans;
 } // }}}
 
-create_group('compile', "[input1.pyj input2.pyj ...]", function(){/*
-Compile RapydScript source code into JavaScript
-output.
+opt('help', 'h', 'bool', false, function(){/*
+show this help message and exit
+*/});
+
+opt('version', 'V', 'bool', false, function(){/*
+show the version and exit
 */});
 
 opt("output", 'o', 'string', '', function(){/*
@@ -271,6 +209,28 @@ executed and their result assigned to an appropriately
 named variable.
 */});
 
+opt("test", 't', 'bool', false, function(){/*
+Run RapydScript tests and exit. You can specify the
+name of individual test files to only run tests 
+from those files. For example:
+--test baselib functions
+*/});
+
+opt("lint", 'l', 'bool', false, function(){/*
+Run the RapydScript linter and exit. This will
+find various possible problems in the .pyj files
+you specify and write messages about them to stdout.
+The main check it performs is for unused/undefined 
+symbols, like pyflakes does for python.
+*/});
+
+opt("self", undefined, 'bool', false, function(){/*
+Compile the compiler itself. It will only actually 
+compile if something has changed since the last time 
+it was called. To force a recompilation, simply 
+delete lib/signatures.json
+*/});
+
 opt("comments", undefined, 'string', '', function(){/*
 Preserve copyright comments in the output.
 By default this works like Google Closure, keeping 
@@ -296,43 +256,10 @@ it, execute it in node itself. This acts as a poor
 man's REPL :)
 */});
 
-create_group('repl', '', function(){/*
-Run a Read-Eval-Print-Loop (REPL). This allows
-you to type and run RapydScript at a live
-command prompt.
-*/});
-
-opt("no_js", '', 'bool', false, function(){/*
-Do not display the compiled JavaScript before executing
-it.
-*/});
-
-create_group('lint', "[input1.pyj input2.pyj ...]", function(){/*
-Run the RapydScript linter. This will find various 
-possible problems in the .pyj files you specify and 
-write messages about them to stdout.
-The main check it performs is for unused/undefined 
-symbols, like pyflakes does for python.
-*/});
-
-create_group('test', '[test1 test2...]', function(){/*
-Run RapydScript tests. You can specify the name of 
-individual test files to only run tests from those 
-files. For example:
-test baselib functions
-*/});
-
-create_group('self', '', function(){/*
-Compile the compiler itself. It will only actually 
-compile if something has changed since the last time 
-it was called. To force a recompilation, simply 
-delete lib/signatures.json
-*/});
-
 var argv = module.exports.argv = parse_args();
 
 if (argv.help) {
-	print_usage((!argv.auto_mode) ? groups[argv.mode]: undefined);
+	print_usage();
 	process.exit(0);
 }
 
