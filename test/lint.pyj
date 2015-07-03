@@ -67,7 +67,3 @@ err_test('def f():\n [x for x in [1,2]]; return x', 'undef', 2, 'x')
 # Loops
 ok_test('def f():\n for x in "":\n  pass\n return x')
 ok_test('def f():\n for x in "":\n  x += 1\n')
-
-# Builtins
-for k in 'String Symbol this self window Map'.split(' '):
-    ok_test(k)
