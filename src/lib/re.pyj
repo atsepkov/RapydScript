@@ -15,135 +15,133 @@
 # use JavaScript's native RegExp object
 
 
+I = IGNORECASE = 1
+M = MULTILINE = 2
 
-module re:
-    I = IGNORECASE = 1
-    M = MULTILINE = 2
+# JavaScript doesn't really have a DOTALL-equivalent, I will hack around that by replacing dots with [\s\S]
+D = DOTALL = 4
 
-    # JavaScript doesn't really have a DOTALL-equivalent, I will hack around that by replacing dots with [\s\S]
-    D = DOTALL = 4
+class MatchObject:
+    def __init__(self, regex, match):
+        self.re = regex
+        self.string = match.input
+        self._groups = match
 
-    class MatchObject:
-        def __init__(self, regex, match):
-            self.re = regex
-            self.string = match.input
-            self._groups = match
+        # compute start/end for each group
+        self._start = []
+        self._end = []
+        offset = 0
+        remainder = match.input
+        i = 0
+        while type(match[i]) !== "undefined":
+            loc = remainder.search(match[i])
+            self._start.push(loc+offset)
+            self._end.push(loc+offset+match[i].length-1)
+            remainder = remainder[loc:]
+            i += 1
 
-            # compute start/end for each group
-            self._start = []
-            self._end = []
-            offset = 0
-            remainder = match.input
-            i = 0
-            while type(match[i]) !== "undefined":
-                loc = remainder.search(match[i])
-                self._start.push(loc+offset)
-                self._end.push(loc+offset+match[i].length-1)
-                remainder = remainder[loc:]
-                i += 1
+    def groups(self):
+        return self._groups[:] # protect original
 
-        def groups(self):
-            return self._groups[:] # protect original
+    def group(self, g=0):
+        return self._groups[g]
 
-        def group(self, g=0):
-            return self._groups[g]
+    def start(g=0):
+        return self._start[g]
 
-        def start(g=0):
-            return self._start[g]
+    def end(g=0):
+        return self._end[g]
 
-        def end(g=0):
-            return self._end[g]
+class RegexObject(RegExp):
+    def __init__(self, pattern, flags):
+        if isinstance(pattern, RegexObject):
+            self.pattern = pattern.pattern
+            self.flags = pattern.flags | flags
+        else:
+            self.pattern = pattern # this isn't the real pattern, but rather the original string, for consistency with Python
+            self.flags = flags
 
-    class RegexObject(RegExp):
-        def __init__(self, pattern, flags):
-            if isinstance(pattern, RegexObject):
-                self.pattern = pattern.pattern
-                self.flags = pattern.flags | flags
-            else:
-                self.pattern = pattern # this isn't the real pattern, but rather the original string, for consistency with Python
-                self.flags = flags
+        modifiers = ''
+        if self.flags & IGNORECASE: modifiers += 'i'
+        if self.flags & MULTILINE: modifiers += 'm'
+        if self.flags & DOTALL:
+            pattern = pattern.replace(RegExp('\\.', 'g'), '[\\s\\S]')
+        self._modifiers = modifiers
 
-            modifiers = ''
-            if self.flags & IGNORECASE: modifiers += 'i'
-            if self.flags & MULTILINE: modifiers += 'm'
-            if self.flags & DOTALL:
-                pattern = pattern.replace(RegExp('\\.', 'g'), '[\\s\\S]')
-            self._modifiers = modifiers
+        # now create the real pattern
+        self._pattern = RegExp(pattern, modifiers)
 
-            # now create the real pattern
-            self._pattern = RegExp(pattern, modifiers)
+    def search(self, string):
+        n = string.match(self._pattern)
+        if n is None:
+            return None
+        return MatchObject(self, n)
 
-        def search(self, string):
-            n = string.match(self._pattern)
-            if n is None:
-                return None
-            return MatchObject(self, n)
+    def match(self, string):
+        n = string.match(RegExp('^' + self.pattern, self._modifiers))
+        if n is None:
+            return None
+        return MatchObject(self, n)
 
-        def match(self, string):
-            n = string.match(RegExp('^' + self.pattern, self._modifiers))
-            if n is None:
-                return None
-            return MatchObject(self, n)
+    def split(self, string, maxsplit=None):
+        if maxsplit is not None:
+            return string.split(self._pattern, maxsplit)
+        else:
+            return string.split(self._pattern)
 
-        def split(self, string, maxsplit=None):
-            if maxsplit is not None:
-                return string.split(self._pattern, maxsplit)
-            else:
-                return string.split(self._pattern)
+    def findall(self, string):
+        matches = string.match(RegExp(self.pattern, self._modifiers + 'g'))
+        i = 0
+        ret = []
+        while type(matches[i]) !== "undefined":
+            ret.push(matches[i]) # a hack to avoid including non-array like portions of regex match
+            i += 1
+        return ret
 
-        def findall(self, string):
-            matches = string.match(RegExp(self.pattern, self._modifiers + 'g'))
-            i = 0
-            ret = []
-            while type(matches[i]) !== "undefined":
-                ret.push(matches[i]) # a hack to avoid including non-array like portions of regex match
-                i += 1
-            return ret
+    def sub(self, repl, string, count=0):
+        if count == 0:
+            return string.replace(RegExp(self.pattern, self._modifiers + 'g'), repl)
 
-        def sub(self, repl, string, count=0):
-            if count == 0:
-                return string.replace(RegExp(self.pattern, self._modifiers + 'g'), repl)
+        for i in range(count):
+            string = string.replace(self._pattern, repl)
+        return string
 
-            for i in range(count):
-                string = string.replace(self._pattern, repl)
-            return string
+    def subn(self, repl, string, count=0):
+        n = 0
+        if count == 0:
+            count = Number.MAX_VALUE
 
-        def subn(self, repl, string, count=0):
-            n = 0
-            if count == 0:
-                count = Number.MAX_VALUE
+        new_string = string
+        do:
+            string = new_string
+            new_string = string.replace(self._pattern, repl)
+            if new_string != string:
+                n += 1
+                count -= 1
+        .while new_string != string and count > 0
 
-            new_string = string
-            do:
-                string = new_string
-                new_string = string.replace(self._pattern, repl)
-                if new_string != string:
-                    n += 1
-                    count -= 1
-            .while new_string != string and count > 0
+        return string, n
 
-            return string, n
+def compile(pattern, flags=0):
+    return RegexObject(pattern, flags)
 
-    def compile(pattern, flags=0):
-        return RegexObject(pattern, flags)
+def search(pattern, string, flags=0):
+    return RegexObject(pattern, flags).search(string)
 
-    def search(pattern, string, flags=0):
-        return RegexObject(pattern, flags).search(string)
+def match(pattern, string, flags=0):
+    return RegexObject(pattern, flags).match(string)
 
-    def match(pattern, string, flags=0):
-        return RegexObject(pattern, flags).match(string)
+def split(pattern, string, maxsplit=0, flags=0):
+    return RegexObject(pattern, flags).split(string)
 
-    def split(pattern, string, maxsplit=0, flags=0):
-        return RegexObject(pattern, flags).split(string)
+def findall(pattern, string, flags=0):
+    return RegexObject(pattern, flags).findall(string)
 
-    def findall(pattern, string, flags=0):
-        return RegexObject(pattern, flags).findall(string)
+def sub(pattern, repl, string, count=0, flags=0):
+    return RegexObject(pattern, flags).sub(repl, string, count)
 
-    def sub(pattern, repl, string, count=0, flags=0):
-        return RegexObject(pattern, flags).sub(repl, string, count)
-
-    def subn(pattern, repl, string, count=0, flags=0):
-        return RegexObject(pattern, flags).subn(repl, string, count)
+def subn(pattern, repl, string, count=0, flags=0):
+    return RegexObject(pattern, flags).subn(repl, string, count)
 
 
 
