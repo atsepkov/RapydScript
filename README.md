@@ -1036,18 +1036,13 @@ Changes in this fork compared to atsepkov/master
 -------------------------------------------------
 
 1. There is now a REPL (Run ```rapydscript``` with no arguments to start it).
-   It even has its own tests to make sure nothing breaks :)
+It even has its own tests to make sure nothing breaks :)
 
 2. The import/module system has been completely changed. It now works just like
-   python, with modules being per file and packages being a directory with
-   ```__init__.pyj```. The ```module:``` keyword has been removed.
+python, with modules being per file and packages being a directory with
+```__init__.pyj```. The ```module:``` keyword has been removed.
 
-3. RapydScript now supports the full python syntax for defining functions with
-   optional arguments, variable numbers of arguments, variable optional
-   arguments, etc. There is no longer any kwargs decorator, as it is not
-   needed.
-
-4. The command line interface has been cleaned up with many new options and
-   improved modularization/robustness. The test suite is now run automatically
-   on Travis for continuous integration. I also took the opportunity to get rid
-   of the dependencies on ```async``` and ```optimist```.
+3. The command line interface has been cleaned up with many new options and
+improved modularization/robustness. The test suite is now run automatically
+on Travis for continuous integration. I also took the opportunity to get rid of
+the dependencies on ```async``` and ```optimist```.
