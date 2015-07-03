@@ -13,7 +13,7 @@
 ###########################################################
 
 # Pythonic shortcut for converting an object to string
-str = String
+str = JSON.stringify
 
 ###########################################################
 # Errors
