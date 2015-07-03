@@ -538,6 +538,8 @@ You could write this:
 
 	myArray = [i*i for i in range(1,20) if i*i%3 == 0]
 
+**NOTE:** The rest of this section has been removed since the quirks it mentions have not been relevant since the old, Python-based compiler. Current implementation works just as well as a normal loop.
+
 
 Inclusive/Exclusive Sequences
 -----------------------------
@@ -993,16 +995,20 @@ RapydScript will pick up any classes you declare yourself as well as native Java
 - developers are much more likely to forget a single instance of `new` operator when declaring an object than to forget an import, the errors due to omitted `new` keyword are also likely to be more subtle and devious to debug
 
 
-Gotchas
----------
+Quirks
+------
+In a perfect world, software works flawlessly and doesn't have any special cases requiring workarounds on the user's part. In a less-perfect world, all quirks are due to the software itself and can be fixed. In our world, we not only have to deal with the quirks of the software we're using, but other software it interacts with. RapydScript is no exception, in addition to its own quirks there are a few quirks brought upon us by the browser as well as a few bugs in jQuery that affect us. Here is a list of things you need to be aware of:
 
-RapydScript has a couple of mutually conflicting goals: Be as close to python
-as possible, while also generating clean, performant JavaScript and making
-interop with external JavaScript libraries easy.
+- RapydScript automatically appends 'new' keyword when using classes generated
+  by it, native JavaScript objects like `Image` and `RegExp` and classes from
+  other libraries marked as external.
 
-As a result, there are somethings in RapydScript that might come as surprises
-to an experienced Python developer. The most important such gotchas are listed
-below:
+- Automatic new insertion depends on the compiler being able to detect that a
+  symbol resolves to a class. Because of the dynamic nature of JavaScript this
+  is not possible to do with 100% accuracy. So it is best to get in the habit
+  of using the `new` keyword yourself. Similarly, the compiler will try to
+  convert SomeClass.method() into SomeClass.prototype.method() for you, but
+  again, this is not 100% reliable.
 
 - Truthiness in JavaScript is very different from Python. Empty lists and dicts
   are ``False`` in Python but ``True`` in JavaScript. The compiler could work
@@ -1010,23 +1016,13 @@ below:
   just get used to checking the length instead of the object directly.
 
 - Operators in JavaScript are very different from Python. ``1 + '1'`` would be
-  an error in Python, but results in ``'11'`` in JavaScript. Similarly, ``[1] +
-  [1]`` is a new list in Python, but a string in JavaScript. Keep that in mind
+  an error in Python, but results in ``'11'`` in JavaScript. Keep that in mind
   as you write code.
 
 - Method binding in RS is not automatic. So ``someobj.somemethod()`` will do the
   right thing, but ``x = someobj.somethod; x()`` will not. RS could work around
   it, but at significant performance cost. See the section above on method
   binding for details.
-
-- RapydScript automatically appends 'new' keyword when using classes generated
-  by it, native JavaScript objects like `Image` and `RegExp` and classes from
-  other libraries marked as external. However, automatic new insertion depends
-  on the compiler being able to detect that a symbol resolves to a class.
-  Because of the dynamic nature of JavaScript this is not possible to do with
-  100% accuracy. So it is best to get in the habit of using the `new` keyword
-  yourself. Similarly, the compiler will try to convert SomeClass.method() into
-  SomeClass.prototype.method() for you, but again, this is not 100% reliable.
 
 - jQuery erroneously assumes that no other library will be modifying
   JavaScript's 'Object', and fails to do `object.hasOwnProperty()` check in
@@ -1036,8 +1032,8 @@ below:
   RapydScript only supports the second notation - which is admittedly a bit
   more awkward.
 
-Changes in this fork compared to atsepkov/RapydScript
-----------------------------------------------------------
+Changes in this fork compared to atsepkov/master
+-------------------------------------------------
 
 1. There is now a REPL (Run ```rapydscript``` with no arguments to start it).
    It even has its own tests to make sure nothing breaks :)
