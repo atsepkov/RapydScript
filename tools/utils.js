@@ -7,6 +7,19 @@
 "use strict;";
 
 var comment_contents = /\/\*!?(?:\@preserve)?[ \t]*(?:\r\n|\n)([\s\S]*?)(?:\r\n|\n)[ \t]*\*\//;
+var colors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
+
+function ansi(code) {
+    code = code || 0;
+    return '\033[' + code + 'm';
+}
+
+function colored(string, color, bold) {
+    var prefix = [];
+    if (bold) prefix.push(ansi(1));
+    if (color) prefix.push(ansi(colors.indexOf(color) + 31));
+    return prefix.join('') + string + ansi(0);
+}
 
 function repeat(str, num) {
     return new Array( num + 1 ).join( str );
@@ -44,3 +57,4 @@ exports.comment_contents = comment_contents;
 exports.repeat = repeat;
 exports.wrap = wrap;
 exports.merge = merge;
+exports.colored = colored;
