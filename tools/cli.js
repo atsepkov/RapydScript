@@ -8,7 +8,6 @@
 
 var path = require('path');
 var utils = require('./utils');
-var colored = utils.safe_colored;
 
 function OptionGroup(name) {
     this.name = name;
@@ -18,6 +17,11 @@ function OptionGroup(name) {
         'boolean': {},
         'alias': {},
         'default': {},
+        'unknown': function(opt) {
+            print_usage();
+            console.error('\n', opt, 'is not a recognized option');
+            process.exit(1);
+        }
     };
 
     this.help = {};
@@ -47,14 +51,12 @@ show the version and exit
 
 }
 
-var COL1 = 'yellow', COL2 = 'green';
-
 function print_usage(group) {  // {{{
 	var COL_WIDTH = 79;
 	var OPT_WIDTH = 23;
 
     usage = (group) ? group.usage :  "[sub-command] ...";
-	console.log(colored('Usage:', COL1), colored(path.basename(process.argv[1]), COL2), usage, '\n');
+	console.log('Usage:', path.basename(process.argv[1]), usage, '\n');
     if (!group) {
         // Overall usage
         help = ('RapydScript can perform many actions, depending on which' + 
@@ -63,11 +65,11 @@ function print_usage(group) {  // {{{
                 '\nyou pass on STDIN and write the output to STDOUT. See the full' +
                 '\nlist of sub-commands below.');
         console.log(help, '\n');
-        console.log(colored('Sub-commands:', COL1));
+        console.log('Sub-commands:');
         Object.keys(groups).forEach(function (name) {
             console.log();
             var dt = utils.wrap(groups[name].description.split('\n'), COL_WIDTH - OPT_WIDTH);
-            console.log(colored((name + utils.repeat(' ', OPT_WIDTH)).slice(0, OPT_WIDTH), COL2), dt[0]);
+            console.log((name + utils.repeat(' ', OPT_WIDTH)).slice(0, OPT_WIDTH), dt[0]);
             dt.slice(1).forEach(function (line) {
                 console.log(utils.repeat(' ', OPT_WIDTH), line);
             });
@@ -78,7 +80,7 @@ function print_usage(group) {  // {{{
     // Group specific usage
 
     console.log(group.description);
-	console.log(colored('\nOptions:', COL1));
+	console.log('\nOptions:');
     var options = group.options;
     var help = group.help;
 
@@ -89,9 +91,9 @@ function print_usage(group) {  // {{{
 		});
 		var ht = utils.wrap(help[name].split('\n'), COL_WIDTH - OPT_WIDTH);
 
-		if (optstr.length > OPT_WIDTH) console.log(colored(optstr, COL2));
+		if (optstr.length > OPT_WIDTH) console.log(optstr);
 		else {
-			console.log(colored((optstr + utils.repeat(' ', OPT_WIDTH)).slice(0, OPT_WIDTH), COL2), ht[0]);
+			console.log((optstr + utils.repeat(' ', OPT_WIDTH)).slice(0, OPT_WIDTH), ht[0]);
 			ht = ht.splice(1);
 		}
 		ht.forEach(function (line) {
@@ -166,7 +168,7 @@ function parse_args() {  // {{{
 		name = name_map[arg.replace('-', '_')];
 		if (!name) {
 			print_usage(group);
-			console.error('\nThe option:', colored('-' + oarg, 'red'), 'is not recognized');
+			console.error('The option:', '-' + oarg, 'is not recognized');
 			process.exit(1);
 		}
 		if (options.boolean.hasOwnProperty(name)) {
