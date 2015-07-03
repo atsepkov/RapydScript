@@ -30,6 +30,14 @@ function parse_file(code, filename) {
     });
 }
 
+function print() {
+    var args = [];
+    for (var i = 0; i < arguments.length; i++) {
+        args.push(String(arguments[i]));
+    }
+    console.log.apply(null, args);
+}
+
 function msg_from_node(filename, ident, name, node, level) {
     name = name || ((node.name) ? ((node.name.name) ? node.name.name : node.name) : '');
     if (node instanceof RapydScript.AST_Lambda) name = node.name.name;
@@ -97,19 +105,20 @@ function Scope(is_toplevel, parent_scope, filename) {
 
     this.finalize = function() {
         // Find unused bindings
+        var obj = this;
         Object.keys(this.bindings).forEach(function(name) {
-            var b = this.bindings[name];
+            var b = obj.bindings[name];
             // Check if it is used in a descendant scope
             var found = false;
-            this.for_descendants(function (scope) {
+            obj.for_descendants(function (scope) {
                 if (scope.undefined_references.hasOwnProperty(name)) {
                     found = true;
                     // Remove from childs' undefined references 
                     delete scope.undefined_references[name];
                 }
             });
-            if (!found && !b.used) this.unused_bindings[name] = b;
-        }, this);
+            if (!found && !b.used) obj.unused_bindings[name] = b;
+        });
     };
 
     this.for_descendants = function(func) {
@@ -125,7 +134,7 @@ function Scope(is_toplevel, parent_scope, filename) {
         Object.keys(this.undefined_references).forEach(function (name) {
             var node = this.undefined_references[name];
             ans.push(msg_from_node(filename, 'undef', name, node));
-        }, this);
+        });
 
         Object.keys(this.unused_bindings).forEach(function (name) {
             var b = this.unused_bindings[name];
@@ -190,21 +199,23 @@ function Linter(toplevel, filename) {
 
     this.handle_assign = function() {
         var node = this.current_node;
+        var obj = this;
+
+        function addref(ref) {
+            ref.lint_visited = true;
+            obj.current_node = node.right;
+            obj.add_binding(ref.name, node.left);
+            obj.current_node = node;
+        }
 
         if (node.left instanceof RapydScript.AST_SymbolRef) {
-            node.left.lint_visited = true;
-            this.current_node = node.left;
-            this.add_binding(node.left.name);
-            this.current_node = node;
+            addref(node.left);
         } else if (node.left instanceof RapydScript.AST_Array) {
             // destructuring assignment: a, b = 1, 2
             for (var i = 0; i < node.left.elements.length; i++) {
                 var cnode = node.left.elements[i];
                 if (cnode instanceof RapydScript.AST_SymbolRef) {
-                    this.current_node = cnode;
-                    cnode.lint_visited = true;
-                    this.add_binding(cnode.name);
-                    this.current_node = node;
+                    addref(cnode);
                 }
             }
         }
