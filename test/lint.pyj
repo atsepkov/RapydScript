@@ -40,6 +40,11 @@ ok_test('def f(a):\n return 1')
 # Top level unused ignored
 ok_test('a=1\ndef f():\n pass')
 
+# Destructuring assignment
+ok_test('def f():\n a, b = 1, 2; a, b')
+ok_test('def f():\n a = 1; b, c = a, 2; return b, c')
+err_test('def f():\n a, b = 1, 1; return a', 'unused-local', 2, 'b')
+
 # Unused bindings
 err_test('def f():\n a=1', 'unused-local', 2, 'a')
 err_test('def f():\n def a():\n  pass', 'unused-local', 2, 'a')
