@@ -74,7 +74,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
     function compile_single_file(err, code) {
         var output;
         if (err) {
-            console.error("ERROR: can't read file: " + file);
+            console.error("ERROR: can't read file: " + files[0]);
             process.exit(1);
         }
         time_it("parse", function(){
