@@ -2,18 +2,20 @@
 # License: GPL v3
 # Copyright: 2015, Kovid Goyal <kovid at kovidgoyal.net>
 
-linter = require('../tools/lint.js')
+lint_code = require('../tools/lint.js').lint_code
 
-def lint(code):
-    return linter.lint_code(code, {filename:'<test>', report:def():
-                                   pass
-})
+def reporter(reports):
+    def report(filename, line_number, col_number, message):
+        reports.push({filename:filename, line_number:line_number, col_number:col_number, message:message})
+    return report
 
-def err_test(code, ident, line):
-    msgs = lint(code)
-    assert.equal(len(msgs), 1, 'failed to find error in: ' + code)
-    assert.equal(msgs[0].ident, ident, 'incorrect ident: ' + msgs[0].ident + ' for: ' + code)
-    if line != undefined:
-        assert.equal(msgs[0].start_line, line, 'incorrect line: ' + msgs[0].start_line + ' for: ' + code)
+code = '''
+from test import one
 
-err_test('import foo', 'unused-import', 1)
+def f(a, b):
+    x = 1
+    return a
+'''
+
+reports = []
+lint_code(code, {report:reporter(reports)})
