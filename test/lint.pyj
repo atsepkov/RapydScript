@@ -48,3 +48,8 @@ err_test('def f():\n a, b = 1, 1; return a', 'unused-local', 2, 'b')
 # Unused bindings
 err_test('def f():\n a=1', 'unused-local', 2, 'a')
 err_test('def f():\n def a():\n  pass', 'unused-local', 2, 'a')
+
+# Comprehensions
+ok_test('[x for x in [1,2]]')
+err_test('[1 for x in [1,2]]', 'unused-local', 1, 'x')
+err_test('def f():\n [x for x in [1,2]]; return x', 'undef', 2, 'x')
