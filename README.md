@@ -82,7 +82,6 @@ The available options are:
 	-o, --output       Output file (default STDOUT).
 	-b, --bare         Omit scope-protection wrapper around generated code
 	-p, --prettify     Beautify output/specify output options.            [string]
-	-n, --namespace-imports  Pythonic imports (experimental)
 	-v, --verbose      Verbose                                           [boolean]
 	-V, --version      Print version number and exit.                    [boolean]
 	-t, --test         Run unit tests, making sure the compiler produces usable code
@@ -768,13 +767,12 @@ Including `rebind_all` call in the constructor, however, will break `Casper`. It
 
 Modules
 -------
-
 RapydScript's module system works almost exactly like Python's. Modules are
-files ending with the suffix ```.pyj``` and packages are directories containing
-an ```__init__.pyj``` file. The only caveat is that star imports are not
+files ending with the suffix `.pyj` and packages are directories containing
+an `__init__.pyj` file. The only caveat is that star imports are not
 currently supported (this is by design, star imports are easily abused).
 
-Also, currently, aliasing with ```as``` is not supported, this is on my TODO list.
+Also, currently, aliasing with `as` is not supported, this is on my TODO list.
 
 Exception Handling
 ------------------
@@ -887,11 +885,11 @@ Shadowing is preferred in most cases, since it can't accidently damage outside l
 
 Importing
 ---------
-Like Python, RapydScript allows you to import additional modules into your code. Unlike Python, however, (and like RapydML) the current implementation of the importing logic is naive. This means that RaoydScript doesn't separate different modules into separate namespaces, nor does it support module aliasing yet (eventually I do want that functionality).
+Like Python, RapydScript allows you to import additional modules into your code.
 
 For those unfamiliar with importing, let's imagine we're writing a very large program. This program is several thousand lines of code. We could dump it all into the same file, but that wouldn't be too clean (especially when we have multiple developers working on it). Alternatively, we could separate different chunks of the program into different files. Let's imagine, for example, that we're writing a videogame. We've already written a module that implements 'BasicCharacter' class, used by NPCs, monsters, and the main character. We've saved this class to Basic.pyj (that's the extension RapydScript prefers). Now let's create the main character in a different module:
 
-	import Basic
+	from Basic import BasicCharacter
 	
 	class MainCharacter(BasicCharacter):
 		"""
