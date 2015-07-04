@@ -1,0 +1,33 @@
+import re
+
+p = re.compile('\\d+')
+#assert.deepEqual(p.findall('12 drummers drumming, 11 pipers piping, 10 lords a-leaping'), ['12', '11', '10'])
+
+s = "Isaac Newton, physicist"
+m = re.match("(\\w+) (\\w+)", s)
+assert.equal(m.group(0), 'Isaac Newton')
+assert.equal(m.group(1), 'Isaac')
+assert.equal(m.group(2), 'Newton')
+assert.deepEqual(re.split('\\s', s), ['Isaac', 'Newton,', 'physicist'])
+assert.equal(re.sub('[A-Z]', '_', s), "_saac _ewton, physicist")
+assert.deepEqual(re.subn('[A-Z]', '_', s), ["_saac _ewton, physicist", 2])
+assert.deepEqual(re.findall('s[a-z]', s), ['sa', 'si', 'st'])
+
+line = "Cats are smarter than dogs"
+matchObj = re.match( '(.*) are (.*?) .*', line, re.M + re.I)
+assert.equal(matchObj.group(), line)
+assert.equal(matchObj.group(1), 'Cats')
+assert.equal(matchObj.group(2), 'smarter')
+
+paragraph = \
+'''
+<h1>Irrelevant Title</h1>
+<p>
+This is a paragraph.
+It has multiple lines.
+</p><br>
+Irrelevant footer
+'''
+match = re.search('<p>.*</p>', paragraph, re.DOTALL)
+assert.equal(match.group(0), '<p>\nThis is a paragraph.\nIt has multiple lines.\n</p>')
+# and don't tell anyone I parsed html with regex
