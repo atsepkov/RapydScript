@@ -1001,28 +1001,38 @@ In a perfect world, software works flawlessly and doesn't have any special cases
 
 - RapydScript automatically appends 'new' keyword when using classes generated
   by it, native JavaScript objects like `Image` and `RegExp` and classes from
-  other libraries marked as external.
+  other libraries marked as external. This means that you should be using
+  `@external` decorator from classes you're bringing in from the outside that
+  the compiler isn't aware of, or use `new` when declaring them manually.
 
 - Automatic new insertion depends on the compiler being able to detect that a
   symbol resolves to a class. Because of the dynamic nature of JavaScript this
-  is not possible to do with 100% accuracy. So it is best to get in the habit
-  of using the `new` keyword yourself. Similarly, the compiler will try to
-  convert SomeClass.method() into SomeClass.prototype.method() for you, but
-  again, this is not 100% reliable.
+  is not possible to do with 100% accuracy (this is usually only a problem
+  when you rely on duck-typing to conceal a class constructor in a variable).
+  In those cases you should append the `new` keyword yourself. Similarly, the
+  compiler will try to convert SomeClass.method() into SomeClass.prototype.method()
+  for you, but will fail in the same cases. Declaring this variable as a class
+  with `@external` decorator should fix this issue.
+
+- JavaScript's equality operator is gimped. It only works as equality operator for
+  primitive types (string, number, boolean). For objects, it's more akin to Python's
+  `is` operator, comparing memory address rather than equality. For that reason,
+  never compare arrays or objects via `==`, instead use inbuilt `deep_eq` function.
 
 - Truthiness in JavaScript is very different from Python. Empty lists and dicts
   are ``False`` in Python but ``True`` in JavaScript. The compiler could work
   around that, but not without a significant performance cost, so it is best to
   just get used to checking the length instead of the object directly.
 
-- Operators in JavaScript are very different from Python. ``1 + '1'`` would be
-  an error in Python, but results in ``'11'`` in JavaScript. Keep that in mind
+- Operators in JavaScript are very different from Python. `1 + '1'` would be
+  an error in Python, but results in `'11'` in JavaScript. Keep that in mind
   as you write code.
 
 - Method binding in RS is not automatic. So ``someobj.somemethod()`` will do the
   right thing, but ``x = someobj.somethod; x()`` will not. RS could work around
   it, but at significant performance cost. See the section above on method
-  binding for details.
+  binding for details. Alternatively, you can use `--auto-bind` flag, and enjoy
+  automatic method binding at the expense of performance.
 
 - jQuery erroneously assumes that no other library will be modifying
   JavaScript's 'Object', and fails to do `object.hasOwnProperty()` check in
@@ -1032,17 +1042,9 @@ In a perfect world, software works flawlessly and doesn't have any special cases
   RapydScript only supports the second notation - which is admittedly a bit
   more awkward.
 
-Changes in this fork compared to atsepkov/master
--------------------------------------------------
+- Negative indexes are only supported for constant numbers. If the compiler
+  detects that you're using a negative index (`array[-1]`), it will automatically
+  convert it to `array[array.length-n]`. Otherwise, if the index is masked in
+  a variable, you will have to convert it yourself.
 
-1. There is now a REPL (Run ```rapydscript``` with no arguments to start it).
-It even has its own tests to make sure nothing breaks :)
-
-2. The import/module system has been completely changed. It now works just like
-python, with modules being per file and packages being a directory with
-```__init__.pyj```. The ```module:``` keyword has been removed.
-
-3. The command line interface has been cleaned up with many new options and
-improved modularization/robustness. The test suite is now run automatically
-on Travis for continuous integration. I also took the opportunity to get rid of
-the dependencies on ```async``` and ```optimist```.
+- Operator overloading is not supported, yet
