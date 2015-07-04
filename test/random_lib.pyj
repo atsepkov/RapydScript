@@ -1,0 +1,10 @@
+import random
+
+a = range(10)
+random.seed(5)  # to make our random generator a little less random :)
+assert.equal(random.choice(a), 9)
+assert.deepEqual(random.shuffle(a), [ 6, 7, 5, 8, 4, 2, 0, 3, 1, 9 ])
+assert.equal(random.randrange(10), 4)
+assert.equal(random.randint(1,5), 5)
+assert.equal(random.uniform(1,5), 4.553404801463556)
+assert.deepEqual(random.sample(range(20),5), [ 13, 19, 18, 9, 4 ])
