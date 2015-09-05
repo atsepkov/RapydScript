@@ -142,8 +142,9 @@ AST_SimpleStatement = DEFNODE("SimpleStatement", "body", {
         body: "[AST_Node] an expression node (should not be instanceof AST_Statement)"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.body._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.body._walk(visitor)
         )
 
 }, AST_Statement)
@@ -151,7 +152,7 @@ AST_SimpleStatement = DEFNODE("SimpleStatement", "body", {
 def walk_body(node, visitor):
     if isinstance(node.body, AST_Statement):
         node.body._walk(visitor)
-    else:
+    elif node.body:
         node.body.forEach(def(stat):
             stat._walk(visitor)
         )
@@ -162,8 +163,9 @@ AST_Block = DEFNODE("Block", "body", {
         body: "[AST_Statement*] an array of statements"
     },
     _walk: def(visitor):
+        node = this
         return visitor._visit(this, def():
-            walk_body(this, visitor)
+            walk_body(node, visitor)
         )
 }, AST_Statement)
 
@@ -183,8 +185,9 @@ AST_StatementWithBody = DEFNODE("StatementWithBody", "body", {
         body: "[AST_Statement] the body; this should always be present, even if it's an AST_EmptyStatement"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.body._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.body._walk(visitor)
         )
 }, AST_Statement)
 
@@ -194,9 +197,10 @@ AST_LabeledStatement = DEFNODE("LabeledStatement", "label", {
         label: "[AST_Label] a label definition"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.label._walk(visitor)
-            this.body._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.label._walk(visitor)
+            node.body._walk(visitor)
         )
 }, AST_StatementWithBody)
 
@@ -206,9 +210,10 @@ AST_DWLoop = DEFNODE("DWLoop", "condition", {
         condition: "[AST_Node] the loop condition.  Should not be instanceof AST_Statement"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.condition._walk(visitor)
-            this.body._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.condition._walk(visitor)
+            node.body._walk(visitor)
         )
 }, AST_StatementWithBody)
 
@@ -228,10 +233,11 @@ AST_ForIn = DEFNODE("ForIn", "init name object", {
         object: "[AST_Node] the object that we're looping through"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.init._walk(visitor)
-            this.object._walk(visitor)
-            this.body._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.init._walk(visitor)
+            node.object._walk(visitor)
+            node.body._walk(visitor)
         )
 }, AST_StatementWithBody)
 
@@ -256,9 +262,10 @@ AST_With = DEFNODE("With", "expression", {
         expression: "[AST_Node] the `with` expression"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.expression._walk(visitor)
-            this.body._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.expression._walk(visitor)
+            node.body._walk(visitor)
         )
 }, AST_StatementWithBody)
 
@@ -278,7 +285,7 @@ AST_Scope = DEFNODE("Scope", "directives variables localvars functions uses_with
     }
 }, AST_Block)
 
-AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang import_order module_id exports submodules classes", {
+AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang import_order module_id exports submodules classes filename srchash", {
     $documentation: "The toplevel scope",
     $propdoc: {
         globals: "[Object/S] a map of name -> SymbolDef for all undeclared names",
@@ -292,6 +299,8 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang impor
         exports: "[SymbolDef*] list of names exported from this module",
         submodules: "[string*] list of names exported from this module",
         classes: "[Object/S] a map of class names to AST_Class for classes defined in this module",
+        filename: "[string] The absolute path to the file from which this module was read",
+        srchash: "[string] SHA1 hash of source code, used for caching",
     },
     wrap_enclose: def(arg_parameter_pairs):
         self = this
@@ -380,14 +389,15 @@ AST_Lambda = DEFNODE("Lambda", "name argnames uses_arguments decorators", {
         decorators: "[AST_Decorator*] function decorators, if any"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            if this.name:
-                this.name._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            if node.name:
+                node.name._walk(visitor)
 
-            this.argnames.forEach(def(arg):
+            node.argnames.forEach(def(arg):
                 arg._walk(visitor)
             )
-            walk_body(this, visitor)
+            walk_body(node, visitor)
         )
 }, AST_Scope)
 
@@ -412,10 +422,11 @@ AST_Class = DEFNODE("Class", "init name parent static external bound decorators 
         module_id: "[string] The id of the module this class is defined in",
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.name._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.name._walk(visitor)
             walk_body(this, visitor)
-            this.parent._walk(visitor)
+            node.parent._walk(visitor)
         )
 }, AST_Scope)
 
@@ -446,8 +457,10 @@ AST_Exit = DEFNODE("Exit", "value", {
         value: "[AST_Node?] the value returned or thrown by this statement; could be null for AST_Return"
     },
     _walk: def(visitor):
-        return visitor._visit(this, this.value and def():
-            this.value._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            if node.value:
+                node.value._walk(visitor)
         )
 }, AST_Jump)
 
@@ -465,8 +478,10 @@ AST_LoopControl = DEFNODE("LoopControl", "label", {
         label: "[AST_LabelRef?] the label, or null if none"
     },
     _walk: def(visitor):
-        return visitor._visit(this, this.label and def():
-            this.label._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            if node.label:
+                node.label._walk(visitor)
         )
 }, AST_Jump)
 
@@ -486,11 +501,12 @@ AST_If = DEFNODE("If", "condition alternative", {
         alternative: "[AST_Statement?] the `else` part, or null if not present"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.condition._walk(visitor)
-            this.body._walk(visitor)
-            if this.alternative:
-                this.alternative._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.condition._walk(visitor)
+            node.body._walk(visitor)
+            if node.alternative:
+                node.alternative._walk(visitor)
         )
 }, AST_StatementWithBody)
 
@@ -501,9 +517,10 @@ AST_Switch = DEFNODE("Switch", "expression", {
         expression: "[AST_Node] the `switch` “discriminant”"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.expression._walk(visitor)
-            walk_body(this, visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.expression._walk(visitor)
+            walk_body(node, visitor)
         )
 }, AST_Block)
 
@@ -521,9 +538,10 @@ AST_Case = DEFNODE("Case", "expression", {
         expression: "[AST_Node] the `case` expression"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.expression._walk(visitor)
-            walk_body(this, visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.expression._walk(visitor)
+            walk_body(node, visitor)
         )
 }, AST_SwitchBranch)
 
@@ -535,13 +553,14 @@ AST_Try = DEFNODE("Try", "bcatch bfinally", {
         bfinally: "[AST_Finally?] the finally block, or null if not present"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            walk_body(this, visitor)
-            if this.bcatch:
-                this.bcatch._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            walk_body(node, visitor)
+            if node.bcatch:
+                node.bcatch._walk(visitor)
 
-            if this.bfinally:
-                this.bfinally._walk(visitor)
+            if node.bfinally:
+                node.bfinally._walk(visitor)
         )
 }, AST_Block)
 
@@ -555,9 +574,10 @@ AST_Catch = DEFNODE("Catch", None, {
     $documentation: "A `catch` node; only makes sense as part of a `try` statement",
     $propdoc: {},
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.argname._walk(visitor)
-            walk_body(this, visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.argname._walk(visitor)
+            walk_body(node, visitor)
         )
 }, AST_Block)
 
@@ -580,8 +600,9 @@ AST_Definitions = DEFNODE("Definitions", "definitions", {
         definitions: "[AST_VarDef*] array of variable definitions"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.definitions.forEach(def(def_):
+        node = this
+        return visitor._visit(node, def():
+            node.definitions.forEach(def(def_):
                 def_._walk(visitor)
             )
         )
@@ -602,10 +623,11 @@ AST_VarDef = DEFNODE("VarDef", "name value", {
         value: "[AST_Node?] initializer, or null if there's no initializer"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.name._walk(visitor)
-            if this.value:
-                this.value._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.name._walk(visitor)
+            if node.value:
+                node.value._walk(visitor)
         )
 })
 
@@ -623,9 +645,10 @@ AST_Call = DEFNODE("Call", "expression", {
         expression: "[AST_Node] expression to invoke as function"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.expression._walk(visitor)
-            this.args.forEach(def(arg):
+        node = this
+        return visitor._visit(node, def():
+            node.expression._walk(visitor)
+            node.args.forEach(def(arg):
                 arg._walk(visitor)
             )
         )
@@ -640,9 +663,10 @@ AST_ClassCall = DEFNODE("ClassCall", "class method static", {
         "static": "[boolean] defines whether the method is static"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.expression._walk(visitor)
-            this.args.forEach(def(arg):
+        node = this
+        return visitor._visit(node, def():
+            node.expression._walk(visitor)
+            node.args.forEach(def(arg):
                 arg._walk(visitor)
             )
         )
@@ -704,10 +728,11 @@ AST_Seq = DEFNODE("Seq", "car cdr", {
             p = p.cdr
     ,
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.car._walk(visitor)
-            if this.cdr:
-                this.cdr._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.car._walk(visitor)
+            if node.cdr:
+                node.cdr._walk(visitor)
         )
 })
 
@@ -722,17 +747,19 @@ AST_PropAccess = DEFNODE("PropAccess", "expression property", {
 AST_Dot = DEFNODE("Dot", None, {
     $documentation: "A dotted property access expression",
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.expression._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.expression._walk(visitor)
         )
 }, AST_PropAccess)
 
 AST_Sub = DEFNODE("Sub", None, {
     $documentation: 'Index-style property access, i.e. `a["foo"]`',
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.expression._walk(visitor)
-            this.property._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.expression._walk(visitor)
+            node.property._walk(visitor)
         )
 }, AST_PropAccess)
 
@@ -743,10 +770,11 @@ AST_Splice = DEFNODE("Slice", "property2 assignment", {
         assignment: "[AST_Node] The data being spliced in."
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.expression._walk(visitor)
-            this.property._walk(visitor)
-            this.property2._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.expression._walk(visitor)
+            node.property._walk(visitor)
+            node.property2._walk(visitor)
         )
 }, AST_PropAccess)
 
@@ -757,8 +785,9 @@ AST_Unary = DEFNODE("Unary", "operator expression", {
         expression: "[AST_Node] expression that this unary operator applies to"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.expression._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.expression._walk(visitor)
         )
 })
 
@@ -778,9 +807,10 @@ AST_Binary = DEFNODE("Binary", "left operator right", {
         right: "[AST_Node] right-hand side expression"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.left._walk(visitor)
-            this.right._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.left._walk(visitor)
+            node.right._walk(visitor)
         )
 })
 
@@ -792,10 +822,11 @@ AST_Conditional = DEFNODE("Conditional", "condition consequent alternative", {
         alternative: "[AST_Node]"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.condition._walk(visitor)
-            this.consequent._walk(visitor)
-            this.alternative._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.condition._walk(visitor)
+            node.consequent._walk(visitor)
+            node.alternative._walk(visitor)
         )
 })
 
@@ -810,8 +841,9 @@ AST_Array = DEFNODE("Array", "elements", {
         elements: "[AST_Node*] array of elements"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.elements.forEach(def(el):
+        node = this
+        return visitor._visit(node, def():
+            node.elements.forEach(def(el):
                 el._walk(visitor)
             )
         )
@@ -824,11 +856,12 @@ AST_TupleUnpack = DEFNODE("TupleUnpack", "elements right", {
         right: "[AST_Node] right-hand side expression"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.elements.forEach(def(el):
+        node = this
+        return visitor._visit(node, def():
+            node.elements.forEach(def(el):
                 el._walk(visitor)
             )
-            this.right._walk(visitor)
+            node.right._walk(visitor)
         )
 })
 
@@ -838,8 +871,9 @@ AST_Object = DEFNODE("Object", "properties", {
         properties: "[AST_ObjectProperty*] array of properties"
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.properties.forEach(def(prop):
+        node = this
+        return visitor._visit(node, def():
+            node.properties.forEach(def(prop):
                 prop._walk(visitor)
             )
         )
@@ -853,8 +887,9 @@ AST_ObjectProperty = DEFNODE("ObjectProperty", "key value quoted", {
         quoted: "[true/false] keeps track whether the property was quoted in original code."
     },
     _walk: def(visitor):
-        return visitor._visit(this, def():
-            this.value._walk(visitor)
+        node = this
+        return visitor._visit(node, def():
+            node.value._walk(visitor)
         )
 })
 
@@ -895,9 +930,9 @@ AST_SymbolVar = DEFNODE("SymbolVar", None, {
 }, AST_SymbolDeclaration)
 
 AST_ImportedVar = DEFNODE("ImportedVar", 'alias', {
-    '$documentation': "Symbol defining an imported symbol",
-    '$propdoc': {
-        'alias': "AST_SymbolAlias the alias for this imported symbol"
+    $documentation: "Symbol defining an imported symbol",
+    $propdoc: {
+        alias: "AST_SymbolAlias the alias for this imported symbol"
     }
 }, AST_SymbolVar)
 
