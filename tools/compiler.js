@@ -6,6 +6,30 @@ var RapydScript = vm.createContext({
     console       : console,
 });
 
+exports.create_compiler = function() {
+    var compiler_exports = {};
+    var compiler_context = vm.createContext({
+        console       : console,
+        readfile      : fs.readFileSync,
+        writefile     : fs.writeFileSync,
+        require       : require,
+        exports       : compiler_exports,
+    });
+
+    console.log(module.filename);
+    var compilerjs = fs.readFileSync(
+        path.join(
+            path.dirname(path.dirname(module.filename)),
+            'tools',
+            'compiler.js'
+        ),
+        'utf-8'
+    );
+    console.log(compilerjs);
+    vm.runInContext(compilerjs, compiler_context, 'tools/compiler.js');
+    return compiler_exports;
+};
+
 exports.parse_baselib = function(src_path, beautify) {
     var baselibAst;
     try {

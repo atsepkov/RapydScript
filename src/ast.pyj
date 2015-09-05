@@ -894,6 +894,13 @@ AST_SymbolVar = DEFNODE("SymbolVar", None, {
     $documentation: "Symbol defining a variable"
 }, AST_SymbolDeclaration)
 
+AST_ImportedVar = DEFNODE("ImportedVar", 'alias', {
+    '$documentation': "Symbol defining an imported symbol",
+    '$propdoc': {
+        'alias': "AST_SymbolAlias the alias for this imported symbol"
+    }
+}, AST_SymbolVar)
+
 AST_SymbolConst = DEFNODE("SymbolConst", None, {
     $documentation: "A constant declaration"
 }, AST_SymbolDeclaration)

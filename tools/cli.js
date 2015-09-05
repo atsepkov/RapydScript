@@ -32,12 +32,12 @@ function wrap(lines, width) {
 
 function print_usage() {  // {{{
 	console.log('Usage:', path.basename(process.argv[1]), "input1.pyj [input2.pyj ...] \n\n" +
-"Compile RapydScript files into javascript. You can either \n" +
-"specify the input files on the command line or pipe a single\n" +
-"file into stdin.\n\n" +
+        "Compile RapydScript files into javascript. You can either \n" +
+        "specify the input files on the command line or pipe a single\n" +
+        "file into stdin.\n\n" +
 
-"If you specify no files and stdin is a terminal, a RapydScript\n" +
-"REPL will be started.");
+        "If you specify no files and stdin is a terminal, a RapydScript\n" +
+        "REPL will be started.");
 	console.log('\nOptions:');
 
 	var COL_WIDTH = 79;
@@ -246,6 +246,14 @@ opt("execute", 'x,exec', 'bool', false, function(){/*
 When compiling RapydScript code, after outputting
 it, execute it in node itself. This acts as a poor
 man's REPL :)
+*/});
+
+opt("lint", 'l', 'bool', false, function(){/*
+Run the RapydScript linter and exit. This will
+find various possible problems in the .pyj files
+you specify and write messages about them to stdout.
+The main check it performs is for unused/undefined 
+symbols, like pyflakes does for python.
 */});
 
 var argv = module.exports.argv = parse_args();
