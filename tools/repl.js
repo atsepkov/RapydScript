@@ -18,13 +18,22 @@ var util = require('util');
 var RapydScript = require('./compiler');
 
 function create_ctx(baselib, show_js, console) {
+
+    // a set of repl settings
+    var replOptions = {
+        'showJavascript': !!show_js
+    };
+
     var ctx = vm.createContext({
         'console': console,
-        'show_js': !!show_js,
         'RapydScript': RapydScript,
         'require': require,
+        'repl': replOptions,
         'quit': function() { process.exit(0); }
     });
+
+    vm.runInContext("'use strict';", ctx);
+    vm.runInContext("Object.preventExtensions(repl)", ctx);
 
     // load baselib
 	vm.runInContext(baselib, ctx, {'filename':'baselib.js'});
@@ -218,7 +227,12 @@ function find_completions(line, ctx, options) {
 // }}}
 
 module.exports = function(options) {
-	var output_options = {'omit_baselib':true, 'write_name':false, 'private_scope':false, 'beautify':true};
+	var output_options = {
+        'omit_baselib': true,
+        'write_name': false,
+        'private_scope': false,
+        'beautify': true
+    };
     options = repl_defaults(options);
     options.completer = completer;
     var rl = options.readline.createInterface(options);
@@ -231,11 +245,31 @@ module.exports = function(options) {
     var toplevel;
     var sigint = false;
 
-    options.console.log(options.colored('Welcome to the RapydScript REPL! Press Ctrl+C twice or use quit() to quit.', 'green', true));
-    if (options.show_js)
-        options.console.log(options.colored('Use show_js=True to stop the REPL from showing the compiled JavaScript.', 'green', true));
-    else
-        options.console.log(options.colored('Use show_js=True to have the REPL show the compiled JavaScript before executing it.', 'green', true));
+    options.console.log(options.colored(
+        'Welcome to the RapydScript REPL! Press Ctrl+C twice or use quit() to quit.',
+        'green',
+        true
+    ));
+
+    options.console.log(options.colored(
+        'You can use the `repl` object to check/modify settings specific to this prompt.',
+        'green',
+        true
+    ));
+
+    if (options.show_js) {
+        options.console.log(options.colored(
+            'Use repl.showJavascript=True to stop the REPL from showing the compiled JavaScript.',
+            'green',
+            true
+        ));
+    } else {
+        options.console.log(options.colored(
+            'Use repl.showJavascript=True to have the REPL show the compiled JavaScript before executing it.',
+            'green',
+            true
+        ));
+    }
     options.console.log();
 
     function resetbuffer() { buffer = []; }
@@ -253,8 +287,9 @@ module.exports = function(options) {
             if (prev_line) lw += prev_line;
         }
         rl.setPrompt((more) ? ps2 : ps1);
-        if (rl.sync_prompt) rl.prompt(lw);
-        else {
+        if (rl.sync_prompt) {
+            rl.prompt(lw);
+        } else {
             rl.prompt();
             if (lw) rl.write(lw);
         }
@@ -262,11 +297,12 @@ module.exports = function(options) {
 
     function runjs(js) {
         var result;
-        if (vm.runInContext('show_js', ctx)) {
+        if (vm.runInContext('repl.showJavascript', ctx)) {
             options.console.log(options.colored('---------- Compilation ---------', 'green', true));
             options.console.log(options.colored(js, 'green', false));
             options.console.log(options.colored('---------- Execution ---------', 'green', true));
         }
+
         try {
             // Despite what the docs say node does not actually output any errors by itself
             // so, in case this bug is fixed alter, we turn it off explicitly.
@@ -304,8 +340,9 @@ module.exports = function(options) {
             var exports = {};
             toplevel.exports.forEach(function (name) { exports[name] = true; });
             Object.getOwnPropertyNames(classes).forEach(function (name) {
-                if (!exports.hasOwnProperty(name) && !toplevel.classes.hasOwnProperty(name))
+                if (!exports.hasOwnProperty(name) && !toplevel.classes.hasOwnProperty(name)) {
                     toplevel.classes[name] = classes[name];
+                }
             });
         }
         runjs(output);
@@ -332,8 +369,12 @@ module.exports = function(options) {
             if (line_is_empty && buffer.length && !buffer[buffer.length - 1].trimLeft()) {
                 // We have two empty lines, evaluate the block
                 more = push(line.trimLeft());
-            } else buffer.push(line);
-        } else more = push(line);  // Not in a block, evaluate line
+            } else {
+                buffer.push(line);
+            }
+        } else {
+            more = push(line);  // Not in a block, evaluate line
+        }
 		prompt();
 	})
 	

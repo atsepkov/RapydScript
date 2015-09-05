@@ -37,7 +37,8 @@ function print_usage() {  // {{{
         "file into stdin.\n\n" +
 
         "If you specify no files and stdin is a terminal, a RapydScript\n" +
-        "REPL will be started.");
+        "REPL will be started."
+    );
 	console.log('\nOptions:');
 
 	var COL_WIDTH = 79;
