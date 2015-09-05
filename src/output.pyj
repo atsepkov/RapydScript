@@ -432,14 +432,14 @@ def OutputStream(options):
 (def():
     # -----[ utils ]-----
     SPECIAL_METHODS = {
-        bind: "_$rapyd$_bind",
-        rebind_all: "_$rapyd$_rebindAll",
+        bind: "ՐՏ_bind",
+        rebind_all: "ՐՏ_rebindAll",
         bool: "!!",
         "float": "parseFloat",
         "int": "parseInt",
-        mixin: "_$rapyd$_mixin",
-        print: "_$rapyd$_print",
-        eslice: "_$rapyd$_eslice",
+        mixin: "ՐՏ_mixin",
+        print: "ՐՏ_print",
+        eslice: "ՐՏ_eslice",
     }
     INDEX_COUNTER = 0
     def DEFPRINT(nodetype, generator):
@@ -646,7 +646,7 @@ def OutputStream(options):
             output.indent()
             output.print("this.")
             output.assign(arg)
-            output.print("_$rapyd$_bind")
+            output.print("ՐՏ_bind")
             output.with_parens(def():
                 output.print("this.")
                 output.print(arg)
@@ -666,7 +666,7 @@ def OutputStream(options):
         )
         if imports.length > 1:
             output.indent()
-            output.print('var _$rapyd$_modules = {};')
+            output.print('var ՐՏ_modules = {};')
             output.newline()
 
         # Declare all variable names exported from the modules as global symbols
@@ -685,7 +685,7 @@ def OutputStream(options):
         for module_ in imports:
             if module_.module_id != '__main__':
                 output.indent()
-                output.print('_$rapyd$_modules["')
+                output.print('ՐՏ_modules["')
                 output.print(module_.module_id)
                 output.print('"] = {}')
                 output.semicolon()
@@ -747,13 +747,13 @@ def OutputStream(options):
                             output.newline()
                     if a.kwargs or a.has_defaults:
                         # Look for an options object
-                        kw = (a.kwargs) ? a.kwargs.name : '_$rapyd$_kwargs_obj'
+                        kw = (a.kwargs) ? a.kwargs.name : 'ՐՏ_kwargs_obj'
                         output.indent()
                         output.spaced('var', kw, '=', 'arguments[arguments.length-1]')
                         output.end_statement()
                         # Ensure kwargs is the options object
                         output.indent()
-                        output.spaced('if', '(typeof', kw, '!==', '"object"', '||', kw, '[symbolfor("_$rapyd$_kwargs_obj")]', '!==', 'true)', kw, '=', '{}')
+                        output.spaced('if', '(typeof', kw, '!==', '"object"', '||', kw, '[symbolfor("ՐՏ_kwargs_obj")]', '!==', 'true)', kw, '=', '{}')
                         output.end_statement()
                         # Read values from the kwargs object for any formal parameters
                         if a.has_defaults:
@@ -779,7 +779,7 @@ def OutputStream(options):
                         output.end_statement()
                         # Remove the options object, if present
                         output.indent()
-                        output.spaced('if', '(typeof', kw, '===', '"object"', '&&', kw, '[symbolfor("_$rapyd$_kwargs_obj")]', '===', 'true)', a.starargs.name, '.pop()')
+                        output.spaced('if', '(typeof', kw, '===', '"object"', '&&', kw, '[symbolfor("ՐՏ_kwargs_obj")]', '===', 'true)', a.starargs.name, '.pop()')
                         output.end_statement()
 
             # rebind parent's methods and bind own methods
@@ -787,7 +787,7 @@ def OutputStream(options):
             # named __init__ will only occur inside a class
             if output.option("auto_bind") and node.name and node.name.name == "__init__":
                 output.indent()
-                output.print("_$rapyd$_rebindAll")
+                output.print("ՐՏ_rebindAll")
                 output.with_parens(def():
                     output.print("this")
                     output.comma()
@@ -805,7 +805,7 @@ def OutputStream(options):
                 output.print("var")
                 output.space()
                 output.assign(node.argname)
-                output.print("_$rapyd$_Exception")
+                output.print("ՐՏ_Exception")
                 output.semicolon()
                 output.newline()
 
@@ -831,7 +831,7 @@ def OutputStream(options):
         for symbol in exports:
             output.newline()
             output.indent()
-            output.print('_$rapyd$_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
+            output.print('ՐՏ_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
             seen[symbol.name] = True
             output.semicolon()
             output.newline()
@@ -840,8 +840,8 @@ def OutputStream(options):
                 key = sub_module_id.split('.')[-1]
                 output.newline()
                 output.indent()
-                output.print('_$rapyd$_modules["' + module_id + '"]["' + key + '"] = ')
-                output.print('_$rapyd$_modules["' + sub_module_id + '"]')
+                output.print('ՐՏ_modules["' + module_id + '"]["' + key + '"] = ')
+                output.print('ՐՏ_modules["' + sub_module_id + '"]')
                 output.semicolon()
                 output.newline()
 
@@ -849,7 +849,7 @@ def OutputStream(options):
         tuple.elements.forEach(def(elem, i):
             output.indent()
             output.assign(elem)
-            output.print("_$rapyd$_Unpack")
+            output.print("ՐՏ_Unpack")
             output.with_square(def():
                 output.print(i)
             )
@@ -884,7 +884,7 @@ def OutputStream(options):
 
                     # TODO: this is a hack for now, should probably declare this in local-most scope
                     output.indent()
-                    output.print("var _$rapyd$_Temp")
+                    output.print("var ՐՏ_Temp")
                     output.semicolon()
                     output.newline()
 
@@ -951,7 +951,7 @@ def OutputStream(options):
         def add_aname(aname, key, from_import):
             output.print('var ')
             output.assign(aname)
-            output.print('_$rapyd$_modules["')
+            output.print('ՐՏ_modules["')
             output.print(key)
             output.print('"]')
             if from_import:
@@ -1055,13 +1055,13 @@ def OutputStream(options):
                 # if we're using multiple iterators, unpack them
                 output.indent()
                 if isinstance(self.init, AST_Array):
-                    output.assign("_$rapyd$_Unpack")
-                    output.print("_$rapyd$_Iter" + INDEX_COUNTER + "[_$rapyd$_Index" + INDEX_COUNTER + "];")
+                    output.assign("ՐՏ_Unpack")
+                    output.print("ՐՏ_Iter" + INDEX_COUNTER + "[ՐՏ_Index" + INDEX_COUNTER + "];")
                     output.newline()
                     unpack_tuple(self.init, output)
                 else:
                     output.assign(self.init)
-                    output.print("_$rapyd$_Iter" + INDEX_COUNTER + "[_$rapyd$_Index" + INDEX_COUNTER + "];")
+                    output.print("ՐՏ_Iter" + INDEX_COUNTER + "[ՐՏ_Index" + INDEX_COUNTER + "];")
                     output.newline()
 
                 INDEX_COUNTER += 1
@@ -1132,8 +1132,8 @@ def OutputStream(options):
             )
         else:
             # regular loop
-            output.assign("var _$rapyd$_Iter" + INDEX_COUNTER)
-            output.print("_$rapyd$_Iterable")
+            output.assign("var ՐՏ_Iter" + INDEX_COUNTER)
+            output.print("ՐՏ_Iterable")
             output.with_parens(def():
                 self.object.print(output)
             )
@@ -1145,18 +1145,18 @@ def OutputStream(options):
             output.with_parens(def():
                 output.print("var")
                 output.space()
-                output.assign("_$rapyd$_Index" + INDEX_COUNTER)
+                output.assign("ՐՏ_Index" + INDEX_COUNTER)
                 output.print("0")
                 output.semicolon()
                 output.space()
-                output.print("_$rapyd$_Index" + INDEX_COUNTER)
+                output.print("ՐՏ_Index" + INDEX_COUNTER)
                 output.space()
                 output.print("<")
                 output.space()
-                output.print("_$rapyd$_Iter" + INDEX_COUNTER + ".length")
+                output.print("ՐՏ_Iter" + INDEX_COUNTER + ".length")
                 output.semicolon()
                 output.space()
-                output.print("_$rapyd$_Index" + INDEX_COUNTER + "++")
+                output.print("ՐՏ_Index" + INDEX_COUNTER + "++")
             )
 
         output.space()
@@ -1190,13 +1190,13 @@ def OutputStream(options):
             output.space()
             output.with_block(def():
                 output.indent()
-                output.assign("var _$rapyd$_Iter")
-                output.print("_$rapyd$_Iterable")
+                output.assign("var ՐՏ_Iter")
+                output.print("ՐՏ_Iterable")
                 output.with_parens(def():
                     self.object.print(output)
                 )
                 output.comma()
-                output.assign("_$rapyd$_Result")
+                output.assign("ՐՏ_Result")
                 output.print("[]")
                 # make sure to locally scope loop variables
                 if isinstance(self.init, AST_Array):
@@ -1216,35 +1216,35 @@ def OutputStream(options):
                 output.with_parens(def():
                     output.print("var")
                     output.space()
-                    output.assign("_$rapyd$_Index")
+                    output.assign("ՐՏ_Index")
                     output.print("0")
                     output.semicolon()
                     output.space()
-                    output.print("_$rapyd$_Index")
+                    output.print("ՐՏ_Index")
                     output.space()
                     output.print("<")
                     output.space()
-                    output.print("_$rapyd$_Iter.length")
+                    output.print("ՐՏ_Iter.length")
                     output.semicolon()
                     output.space()
-                    output.print("_$rapyd$_Index++")
+                    output.print("ՐՏ_Index++")
                 )
                 output.space()
                 output.with_block(def():
                     output.indent()
                     if isinstance(self.init, AST_Array):
-                        output.assign("_$rapyd$_Unpack")
-                        output.print("_$rapyd$_Iter[_$rapyd$_Index];")
+                        output.assign("ՐՏ_Unpack")
+                        output.print("ՐՏ_Iter[ՐՏ_Index];")
                         output.newline()
                         unpack_tuple(self.init, output)
                     else:
                         output.assign(self.init)
-                        output.print("_$rapyd$_Iter[_$rapyd$_Index];")
+                        output.print("ՐՏ_Iter[ՐՏ_Index];")
                         output.newline()
 
                     add_to_list = def():
                         output.indent()
-                        output.print("_$rapyd$_Result.push")
+                        output.print("ՐՏ_Result.push")
                         output.with_parens(def():
                             self.statement.print(output)
                         )
@@ -1268,7 +1268,7 @@ def OutputStream(options):
                 )
                 output.newline()
                 output.indent()
-                output.print("return _$rapyd$_Result")
+                output.print("return ՐՏ_Result")
                 output.semicolon()
                 output.newline()
             )
@@ -1422,7 +1422,7 @@ def OutputStream(options):
         # inheritance
         if self.parent:
             output.indent()
-            output.print("_$rapyd$_extends")
+            output.print("ՐՏ_extends")
             output.with_parens(def():
                 self.name.print(output)
                 output.comma()
@@ -1593,7 +1593,7 @@ def OutputStream(options):
         output.print("catch")
         output.space()
         output.with_parens(def():
-            output.print("_$rapyd$_Exception")
+            output.print("ՐՏ_Exception")
         )
         output.space()
         #        print_bracketed(self, output);
@@ -1616,7 +1616,7 @@ def OutputStream(options):
                                     output.print("||")
                                     output.space()
 
-                                output.print("_$rapyd$_Exception")
+                                output.print("ՐՏ_Exception")
                                 output.space()
                                 output.print("instanceof")
                                 output.space()
@@ -1636,7 +1636,7 @@ def OutputStream(options):
                         output.indent()
                         output.print("throw")
                         output.space()
-                        output.print("_$rapyd$_Exception")
+                        output.print("ՐՏ_Exception")
                         output.semicolon()
                         output.newline()
                     )
@@ -1911,7 +1911,7 @@ def OutputStream(options):
             "!=": True
         }
         function_ops = {
-            "in": "_$rapyd$_in",
+            "in": "ՐՏ_in",
             "**": "Math.pow"
         }
 
@@ -1936,9 +1936,9 @@ def OutputStream(options):
                 output.space()
                 output.with_parens(def():
                     nonlocal leftvar
-                    output.assign("_$rapyd$_Temp")
+                    output.assign("ՐՏ_Temp")
                     self.left.right.print(output)
-                    leftvar = "_$rapyd$_Temp"
+                    leftvar = "ՐՏ_Temp"
                 )
 
             output.space()
@@ -1958,7 +1958,7 @@ def OutputStream(options):
     )
     DEFPRINT(AST_Assign, def(self, output):
         if isinstance(self.left, AST_Array):
-            output.print("_$rapyd$_Unpack")
+            output.print("ՐՏ_Unpack")
         else:
             self.left.print(output)
         output.space()

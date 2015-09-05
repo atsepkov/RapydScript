@@ -51,7 +51,7 @@
 "abs": def abs(n):
     return Math.abs(n)
 ,
-"bind": def _$rapyd$_bind(fn, thisArg):
+"bind": def ՐՏ_bind(fn, thisArg):
     if fn.orig: fn = fn.orig
     if thisArg == False: return fn
     ret = def():
@@ -59,11 +59,11 @@
     ret.orig = fn
     return ret
 ,
-"rebind_all": def _$rapyd$_rebindAll(thisArg, rebind):
+"rebind_all": def ՐՏ_rebindAll(thisArg, rebind):
     if JS('typeof rebind') == "undefined": rebind = True
     for JS('var p in thisArg'):
         if thisArg[p] and thisArg[p].orig:
-            if rebind: thisArg[p] = _$rapyd$_bind(thisArg[p], thisArg)
+            if rebind: thisArg[p] = ՐՏ_bind(thisArg[p], thisArg)
             else: thisArg[p] = thisArg[p].orig
 ,
 "dir": def dir(item):
@@ -79,7 +79,7 @@
     for JS('var i=0;i<item.length;i++'): arr[arr.length] = [i, item[i]]
     return arr
 ,
-"eslice": def _$rapyd$_eslice(arr, step, start, end):
+"eslice": def ՐՏ_eslice(arr, step, start, end):
     arr = arr[:]
     if type(arr) == 'string' or isinstance(arr, String):
         isString = True
@@ -96,17 +96,17 @@
     arr = arr.slice(start, end).filter(def(e, i): return i % step == 0;)
     return isString ? arr.join('') : arr
 ,
-"extends": def _$rapyd$_extends(child, parent):
+"extends": def ՐՏ_extends(child, parent):
     child.prototype = Object.create(parent.prototype)
     child.prototype.constructor = child
 ,
-"in": def _$rapyd$_in(val, arr):
+"in": def ՐՏ_in(val, arr):
     if Array.isArray(arr) or JS('typeof arr') == 'string': return arr.indexOf(val) != -1
     else:
         if arr.hasOwnProperty(val): return True
         return False
 ,
-"iterable": def _$rapyd$_Iterable(iterable):
+"iterable": def ՐՏ_Iterable(iterable):
     if Array.isArray(iterable) or isinstance(iterable, String) or JS('typeof iterable') == 'string': return iterable
     return Object.keys(iterable)    # so we can use 'for ... in' syntax with hashes
 ,
@@ -114,11 +114,11 @@
     if Array.isArray(obj) or JS('typeof obj') == 'string': return obj.length
     return Object.keys(obj).length
 ,
-"mixin": def _$rapyd$_mixin(target, source, overwrite):
+"mixin": def ՐՏ_mixin(target, source, overwrite):
     for JS('var i in source'):
         if source.hasOwnProperty(i) and overwrite or JS('typeof target[i]') == 'undefined': target[i] = source[i]
 ,
-"print": def _$rapyd$_print():
+"print": def ՐՏ_print():
     if JS('typeof console') == 'object': console.log.apply(console, arguments)
 ,
 "range": def range(start, stop, step):
@@ -156,22 +156,22 @@
 "hasattr": def hasattr(obj, name):
     return JS('name in obj')
 ,
-"symbolfor()": def _$rapyd$_symbolfor_polyfill():
+"symbolfor()": def ՐՏ_symbolfor_polyfill():
     if typeof Symbol == 'function' and typeof Symbol.for == 'function':
         return Symbol.for
     return (def(name):
             return name + '-Symbol-' + '5d0927e5554349048cf0e3762a228256'
     )
 ,
-"desugar_kwargs()": def _$rapyd$_desugar_kwargs():
+"desugar_kwargs()": def ՐՏ_desugar_kwargs():
     if Object.assign:
         return def():
             ans = {}
-            ans[symbolfor('_$rapyd$_kwargs_obj')] = True
+            ans[symbolfor('ՐՏ_kwargs_obj')] = True
             return Object.assign.apply(ans, arguments)
     return def():
         ans = {}
-        ans[symbolfor('_$rapyd$_kwargs_obj')] = True
+        ans[symbolfor('ՐՏ_kwargs_obj')] = True
         for JS('var i = 0; i < arguments.length; i++'):
             for prop in Object.keys(arguments[i]):
                 ans[prop] = arguments[i][prop]

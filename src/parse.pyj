@@ -981,7 +981,7 @@ def parse($TEXT, options):
                 if isinstance(body[stmt], AST_ForIn):
                     if isinstance(body[stmt].init, AST_Array):
                         # iteration via implicit tuple
-                        vars.push("_$rapyd$_Unpack")
+                        vars.push("ՐՏ_Unpack")
                         body[stmt].init.elements.forEach(def(elem):
                             if vars.indexOf(elem.name) == -1:
                                 vars.push(elem.name)
@@ -994,10 +994,10 @@ def parse($TEXT, options):
                 elif isinstance(body[stmt], AST_If) \
                         and is_nested_comparison(body[stmt].condition):
                     # if statement condition with complex comparison
-                    vars.push("_$rapyd$_Temp")
+                    vars.push("ՐՏ_Temp")
                 elif isinstance(body[stmt], AST_Exit) and is_nested_comparison(body[stmt].value):
                     # returning a nested conditional
-                    vars.push("_$rapyd$_Temp")
+                    vars.push("ՐՏ_Temp")
 
         elif body.body:
             # recursive descent into wrapper statements that contain body blocks
@@ -1009,7 +1009,7 @@ def parse($TEXT, options):
             # this is a single assignment operator
             if isinstance(body.left, AST_Array):
                 # assignment to an implicit tuple
-                vars.push("_$rapyd$_Unpack")
+                vars.push("ՐՏ_Unpack")
                 body.left.elements.forEach(def(elem):
                     if not (isinstance(elem, AST_PropAccess)) and vars.indexOf(elem.name) == -1:
                         vars.push(elem.name)
@@ -1020,20 +1020,20 @@ def parse($TEXT, options):
 
             if is_nested_comparison(body.right):
                 # assignment of nested conditional result to a variable
-                vars.push("_$rapyd$_Temp")
+                vars.push("ՐՏ_Temp")
             elif isinstance(body.right, AST_Conditional) and is_nested_comparison(body.right.condition):
                 # assignment of a ternary condition result that uses nested conditional
-                vars.push("_$rapyd$_Temp")
+                vars.push("ՐՏ_Temp")
 
         elif isinstance(body, AST_Conditional) and is_nested_comparison(body.condition):
             # ternary condition that uses nested conditional and triggers other logic
             # this is basically a really ugly way to write an if/else
-            vars.push("_$rapyd$_Temp")
+            vars.push("ՐՏ_Temp")
 
         elif is_nested_comparison(body):
             # statement itself is a stand-alone nested conditional - programmatically this would probably
             # be a useless statement
-            vars.push("_$rapyd$_Temp")
+            vars.push("ՐՏ_Temp")
 
         return vars
 
@@ -1192,7 +1192,7 @@ def parse($TEXT, options):
                 if S.token.nlb:
                     return new AST_Throw({
                         value: new AST_SymbolCatch({
-                            name: "_$rapyd$_Exception"
+                            name: "ՐՏ_Exception"
                         })
                     })
 
