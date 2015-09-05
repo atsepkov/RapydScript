@@ -233,7 +233,7 @@ module.exports = function(options) {
 
     options.console.log(options.colored('Welcome to the RapydScript REPL! Press Ctrl+C twice or use quit() to quit.', 'green', true));
     if (options.show_js)
-        options.console.log(options.colored('Use show_js=False to stop the REPL from showing the compiled JavaScript.', 'green', true));
+        options.console.log(options.colored('Use show_js=True to stop the REPL from showing the compiled JavaScript.', 'green', true));
     else
         options.console.log(options.colored('Use show_js=True to have the REPL show the compiled JavaScript before executing it.', 'green', true));
     options.console.log();
@@ -263,9 +263,9 @@ module.exports = function(options) {
     function runjs(js) {
         var result;
         if (vm.runInContext('show_js', ctx)) {
-            options.console.log(options.colored('---------- Compiled JavaScript ---------', 'green', true));
+            options.console.log(options.colored('---------- Compilation ---------', 'green', true));
             options.console.log(options.colored(js, 'green', false));
-            options.console.log(options.colored('---------- Running JavaScript ---------', 'green', true));
+            options.console.log(options.colored('---------- Execution ---------', 'green', true));
         }
         try {
             // Despite what the docs say node does not actually output any errors by itself
