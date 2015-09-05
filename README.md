@@ -87,6 +87,7 @@ The available options are:
 	-t, --test         Run unit tests, making sure the compiler produces usable code
 	-m, --omit-baselib Omit base library from generated code, make sure you're including baselib.js if you use this
 	-i, --auto-bind    Automatically bind methods to the class they belong to (more Pythonic, but could interfere with other JS libs)
+	-l, --lint         Check file for errors and compilation problems
 
 The rest of the option remain from UglifyJS and have not been tested, some may work, but most will not, since the AST is different between RapydScript and UglifyJS. These option  will eventually be removed or modified to be relevant to RapydScript.
 
