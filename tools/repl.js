@@ -217,8 +217,9 @@ module.exports = function(options) {
     var more = false;
     var LINE_CONTINUATION_CHARS = ':\\';
     var toplevel;
+    var sigint = false;
 
-    options.console.log(options.colored('Welcome to the RapydScript REPL! Press Ctrl+C then Ctrl+D to quit.', 'green', true));
+    options.console.log(options.colored('Welcome to the RapydScript REPL! Press Ctrl+C twice to quit.', 'green', true));
     if (options.show_js)
         options.console.log(options.colored('Use show_js=False to stop the REPL from showing the compiled JavaScript.', 'green', true));
     else
@@ -312,6 +313,7 @@ module.exports = function(options) {
     }
 
 	rl.on('line', function(line) {
+        sigint = false;
         if (more) {
             // We are in a block 
             var line_is_empty = !line.trimLeft();
@@ -330,11 +332,16 @@ module.exports = function(options) {
 	})
 
 	.on('SIGINT', function() {
-        rl.clearLine();
-		options.console.log('Keyboard Interrupt');
-        resetbuffer();
-        more = false;
-		prompt();
+        if (sigint) {
+            rl.close();
+        } else {
+            sigint = true;
+            rl.clearLine();
+            options.console.log('Keyboard Interrupt (^C again to quit)');
+            resetbuffer();
+            more = false;
+            prompt();
+        }
 	})
 
 	.on('SIGCONT', function() {
