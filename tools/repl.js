@@ -1,7 +1,10 @@
 "use strict;";
 /*
  * repl.js
- * Copyright (C) 2015 Kovid Goyal <kovid at kovidgoyal.net>
+ *
+ * Copyright (C) 2015 Alexander Tsepkov
+ *
+ * This REPL is based on work by Kovid Goyal
  *
  * Distributed under terms of the BSD license.
  */
@@ -15,7 +18,15 @@ var util = require('util');
 var RapydScript = require('./compiler');
 
 function create_ctx(baselib, show_js, console) {
-    var ctx = vm.createContext({'console':console, 'show_js': !!show_js, 'RapydScript':RapydScript, 'require':require});
+    var ctx = vm.createContext({
+        'console': console,
+        'show_js': !!show_js,
+        'RapydScript': RapydScript,
+        'require': require,
+        'quit': function() { process.exit(0); }
+    });
+
+    // load baselib
 	vm.runInContext(baselib, ctx, {'filename':'baselib.js'});
 	var b = vm.runInContext('this', ctx);
 	for (var key in b) {
@@ -24,6 +35,7 @@ function create_ctx(baselib, show_js, console) {
 			vm.runInContext('var ' +  symname + ' = ' + key + '();', ctx);
 		}
 	}
+
 	RapydScript.AST_Node.warn_function = function() {};
     return ctx;
 }
@@ -219,7 +231,7 @@ module.exports = function(options) {
     var toplevel;
     var sigint = false;
 
-    options.console.log(options.colored('Welcome to the RapydScript REPL! Press Ctrl+C twice to quit.', 'green', true));
+    options.console.log(options.colored('Welcome to the RapydScript REPL! Press Ctrl+C twice or use quit() to quit.', 'green', true));
     if (options.show_js)
         options.console.log(options.colored('Use show_js=False to stop the REPL from showing the compiled JavaScript.', 'green', true));
     else
