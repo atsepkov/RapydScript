@@ -264,7 +264,7 @@ module.exports = function(options) {
         var result;
         if (vm.runInContext('show_js', ctx)) {
             options.console.log(options.colored('---------- Compiled JavaScript ---------', 'green', true));
-            options.console.log(js);
+            options.console.log(options.colored(js, 'green', false));
             options.console.log(options.colored('---------- Running JavaScript ---------', 'green', true));
         }
         try {
