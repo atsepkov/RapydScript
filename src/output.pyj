@@ -935,19 +935,15 @@ def OutputStream(options):
                 declare_vars(self.localvars, output)
                 display_body(self.body, True, output)
                 declare_exports(self.module_id, self.exports, self.submodules, output)
-                output.newline()
-                output.indent()
-                output.print("return this")
-                output.semicolon()
-                output.newline()
             )
         )
         output.print("()")
         output.semicolon()
         output.newline()
 
-    DEFPRINT(AST_Import, def(self, output):
-        output.import(self.module)
+
+    DEFPRINT(AST_Imports, def(container, output):
+
         def add_aname(aname, key, from_import):
             output.print('var ')
             output.assign(aname)
@@ -956,18 +952,24 @@ def OutputStream(options):
             output.print('"]')
             if from_import:
                 output.print('.')
-                output.print(aname)
+                output.print(from_import)
             output.semicolon()
             output.newline()
             output.indent()
 
-        if self.argnames:
-            # A from import
-            for argname in self.argnames:
-                add_aname(argname.name, self.key, True)
-        else:
-            bound_name = self.key.split('.', 1)[0]
-            add_aname(bound_name, bound_name, False)
+        for self in container.imports:
+            output.import(self.module)
+            if self.argnames:
+                # A from import
+                for argname in self.argnames:
+                    alias = (argname.alias) ? argname.alias.name : argname.name
+                    add_aname(alias, self.key, argname.name)
+            else:
+                if self.alias:
+                    add_aname(self.alias.name, self.key, False)
+                else:
+                    bound_name = self.key.split('.', 1)[0]
+                    add_aname(bound_name, bound_name, False)
 
     )
     DEFPRINT(AST_LabeledStatement, def(self, output):
