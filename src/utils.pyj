@@ -314,3 +314,18 @@ Dictionary.prototype = {
             ret.push(f(this._values[i], i.substr(1)))
         return ret
 }
+
+
+# color codes used by several modules of the compiler
+
+colors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
+def ansi(code):
+    code = code or 0
+    return '\033[' + code + 'm'
+
+def colored(string, color, bold):
+    prefix = []
+    if (bold): prefix.push(ansi(1))
+    if (color): prefix.push(ansi(colors.indexOf(color) + 31))
+    return prefix.join('') + string + ansi(0)
+

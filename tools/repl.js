@@ -16,6 +16,7 @@ var vm = require('vm');
 var readline = require('readline');
 var util = require('util');
 var RapydScript = require('./compiler');
+var colored = RapydScript.colored;
 
 function create_ctx(baselib, show_js, console) {
 
@@ -49,13 +50,6 @@ function create_ctx(baselib, show_js, console) {
     return ctx;
 }
 
-function ansi(code) {
-    code = code || 0;
-    return '\033[' + code + 'm';
-}
-
-var colors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white'];
-
 var homedir = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
 var cachedir = expanduser(process.env.XDG_CACHE_HOME || '~/.cache');
 var all_keywords = RapydScript.ALL_KEYWORDS.split(' ');
@@ -66,13 +60,6 @@ function expanduser(x) {
   if (x === '~') return homedir;
   if (x.slice(0, 2) != '~/') return path;
   return path.join(homedir, x.slice(2));
-}
-
-function colored(string, color, bold) {
-    var prefix = [];
-    if (bold) prefix.push(ansi(1));
-    if (color) prefix.push(ansi(colors.indexOf(color) + 31));
-    return prefix.join('') + string + ansi(0);
 }
 
 function repl_defaults(options) {
