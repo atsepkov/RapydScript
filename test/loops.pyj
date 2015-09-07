@@ -29,11 +29,18 @@ do:
 .while counter > 0
 assert.equal(factorial, 120)
 
+# to and til
 inclusive = [3 to 5]
 exclusive = [3 til 6]
 assert.deepEqual(inclusive, exclusive)
 assert.deepEqual(inclusive, [3,4,5])
 
+# precision test
+precise_inclusive = [1 to 3.01]     # this will stop short of 3.01 because we only use integers
+precise_exclusive = [1 til 3.01]    # this will include 3 because 3 is less than 3.01
+assert.deepEqual(precise_inclusive, precise_exclusive)
+
+# for-in
 hash = {
     "foo": 1,
     "bar": 1,
