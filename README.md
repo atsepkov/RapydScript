@@ -1,11 +1,6 @@
 RapydScript
 ===========
 
-[![Build Status](https://secure.travis-ci.org/kovidgoyal/RapydScript.png)](http://travis-ci.org/kovidgoyal/RapydScript)
-
-This is a fork of the original RapydScript that adds many new (not always
-backwards compatible) changes. For a list of changes, see the bottom of this file.
-
 What is RapydScript?
 --------------------
 RapydScript (pronounced 'RapidScript') is a pre-compiler for JavaScript, similar to CoffeeScript, but with cleaner, more readable syntax. The syntax is very similar to Python, but allows JavaScript as well. This project was written as an alternative to Pyjamas for those wishing Python-like JavaScript without the extra overhead and complexity Pyjamas introduces.
