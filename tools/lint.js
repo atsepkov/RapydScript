@@ -19,6 +19,7 @@ var MESSAGES = {
     'extra-semicolon': 'This semi-colon is not needed',
     'eol-semicolon': 'Semi-colons at the end of the line are unnecessary',
     'func-in-branch': 'JavaScript in strict mode does not allow the definition of functions/classes inside a branch such as an if/try/switch',
+    'syntax-err': 'A syntax error caused compilation to abort',
 };
 
 BUILTINS = {'this':true, 'self':true, 'window':true, 'document':true};
@@ -388,18 +389,33 @@ function lint_code(code, options) {
     options = options || {};
     var reportcb = options.report || cli_report;
     var filename = options.filename || '<eval>';
-    var toplevel;
+    var toplevel, messages;
+    var lines = code.split('\n');  // Can be used (in the future) to display extract from code corresponding to error location
+    RapydScript.AST_Node.warn_function = function() {};
 
     try {
         toplevel = parse_file(code, filename);
     } catch(e) {
-        report(e.lineNumber, undefined, e.message);
-        return;
+        if (e instanceof RapydScript.JS_Parse_Error) {
+            messages = [{
+                filename: filename,
+                start_line: e.line,
+                start_col: e.col,
+                level: ERROR,
+                ident: 'syntax-err',
+                message: e.message
+            }];
+        } else {
+            throw e;
+        }
     }
 
-    var linter = new Linter(toplevel, filename, code);
-    toplevel.walk(linter);
-    var messages = linter.resolve();
+    if (toplevel) {
+        var linter = new Linter(toplevel, filename, code);
+        toplevel.walk(linter);
+        var messages = linter.resolve();
+    }
+
     messages.forEach(reportcb);
     return messages;
 }
