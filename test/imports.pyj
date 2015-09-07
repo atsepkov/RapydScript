@@ -1,5 +1,5 @@
-from one import toplevel_var, toplevel_func as tf, TopLevel, true_var, false_var
-from two import toplevel_var2, toplevel_func2, TopLevel2 as TL2
+from _import_one import toplevel_var, toplevel_func as tf, TopLevel, true_var, false_var
+from import_two import toplevel_var2, toplevel_func2, TopLevel2 as TL2
 
 def AClass(x):
     return this
@@ -15,9 +15,9 @@ eq(toplevel_func2('x'), 'xtoplevel2')
 eq('true', true_var)
 
 # Test plain imports
-import one
-eq(one.toplevel_var, toplevel_var)
-eq(one.toplevel_func('x'), tf('x'))
+import _import_one
+eq(_import_one.toplevel_var, toplevel_var)
+eq(_import_one.toplevel_func('x'), tf('x'))
 
 # Test recognition of imported classes
 tl = TopLevel('1')
@@ -26,14 +26,14 @@ tl2 = TL2('x')
 eq(tl2.a, 'x')
 
 # Test access to submodules via plain imports
-import two.sub, two.sub as ts
-eq('sub', two.sub.sub_var)
+import import_two.sub, import_two.sub as ts
+eq('sub', import_two.sub.sub_var)
 eq('sub', ts.sub_var)
-eq('sub', two.sub.sub_func())
+eq('sub', import_two.sub.sub_func())
 
 # Test that class accessed via plain import is
 # recognized
-s = two.sub.Sub(1)
+s = import_two.sub.Sub(1)
 eq(s.a, 1)
 s2 = ts.Sub(1)
 eq(s2.a, 1)
@@ -42,7 +42,7 @@ eq(s2.a, 1)
 # Test that a class imported into an inner scope is not recognized as a class
 # outside that scope
 def inner():
-    from one import AClass
+    from _import_one import AClass
     a = AClass(1)
     eq(a.a, 1)
 

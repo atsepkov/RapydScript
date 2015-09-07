@@ -24,6 +24,7 @@ module.exports = function(argv, base_path, src_path, lib_path) {
 		argv.files.forEach(function(fname) { files.push(fname + '.pyj'); });
 	} else {
         files = fs.readdirSync(test_dir).filter(function(name){
+            // omit files that start with underscores
             return /^[^_].*\.pyj$/.test(name);
         });
 	}
