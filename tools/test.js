@@ -65,6 +65,7 @@ module.exports = function(argv, base_path, src_path, lib_path) {
 			ok = true;
             fs.unlinkSync(jsfile);
         } catch (e) {
+            ok = false;
             if (e.stack) {
                 console.log(file + ":\t" + e.stack + "\n\n");
             } else {

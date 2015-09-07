@@ -29,6 +29,8 @@ JS('var def = {}')                # ability to bypass reserved keywords in decla
 JS('def').item = 3            # ability to use reserved keywords
 assert(JS('def.item') == 3)
 
+assert(5 == 1)
+
 n = 5
 assert(JS("""
 (function() {
