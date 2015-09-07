@@ -18,7 +18,7 @@ var MESSAGES = {
     'loop-shadowed': 'The loop variable "{name}" was previously used in this scope at line: {line}',
     'extra-semicolon': 'This semi-colon is not needed',
     'eol-semicolon': 'Semi-colons at the end of the line are unnecessary',
-    'func-in-branch': 'JavaScript in strict mode does not allow the definition of functions/classes inside a branch such as an if/try/switch',
+    'func-in-branch': 'JavaScript in strict mode does not allow the definition of named functions/classes inside a branch such as an if/try/switch',
     'syntax-err': 'A syntax error caused compilation to abort',
 };
 
@@ -40,7 +40,7 @@ function parse_file(code, filename) {
 
 function msg_from_node(filename, ident, name, node, level, line) {
     name = name || ((node.name) ? ((node.name.name) ? node.name.name : node.name) : '');
-    if (node instanceof RapydScript.AST_Lambda) name = node.name.name;
+    if (node instanceof RapydScript.AST_Lambda && node.name) name = node.name.name;
     var msg = MESSAGES[ident].replace('{name}', name || '').replace('{line}', line || '');
     return {
         filename: filename, 
@@ -204,10 +204,13 @@ function Linter(toplevel, filename, code) {
     this.handle_lambda = function() {
         var node = this.current_node;
         var name = node.name;
-        if (this.branches.length) {
-            this.messages.push(msg_from_node(filename, 'func-in-branch', node.name, node));
+
+        if (name) {
+            if (this.branches.length) {
+                this.messages.push(msg_from_node(filename, 'func-in-branch', node.name, node));
+            }
+            this.add_binding(name);
         }
-        if (name) this.add_binding(name);
     };
 
     this.handle_assign = function() {
