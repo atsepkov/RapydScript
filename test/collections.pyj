@@ -95,3 +95,14 @@ hash = {
     "baz": 1,
 }
 assert.deepEqual(Object.keys(hash), [k for k in hash])
+
+# common collection methods
+collection = [1 til 50]
+
+assert.equal(sum(collection), collection.reduce(def(a, b): return a + b;))
+
+remap = def(a): return a**2-1
+assert.deepEqual(map(remap, collection), collection.map(remap))
+
+grep = def(a): return a%3
+assert.deepEqual(filter(grep, collection), collection.filter(grep))
