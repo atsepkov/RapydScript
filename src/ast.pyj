@@ -113,6 +113,60 @@ AST_Node = DEFNODE("Node", "start end", {
     ,
     walk: def(visitor):
         return this._walk(visitor)
+    ,
+    _dump: def(depth, omit, offset, include_name):
+        p = console.log
+        reset = "\x1b[0m"
+        yellow = "\x1b[33m"
+        blue = "\x1b[34m"
+        green = "\x1b[32m"
+        red = "\x1b[31m"
+        magenta = "\x1b[35m"
+        pad = Array(offset + 1).join('  ')
+
+        if include_name:
+            p(pad + yellow + this.TYPE + reset)
+        for key in this:
+            if key in omit:
+                continue
+
+            if Array.isArray(this[key]):
+                if this[key].length:
+                    p(pad + ' ' + blue + key + ': ' + reset + '[')
+                    if depth > 1:
+                        for element in this[key]:
+                            element._dump(depth-1, omit, offset+1, True)
+                    else:
+                        for element in this[key]:
+                            p(pad + '   ' + yellow + element.TYPE + reset)
+                    p(pad + ' ]')
+                else:
+                    p(pad + ' ' + blue + key + ': ' + reset + '[]')
+            elif this[key]:
+                if this[key].TYPE:
+                    if this[key].TYPE == 'Token':
+                        p(pad + ' ' + blue + key + ': ' + magenta + this[key].TYPE + reset)
+                        for property in this[key]:
+                            p(pad + '   ' + blue + property + ': ' + reset + this[key][property])
+                    else:
+                        p(pad + ' ' + blue + key + ': ' + yellow + this[key].TYPE + reset)
+                        if depth > 1:
+                            this[key]._dump(depth-1, omit, offset+1, False)
+                elif type(this[key]) == "string":
+                    p(pad + ' ' + blue + key + ': ' + green + '"' + this[key] + '"' + reset)
+                elif type(this[key]) == "number":
+                    p(pad + ' ' + blue + key + ': ' + green + this[key] + reset)
+                else:
+                    # unexpected object
+                    p(pad + ' ' + blue + key + ': ' + red + this[key] + reset)
+            else:
+                # none/undefined
+                p(pad + ' ' + blue + key + ': ' + reset + this[key])
+
+    ,
+    # a more user-friendly way to dump the AST tree than console.log
+    dump: def(depth=2, omit=[]):
+        return this._dump(depth, omit, 0, True)
 }, None)
 AST_Node.warn_function = None
 AST_Node.warn = def(txt, props):
