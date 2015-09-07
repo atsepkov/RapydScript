@@ -360,7 +360,7 @@ function Linter(toplevel, filename, code) {
             }
             var parts = line.split(' ');
             var last = parts[parts.length - 1], filters;
-            if (last && last.substr(0, 4).toLowerCase().replace('#', '') === 'noqa') {
+            if (last && last.substr(0, 7).toLowerCase().replace('#', '') === 'no-lint') {
                 parts = last.split(':').slice(1);
                 if (parts.length) {
                     filters = {};
