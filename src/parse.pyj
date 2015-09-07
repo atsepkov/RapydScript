@@ -191,7 +191,6 @@ BASELIB = {}
 IDENTIFIER_PAT = /^[a-z_$][_a-z0-9$]*$/i
 
 class ImportError(Error):
-
     def __init__(self, message):
         self.message = message
 
@@ -922,7 +921,10 @@ def parse($TEXT, options):
             for name in dir(body):
                 obj = body[name]
                 if isinstance(obj, AST_Function) or isinstance(obj, AST_Class):
-                    ans.push(obj.name)
+                    if obj.name:
+                        ans.push(obj.name)
+                    else:
+                        token_error(obj.start, "Top-level functions must have names")
                 else:
                     # skip inner scopes
                     if isinstance(obj, AST_Scope):
@@ -934,13 +936,11 @@ def parse($TEXT, options):
 
                         if isinstance(opt, AST_Assign) and not (isinstance(opt.right, AST_Scope)):
                             ans = ans.concat(scan_for_top_level_callables(opt.right))
-
         elif body.body:
             # recursive descent into wrapper statements that contain body blocks
             ans = ans.concat(scan_for_top_level_callables(body.body))
             if body.alternative:
                 ans = ans.concat(scan_for_top_level_callables(body.alternative))
-
 
         return ans
 

@@ -427,7 +427,7 @@ function cli_report(r) {
         parts.push((x === undefined) ? '' : x.toString());
     }
     push(r.filename); push((r.level === WARN) ? 'WARN' : 'ERR'); push(r.ident); push(r.start_line); push(r.start_col);
-    console.log(parts.join(':') + ':' + r.message);
+    console.log(parts.join(':') + ': ' + r.message);
 }
 
 module.exports.cli = function(argv, base_path, src_path, lib_path) {
