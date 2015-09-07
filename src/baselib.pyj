@@ -114,6 +114,12 @@
     if Array.isArray(obj) or JS('typeof obj') == 'string': return obj.length
     return Object.keys(obj).length
 ,
+"map": def ՐՏ_map(oper, arr):
+    return arr.map(oper)
+,
+"filter": def ՐՏ_filter(oper, arr):
+    return arr.filter(oper)
+,
 "mixin": def ՐՏ_mixin(target, source, overwrite):
     for JS('var i in source'):
         if source.hasOwnProperty(i) and overwrite or JS('typeof target[i]') == 'undefined': target[i] = source[i]

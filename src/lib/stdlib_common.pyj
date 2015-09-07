@@ -40,16 +40,6 @@ class AssertionError(Error):
 
 
 ###########################################################
-# Arrays
-###########################################################
-def map(oper, arr):
-    return list(arr.map(oper))
-
-def filter(oper, arr):
-    return list(arr.filter(oper))
-
-
-###########################################################
 # Deep Equality Comparison
 ###########################################################
 def deep_eq(a, b):
