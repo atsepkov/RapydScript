@@ -34,7 +34,6 @@ function create_ctx(baselib, show_js, console) {
         'quit': function() { process.exit(0); }
     });
 
-    vm.runInContext("'use strict';", ctx);
     vm.runInContext("Object.preventExtensions(repl)", ctx);
 
     // load baselib
@@ -291,20 +290,35 @@ module.exports = function(options) {
             options.console.log(options.colored('---------- Execution ---------', 'green', true));
         }
 
+        var show_result = true;
         try {
-            // Despite what the docs say node does not actually output any errors by itself
+            // NOTE 1: Despite what the docs say node does not actually output any errors by itself
             // so, in case this bug is fixed later, we turn it off explicitly.
-            result = vm.runInContext(js, ctx, {'filename': '<repl>', 'displayErrors': false});
+
+            // NOTE 2: VM seems to execute each command in a sandbox and then export it into the context
+            // rather than executing it in the context directly. For that reason global "use strict" directive
+            // has no effect. Instead we need to prefix each command with it.
+            result = vm.runInContext('"use strict";' + js, ctx, {'filename': '<repl>', 'displayErrors': false});
         } catch(e) {
-            if (e.stack) options.console.error(e.stack);
-            else options.console.error(e.toString());
+            // execution errors
+            // these errors will typically be triggered by JavaScript itself, typically a violation
+            // of "strict" mode or error thrown via "raise"
+            if (e.stack) options.console.error(options.colored(e.stack, 'red'));
+            else options.console.error(options.colored(e.toString(), 'red'));
+            show_result = false;
         }
 
-        if (result !== undefined) {
-            options.console.log(util.inspect(result, {
-                'colors': options.terminal,
-                'depth': vm.runInContext('repl.maxPrintDepth', ctx),
-            }));
+        if (show_result) {
+            if (result !== undefined) {
+                options.console.log(util.inspect(result, {
+                    'colors': options.terminal,
+                    'depth': vm.runInContext('repl.maxPrintDepth', ctx),
+                }));
+            } else if (/[A-Za-z0-9_.]/.test(js)) {
+                // when user specifically requests to see a certain variable, show it even if
+                // it's undefined
+                options.console.log(util.inspect(result, { 'colors': options.terminal }));
+            }
         }
     }
 
@@ -319,11 +333,13 @@ module.exports = function(options) {
                 'classes': classes
             });
         } catch(e) {
+            // compilation errors
+            // these will typically be thrown by our compiler and caught by REPL
             if (e.is_eof && e.line == buffer.length && e.col > 0) return true;
             if (e.message && e.line !== undefined) {
-                options.console.log(options.colored(e.line + ':' + e.col + ': ' + e.message, 'red'));
+                options.console.error(options.colored(e.line + ':' + e.col + ': ' + e.message, 'red'));
             } else {
-                options.console.log(options.colored(e.stack || e.toString(), 'red'));
+                options.console.error(options.colored(e.stack || e.toString(), 'red'));
             }
             return false;
         }
