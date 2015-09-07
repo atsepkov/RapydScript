@@ -22,7 +22,8 @@ function create_ctx(baselib, show_js, console) {
 
     // a set of repl settings
     var replOptions = {
-        'showJavascript': !!show_js
+        'showJavascript': !!show_js,
+        'maxPrintDepth': null,
     };
 
     var ctx = vm.createContext({
@@ -292,15 +293,18 @@ module.exports = function(options) {
 
         try {
             // Despite what the docs say node does not actually output any errors by itself
-            // so, in case this bug is fixed alter, we turn it off explicitly.
-            result = vm.runInContext(js, ctx, {'filename':'<repl>', 'displayErrors':false});
+            // so, in case this bug is fixed later, we turn it off explicitly.
+            result = vm.runInContext(js, ctx, {'filename': '<repl>', 'displayErrors': false});
         } catch(e) {
             if (e.stack) options.console.error(e.stack);
             else options.console.error(e.toString());
         }
 
         if (result !== undefined) {
-            options.console.log(util.inspect(result, {'colors':options.terminal}));
+            options.console.log(util.inspect(result, {
+                'colors': options.terminal,
+                'depth': vm.runInContext('repl.maxPrintDepth', ctx),
+            }));
         }
     }
 
@@ -316,8 +320,11 @@ module.exports = function(options) {
             });
         } catch(e) {
             if (e.is_eof && e.line == buffer.length && e.col > 0) return true;
-            if (e.message && e.line !== undefined) options.console.log(e.line + ':' + e.col + ':' + e.message);
-            else options.console.log(e.stack || e.toString());
+            if (e.message && e.line !== undefined) {
+                options.console.log(options.colored(e.line + ':' + e.col + ': ' + e.message, 'red'));
+            } else {
+                options.console.log(options.colored(e.stack || e.toString(), 'red'));
+            }
             return false;
         }
         var output = RapydScript.OutputStream(output_options);
