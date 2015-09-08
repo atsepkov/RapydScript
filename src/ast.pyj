@@ -416,6 +416,14 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang impor
         return wrapped_tl
 }, AST_Scope)
 
+AST_Splat = DEFNODE("Splat", "module body", {
+    $documentation: "Container for a naive import into the same scope, everything contained within the splat will be imported",
+    $propdoc: {
+        module: "[AST_SymbolVar] name of the module we're splatting",
+        body: "[AST_TopLevel] parsed contents of the imported file",
+    },
+}, AST_Statement)
+
 AST_Import = DEFNODE("Import", "module key alias argnames body", {
     $documentation: "Container for a single import",
     $propdoc: {
@@ -433,7 +441,6 @@ AST_Import = DEFNODE("Import", "module key alias argnames body", {
             )
         )
     ,
-
 }, AST_Statement)
 
 AST_Imports = DEFNODE('Imports', 'imports', {
