@@ -394,9 +394,11 @@ def OutputStream(options):
         add_mapping: add_mapping,
         assign: assign_var,
         prologue: prologue,
-        "import": def(module_):
+        import: def(module_):
             if not IMPORTED.hasOwnProperty(module_.key):
                 IMPORTED[module_.key] = module_
+                return True
+            return False
         ,
         is_main: def():
             return OUTPUT.length == 0
@@ -941,6 +943,10 @@ def OutputStream(options):
         output.semicolon()
         output.newline()
 
+    DEFPRINT(AST_Splat, def(self, output):
+        if output.import(self.module):
+            display_body(self.body.body, True, output)
+    )
 
     DEFPRINT(AST_Imports, def(container, output):
 
