@@ -63,6 +63,7 @@ KEYWORDS_BEFORE_EXPRESSION = makePredicate(KEYWORDS_BEFORE_EXPRESSION)
 KEYWORDS_ATOM = makePredicate(KEYWORDS_ATOM)
 
 NATIVE_CLASSES = {
+    # javascript
     'Image': {},
     'RegExp': {},
     'Error': {},
@@ -98,6 +99,12 @@ NATIVE_CLASSES = {
     'WeakMap': {},
     'Set': {},
     'WeakSet': {},
+
+    # baselib
+    "AssertionError": {},
+    "IndexError": {},
+    "TypeError": {},
+    "ValueError": {},
 }
 COMMON_STATIC = [ "call", "apply", "bind", "toString" ]
 
@@ -195,18 +202,26 @@ STDLIB = [
     "bind",
     "rebind_all",
     "dir",
+    "mixin",
+    "print",
+    "range",
+    "getattr",
+    "setattr",
+    "hasattr",
+
+    # list operations
     "enumerate",
     "filter",
     "len",
     "map",
-    "mixin",
-    "print",
-    "range",
     "reversed",
     "sum",
-    "getattr",
-    "setattr",
-    "hasattr",
+
+    # errors
+    "AssertionError",
+    "IndexError",
+    "TypeError",
+    "ValueError",
 ]
 
 IDENTIFIER_PAT = /^[a-z_$][_a-z0-9$]*$/i
@@ -1166,6 +1181,7 @@ def parse($TEXT, options):
                 BASELIB["extends"] = True
                 if options.auto_bind:
                     BASELIB["rebind_all"] = True
+                    BASELIB["bind"] = True  # used by rebind_all
                 return class_()
             elif tmp_ == "def":
                 start = prev()
@@ -2290,6 +2306,12 @@ def parse($TEXT, options):
                 return subscripts(ret, True)
             elif not expr.parens and get_class_in_scope(expr):
                 # this is an object being created using a class
+
+                # check if this class is part of our standard library
+                if expr.name in STDLIB:
+                    BASELIB["extends"] = True
+                    BASELIB[expr.name + ':'] = True
+
                 return subscripts(new AST_New({
                     start: start,
                     expression: expr,
