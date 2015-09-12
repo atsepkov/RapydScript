@@ -60,14 +60,32 @@ module.exports = function compile_self(base_path, src_path, lib_path, start_time
     }
 
     function generate_baselib() {
-        var output = '';
-        Object.keys(baselib).forEach(function(key) {
-            output += String(baselib[key]) + '\n\n';
+//        var output = '';
+//        Object.keys(baselib).forEach(function(key) {
+//            output += String(baselib[key]) + '\n\n';
+//        });
+//        return output;
+        timed('baselib', function() {
+            var src = path.join(src_path, 'baselib.pyj');
+            var toplevel = parse_file('', src);
+            Object.keys(baselib).forEach(function(key){
+                toplevel.baselib[key] = true;
+            });
+            var output = RapydScript.OutputStream({
+                'beautify': true,
+                'private_scope': false,
+                'omit_baselib': false,
+                'write_name': false,
+                'baselib': baselib
+            });
+            toplevel.print(output);
+            compiled['baselib'] = output.get();
         });
-        return output;
     }
 
-    if (changed('baselib')) compiled.baselib = timed('baselib', generate_baselib);
+//    if (changed('baselib')) compiled.baselib = timed('baselib', generate_baselib);
+    generate_baselib();
+    if (changed('baselib')) generate_baselib();
     RapydScript.FILENAMES.slice(1).forEach(function (fname) {
         if (changed(fname)) {
             var src = path.join(src_path, fname + '.pyj');

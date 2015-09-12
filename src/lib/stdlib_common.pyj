@@ -15,29 +15,6 @@
 # Pythonic shortcut for converting an object to string
 str = JSON.stringify
 
-###########################################################
-# Errors
-###########################################################
-class IndexError(Error):
-    def __init__(self, message="list index out of range"):
-        self.name = "IndexError"
-        self.message = message
-
-class TypeError(Error):
-    def __init__(self, message):
-        self.name = "TypeError"
-        self.message = message
-
-class ValueError(Error):
-    def __init__(self, message):
-        self.name = "ValueError"
-        self.message = message
-
-class AssertionError(Error):
-    def __init__(self, message=""):
-        self.name = "AssertionError"
-        self.message = message
-
 
 ###########################################################
 # Deep Equality Comparison

@@ -47,6 +47,14 @@
 """
 "use strict"
 
+# for convenience we'll use a convention here that will work as follows:
+#
+#   if function is named, assume we'll be outputting the function itself
+#   if the given baselib chunk is triggered
+#
+#   if function is unnamed, assume the function is a container for the logic
+#   to be output. We're basically ignoring the wrapper and dumping what's inside
+
 {
 "abs": def abs(n):
     return Math.abs(n)
@@ -63,7 +71,7 @@
     if JS('typeof rebind') == "undefined": rebind = True
     for JS('var p in thisArg'):
         if thisArg[p] and thisArg[p].orig:
-            if rebind: thisArg[p] = ՐՏ_bind(thisArg[p], thisArg)
+            if rebind: thisArg[p] = bind(thisArg[p], thisArg)
             else: thisArg[p] = thisArg[p].orig
 ,
 "dir": def dir(item):
@@ -162,24 +170,57 @@
 "hasattr": def hasattr(obj, name):
     return JS('name in obj')
 ,
-"symbolfor()": def ՐՏ_symbolfor_polyfill():
-    if typeof Symbol == 'function' and typeof Symbol.for == 'function':
-        return Symbol.for
-    return (def(name):
-            return name + '-Symbol-' + '5d0927e5554349048cf0e3762a228256'
-    )
+"symbolfor": def():
+    symbolfor = (def ՐՏ_symbolfor_polyfill():
+        if typeof Symbol == 'function' and typeof Symbol.for == 'function':
+            return Symbol.for
+        return (def(name):
+                return name + '-Symbol-' + '5d0927e5554349048cf0e3762a228256'
+        )
+    )()
 ,
-"desugar_kwargs()": def ՐՏ_desugar_kwargs():
-    if Object.assign:
+"desugar_kwargs": def():
+    desugar_kwargs = (def ՐՏ_desugar_kwargs():
+        if Object.assign:
+            return def():
+                ans = {}
+                ans[symbolfor('ՐՏ_kwargs_obj')] = True
+                return Object.assign.apply(ans, arguments)
         return def():
             ans = {}
             ans[symbolfor('ՐՏ_kwargs_obj')] = True
-            return Object.assign.apply(ans, arguments)
-    return def():
-        ans = {}
-        ans[symbolfor('ՐՏ_kwargs_obj')] = True
-        for JS('var i = 0; i < arguments.length; i++'):
-            for prop in Object.keys(arguments[i]):
-                ans[prop] = arguments[i][prop]
-        return ans
+            for JS('var i = 0; i < arguments.length; i++'):
+                for prop in Object.keys(arguments[i]):
+                    ans[prop] = arguments[i][prop]
+            return ans
+    )()
+,
+
+# Errors
+# temporarily implemented via a wrapper pattern since there is no mechanism for assigning
+# classes to dictionary keys yet
+"AssertionError": def():
+    class AssertionError(Error):
+        def __init__(self, message):
+            self.name = "AssertionError"
+            self.message = message
+,
+"IndexError": def():
+    class IndexError(Error):
+        def __init__(self, message):
+            self.name = "IndexError"
+            self.message = message
+,
+"TypeError": def():
+    class TypeError(Error):
+        def __init__(self, message):
+            self.name = "TypeError"
+            self.message = message
+,
+"ValueError": def():
+    class ValueError(Error):
+        def __init__(self, message):
+            self.name = "ValueError"
+            self.message = message
+,
 }

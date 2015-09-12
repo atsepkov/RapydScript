@@ -30,6 +30,21 @@ exports.create_compiler = function() {
     return compiler_exports;
 };
 
+// prepare a splat to be injected into the code
+function splat_baselib(name, body) {
+    return new RapydScript.AST_Splat({
+        module: new RapydScript.AST_SymbolVar({
+            name: name
+        }),
+        body: new RapydScript.AST_Toplevel({
+            start: body[0].start,
+            body: body,
+            strict: true,
+            end: body[body.length-1].end
+        })
+    });
+}
+
 exports.parse_baselib = function(src_path, beautify) {
     var baselibAst;
     try {
@@ -45,14 +60,31 @@ exports.parse_baselib = function(src_path, beautify) {
             throw e;
         }
     }
-    var outputStream = RapydScript.OutputStream({
-        private_scope: false,
-        beautify: beautify,
-        write_name: false,
-        omit_baselib: true,  // We are generating baselib here, cannot depend on it
+
+    // we don't want to dump the baselib yet, we want to process it in pieces and splat
+    // them as needed
+    var hash = baselibAst.body[baselibAst.body.length-1];
+    var data = hash.body.properties;
+    var baselibList = {};
+    data.forEach(function(item) {
+//        item.dump(1, ['start', 'end'], false);
+//        item.dump(9, ['start', 'end'], true);
+        var key = item.key;
+        // if this is named a function, use it as a whole, if it's anonymous assume a scope
+        var value = item.value.name ? [item.value] : item.value.body;
+        baselibList[key] = splat_baselib(key, value);
     });
-    baselibAst.print(outputStream);
-    return eval(outputStream.toString());  // jshint ignore:line
+
+    // GET RID OF THIS, we just want to return a list of splats
+//    var outputStream = RapydScript.OutputStream({
+//        private_scope: false,
+//        beautify: beautify,
+//        write_name: false,
+//        omit_baselib: true,  // We are generating baselib here, cannot depend on it
+//    });
+//    baselibAst.print(outputStream);
+//    return eval(outputStream.toString());  // jshint ignore:line
+    return baselibList;
 };
 
 function load_global(file) {

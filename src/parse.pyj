@@ -2309,8 +2309,10 @@ def parse($TEXT, options):
 
                 # check if this class is part of our standard library
                 if expr.name in STDLIB:
-                    BASELIB["extends"] = True
-                    BASELIB[expr.name + ':'] = True
+                    BASELIB[expr.name] = True
+                    if /Error$/.test(expr.name):
+                        # errors are classes
+                        BASELIB["extends"] = True
 
                 return subscripts(new AST_New({
                     start: start,

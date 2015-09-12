@@ -333,11 +333,9 @@ def OutputStream(options):
         newline()
 
     # any code that should appear before the main body
-    def prologue(module_):
-        if not options.omit_baselib:
-            for lib in module_.baselib:
-                dump_baselib(lib)
-#            for lib in dir(module_.baselib):
+#    def prologue(module_):
+#        if not options.omit_baselib:
+#            for lib in module_.baselib:
 #                dump_baselib(lib)
 
     def get():
@@ -393,10 +391,15 @@ def OutputStream(options):
         with_square: with_square,
         add_mapping: add_mapping,
         assign: assign_var,
-        prologue: prologue,
-        import: def(module_):
-            if not IMPORTED.hasOwnProperty(module_.key):
-                IMPORTED[module_.key] = module_
+#        prologue: prologue,
+        get_baselib: def(key):
+            if not options.omit_baselib:
+                return options.baselib[key]
+            return None
+        ,
+        import: def(key):
+            if not IMPORTED.hasOwnProperty(key):
+                IMPORTED[key] = key
                 return True
             return False
         ,
@@ -890,7 +893,11 @@ def OutputStream(options):
                     output.semicolon()
                     output.newline()
 
-                    output.prologue(self)
+#                    output.prologue(self)
+                    Object.keys(self.baselib).forEach(def(key):
+                        splat = output.get_baselib(key)
+                        if splat: splat.print(output)
+                    )
                     write_imports(self, output)
                     output.newline()
                     output.indent()
@@ -911,7 +918,11 @@ def OutputStream(options):
             output.print("")
         else:
             if is_main:
-                output.prologue(self)
+                Object.keys(self.baselib).forEach(def(key):
+                    splat = output.get_baselib(key)
+                    if splat: splat.print(output)
+                )
+#                output.prologue(self)
                 write_imports(self, output)
                 write_main_name(output)
 
@@ -944,8 +955,9 @@ def OutputStream(options):
         output.newline()
 
     DEFPRINT(AST_Splat, def(self, output):
-        if output.import(self.module):
+        if output.import(self.module.name):
             display_body(self.body.body, True, output)
+            output.newline()
     )
 
     DEFPRINT(AST_Imports, def(container, output):
@@ -964,7 +976,7 @@ def OutputStream(options):
             output.indent()
 
         for self in container.imports:
-            output.import(self.module)
+            output.import(self.module.name)
             if self.argnames:
                 # A from import
                 for argname in self.argnames:
