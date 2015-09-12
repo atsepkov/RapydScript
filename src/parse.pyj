@@ -1536,6 +1536,8 @@ def parse($TEXT, options):
             decorators: def():
                 d = []
                 S.decorators.forEach(def(decorator):
+                    if decorator == 'kwargs':
+                        BASELIB['kwargs'] = True
                     d.push(new AST_Decorator({
                         name: decorator
                     }))
@@ -1643,7 +1645,7 @@ def parse($TEXT, options):
                 a.defaults = defaults
                 a.is_simple_func = not a.starargs and not a.kwargs and not a.has_defaults
                 if not a.is_simple_func:
-                    BASELIB['symbolfor()'] = True
+                    BASELIB['symbolfor'] = True
                 return a
             .call(this, []),
             localvars: [],
@@ -2022,8 +2024,8 @@ def parse($TEXT, options):
                 else:
                     a.push(arg)
         if a.kwargs:
-            BASELIB['symbolfor()'] = True
-            BASELIB['desugar_kwargs()'] = True
+            BASELIB['symbolfor'] = True
+            BASELIB['desugar_kwargs'] = True
         next()
         return a
 

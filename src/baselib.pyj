@@ -199,6 +199,22 @@
         return True
     return False
 ,
+"kwargs": def kwargs(f):
+    # WARNING: when using this function decorator, you will not be able to use obfuscators that rename local variables
+    argNames = f.toString().match(/\(([^\)]+)/)[1]
+    argNames = argNames ? argNames.split(',').map(def(s): return s.trim();) : []
+    return def():
+        args = [].slice.call(arguments)
+        if args.length:
+            kw = args.pop()
+            if type(kw) == 'object':
+                for i in range(argNames.length):
+                    if argNames[i] in dir(kw):
+                        args[i] = kw[argNames[i]]
+            else:		
+                args.push(kw)
+        return f.apply(this, args)
+,
 "symbolfor": def():
     symbolfor = (def ՐՏ_symbolfor_polyfill():
         if typeof Symbol == 'function' and typeof Symbol.for == 'function':
