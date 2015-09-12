@@ -170,6 +170,35 @@
 "hasattr": def hasattr(obj, name):
     return JS('name in obj')
 ,
+"eq": def eq(a, b):
+    """
+    Equality comparison that works with all data types, returns true if structure and
+    contents of first object equal to those of second object
+
+    Arguments:
+        a: first object
+        b: second object
+    """
+    if a is b:
+        # simple object
+        return True
+
+    if (Array.isArray(a) and Array.isArray(b)) or (isinstance(a, Object) and isinstance(b, Object)):
+        # if length ot type doesn't match, they can't be equal
+        if a.constructor is not b.constructor or a.length is not b.length:
+            return False
+
+        # compare individual properties (order doesn't matter if it's a hash)
+        for i in dict.keys(a):
+            if b.hasOwnProperty(i):
+                # recursively test equality of object children
+                if not eq(a[i], b[i]):
+                    return False
+            else:
+                return False
+        return True
+    return False
+,
 "symbolfor": def():
     symbolfor = (def ՐՏ_symbolfor_polyfill():
         if typeof Symbol == 'function' and typeof Symbol.for == 'function':

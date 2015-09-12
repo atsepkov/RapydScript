@@ -451,6 +451,8 @@ The JavaScript operators, however, are not supported. You will have to use Pytho
 
 	RapydScript		JavaScript
 	
+	==				===
+	!=				!==
 	and				&&
 	or				||
 	not				!
@@ -462,11 +464,11 @@ The JavaScript operators, however, are not supported. You will have to use Pytho
 	
 Admittedly, `is` is not exactly the same thing in Python as `===` in JavaScript, but JavaScript is quirky when it comes to comparing objects anyway.
 
-You may also be interested in `deep_eq` function, which is part of `stdlib`. It performs deep equality test on two objects, and works on any types, including hashes and arrays:
+You may also be interested in `eq` function, which is part of RapydScript. It performs deep equality test on two objects, and works on any types, including hashes and arrays:
 
-	deep_eq([1,2,3], [1,[2,3]])		# False
-	deep_eq([[1,2],3], [1,[2,3]])	# False
-	deep_eq([1,[2,3]], [1,[2,3]])	# True
+	eq([1,2,3], [1,[2,3]])		# False
+	eq([[1,2],3], [1,[2,3]])	# False
+	eq([1,[2,3]], [1,[2,3]])	# True
 
 In rare cases RapydScript might not allow you to do what you need to, and you need access to pure JavaScript. When that's the case, you can wrap your JavaScript in a string, passing it to JS() method. Code inside JS() method is not a sandbox, you can still interact with it from normal RapydScript:
 

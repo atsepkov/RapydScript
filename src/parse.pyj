@@ -209,6 +209,9 @@ STDLIB = [
     "setattr",
     "hasattr",
 
+    # unique to RapydScript
+    "eq",
+
     # list operations
     "enumerate",
     "filter",
