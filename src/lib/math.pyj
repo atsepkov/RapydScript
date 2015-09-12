@@ -68,8 +68,7 @@ def fsum(iterable):
     return sum(partials)
 def isinf(x):
     return not isFinite(x)
-def isnan(x):
-    return isNaN(x)
+isnan = isNaN
 def modf(x):
     m = fmod(x, 1)
     return m, x-m

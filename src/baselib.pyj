@@ -188,14 +188,18 @@
         if a.constructor is not b.constructor or a.length is not b.length:
             return False
 
-        # compare individual properties (order doesn't matter if it's a hash)
-        for i in dict.keys(a):
-            if b.hasOwnProperty(i):
+        if Array.isArray(a):
+            # arrays
+            for i in range(len(a)):
+                if not eq(a[i], b[i]):
+                    return False
+        else:
+            # hashes
+            # compare individual properties (order doesn't matter if it's a hash)
+            for i in a:
                 # recursively test equality of object children
                 if not eq(a[i], b[i]):
                     return False
-            else:
-                return False
         return True
     return False
 ,
