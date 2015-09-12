@@ -329,7 +329,7 @@ module.exports = function(options) {
                 'filename':'<repl>',
                 'readfile': fs.readFileSync,
                 'basedir': process.cwd(),
-                'libdir': options.lib_path,
+                'libdir': options.src_lib_path,
                 'classes': classes
             });
         } catch(e) {
