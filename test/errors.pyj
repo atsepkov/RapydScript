@@ -1,0 +1,40 @@
+# basic
+a = ValueError('error test')
+assert.equal(a.name, 'ValueError')
+assert.equal(a.message, 'error test')
+assert.throws(
+	def():
+		raise a
+	,
+    /ValueError: error test/
+)
+
+# relevant error test
+class ArrayishTest:
+    def __init__(self, arr):
+        self._ = arr
+    def get(self, index):
+        if 0 <= index < self._.length:
+            return self._[index]
+        else:
+            raise IndexError()
+    def set(self, index, value):
+        if 0 <= index < self._.length:
+            self._[index] = value
+        else:
+            raise IndexError()
+b = ArrayishTest([1 to 5])
+assert.doesNotThrow(def(): b.get(3);)
+assert.doesNotThrow(def(): b.set(0, 'hi');)
+assert.throws(
+    def():
+        b.get(6)
+    ,
+    IndexError
+)
+assert.throws(
+    def():
+        b.set(-1, 4)
+    ,
+    /IndexError/
+)
