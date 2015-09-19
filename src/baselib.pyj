@@ -59,6 +59,18 @@
 "abs": def abs(n):
     return Math.abs(n)
 ,
+"all": def all(a):
+    for e in a:
+        if not e: return False
+    return True
+,
+"any": def any(a):
+    for e in a:
+        if e: return True
+    return False
+,
+"bin": def bin(a): return '0b' + (a >>> 0).toString(2)
+,
 "bind": def ՐՏ_bind(fn, thisArg):
     if fn.orig: fn = fn.orig
     if thisArg == False: return fn
@@ -73,6 +85,10 @@
         if thisArg[p] and thisArg[p].orig:
             if rebind: thisArg[p] = bind(thisArg[p], thisArg)
             else: thisArg[p] = thisArg[p].orig
+,
+"cmp": def cmp(a, b): return a < b ? -1 : a > b ? 1 : 0
+,
+"chr": def(): chr = String.fromCharCode
 ,
 "dir": def dir(item):
     # TODO: this isn't really representative of real Python's dir(), nor is it
@@ -111,6 +127,8 @@
 "filter": def filter(oper, arr):
     return arr.filter(oper)
 ,
+"hex": def hex(a): return '0x' + (a >>> 0).toString(16)
+,
 "in": def ՐՏ_in(val, arr):
     if Array.isArray(arr) or JS('typeof arr') == 'string': return arr.indexOf(val) != -1
     else:
@@ -127,6 +145,18 @@
 ,
 "map": def map(oper, arr):
     return arr.map(oper)
+,
+"max": def max(a):
+    if Array.isArray(a):
+        return Math.max.apply(null, a)
+    else:
+        return Math.max.apply(null, arguments)
+,
+"min": def min(a):
+    if Array.isArray(a):
+        return Math.min.apply(null, a)
+    else:
+        return Math.min.apply(null, arguments)
 ,
 "mixin": def ՐՏ_mixin(target, source, overwrite):
     for JS('var i in source'):
@@ -150,9 +180,15 @@
         start += step
     return range
 ,
+"reduce": def reduce(f, a): return Array.reduce(a, f)
+,
 "reversed": def reversed(arr):
     tmp = arr[:]
     return tmp.reverse()
+,
+"sorted": def sorted(arr):
+    tmp = arr[:]
+    return tmp.sort()
 ,
 "sum": def sum(arr, start=0):
     return arr.reduce(
@@ -160,6 +196,9 @@
         ,
         start
     )
+,
+"zip": def zip(a, b):
+    return [[a[i], b[i]] for i in range(Math.min(a.length, b.length))]
 ,
 "getattr": def getattr(obj, name):
     return obj[name]
@@ -258,6 +297,12 @@
     class IndexError(Error):
         def __init__(self, message):
             self.name = "IndexError"
+            self.message = message
+,
+"KeyError": def():
+    class KeyError(Error):
+        def __init__(self, message):
+            self.name = "KeyError"
             self.message = message
 ,
 "TypeError": def():

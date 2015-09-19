@@ -7,7 +7,13 @@ var start_time = new Date().getTime();
 var path = require('path');
 
 function load(mod) {
-    return require('../tools/' + mod);
+    var lib;
+    try {
+        lib = require('../tools/' + mod);
+    } catch (e) {
+        lib = require('../lib/' + mod);
+    }
+    return lib;
 }
 
 var argv = load('cli').argv;
@@ -15,7 +21,7 @@ var argv = load('cli').argv;
 var base_path = path.normalize(path.join(path.dirname(module.filename), ".."));
 var src_path = path.join(base_path, 'src');         // source code
 var lib_path = path.join(base_path, 'lib');         // compiled library
-var src_lib_path = path.join(base_path, 'src/lib'); // source code for imported libraries
+var import_path = path.join(base_path, 'src/lib');  // source code for imported libraries
 
 if (argv.self) {
     if (argv.files.length > 0) {
@@ -26,11 +32,11 @@ if (argv.self) {
 } else if (argv.test) {
     load('test')(argv, base_path, src_path, lib_path);
 } else if (argv.lint) {
-    load('lint').cli(argv, base_path, src_path, lib_path);
+    load('linter').cli(argv, base_path, src_path, lib_path);
 } else if (argv.files.length === 0 && process.stdin.isTTY) {
     load('repl')({
         'lib_path': lib_path,
-        'src_lib_path': src_lib_path,
+        'import_path': import_path,
     });
 } else {
     load('compile')(start_time, argv, base_path, src_path, lib_path);

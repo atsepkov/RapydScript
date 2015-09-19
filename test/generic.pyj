@@ -2,6 +2,11 @@
 assert.equal(3**4, Math.pow(3, 4))
 assert.equal(100**-2, Math.pow(100, -2))
 assert.equal(2*5**2*3, 150)
+assert.equal(100 // 3, 33)
+assert.equal(-100 // 3, -34)
+a = 100
+a //= 3
+assert.equal(a, 33)
 
 
 # comparisons

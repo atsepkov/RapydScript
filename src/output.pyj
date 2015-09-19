@@ -320,17 +320,17 @@ def OutputStream(options):
     : noop)
 
     # retrieve baselib function based on requested key
-    def dump_baselib(key):
-        indent()
-        is_func = key.substr(key.length - 2) == '()'
-        if is_func:
-            ckey = key.substr(0, key.length - 2)
-            print_('var ' + ckey + ' = (')
-        print_(options.baselib[key])
-        if is_func:
-            print_(')()')
-            semicolon()
-        newline()
+#    def dump_baselib(key):
+#        indent()
+#        is_func = key.substr(key.length - 2) == '()'
+#        if is_func:
+#            ckey = key.substr(0, key.length - 2)
+#            print_('var ' + ckey + ' = (')
+#        print_(options.baselib[key])
+#        if is_func:
+#            print_(')()')
+#            semicolon()
+#        newline()
 
     # any code that should appear before the main body
 #    def prologue(module_):
@@ -587,7 +587,8 @@ def OutputStream(options):
     )
     PARENS(AST_New, def(output):
         p = output.parent()
-        if no_constructor_parens(this, output) and (isinstance(p, AST_PropAccess) or isinstance(p, AST_BaseCall) and p.expression is this):
+        if no_constructor_parens(this, output) and (isinstance(p, AST_PropAccess) \
+                or isinstance(p, AST_BaseCall) and p.expression is this):
             # (new foo)(bar)
             return True
     )
@@ -711,9 +712,8 @@ def OutputStream(options):
             output.newline()
 
     def display_complex_body(node, is_toplevel, output):
-        offset = 0
-        # argument offset
-        # this is a method, add 'var self = this'
+        offset = 0 # argument offset, applies if this is a method of a class
+        # if this is a method, add 'var self = this'
         if isinstance(node, AST_Method) and not node.static:
             output.indent()
             output.print("var")
@@ -727,65 +727,38 @@ def OutputStream(options):
         if isinstance(node, AST_Scope):
             # if function takes any arguments
             if node.argnames:
-                # If this function has optional parameters/*args/**kwargs declare it differently
-                if node.argnames.is_simple_func != True:
-                    a = node.argnames
-                    kw = 'arguments[arguments.length-1]'
-                    # Define all formal parameters
-                    for i, arg in enumerate(a):
-                        if i >= offset:
-                            output.indent()
-                            output.print("var")
-                            output.space()
-                            output.assign(arg)
-                            if Object.prototype.hasOwnProperty.call(a.defaults, arg.name):
-                                output.spaced('(arguments[' + (i - offset) + ']', '===', 'undefined)', '?')
-                                output.space()
-                                output.with_parens(def():
-                                    a.defaults[arg.name].print(output)
-                                )
-                                output.space()
-                                output.print(':')
-                                output.space()
-                            output.print('arguments[' + (i - offset) + ']')
-                            output.semicolon()
-                            output.newline()
-                    if a.kwargs or a.has_defaults:
-                        # Look for an options object
-                        kw = (a.kwargs) ? a.kwargs.name : 'ՐՏ_kwargs_obj'
-                        output.indent()
-                        output.spaced('var', kw, '=', 'arguments[arguments.length-1]')
-                        output.end_statement()
-                        # Ensure kwargs is the options object
-                        output.indent()
-                        output.spaced('if', '(typeof', kw, '!==', '"object"', '||', kw, '[symbolfor("ՐՏ_kwargs_obj")]', '!==', 'true)', kw, '=', '{}')
-                        output.end_statement()
-                        # Read values from the kwargs object for any formal parameters
-                        if a.has_defaults:
-                            for dname in Object.keys(a.defaults):
-                                output.indent()
-                                output.spaced('if', '(Object.prototype.hasOwnProperty.call(' + kw + ',', '"' + dname + '"))')
-                                output.with_block(def():
-                                    output.indent()
-                                    output.spaced(dname, '=', kw + '.' + dname)
-                                    output.end_statement()
-                                    if a.kwargs:
-                                        output.indent()
-                                        output.spaced('delete', kw + '.' + dname)
-                                        output.end_statement()
-                                )
-                                output.newline()
+                # If *args is set, pass remainder of arguments to it
+                if node.argnames.starargs:
+                    output.indent()
+                    output.print("var")
+                    output.space()
+                    output.assign(node.argnames.starargs)
+                    output.print("[].slice.call")
+                    output.with_parens(def():
+                        output.print("arguments")
+                        output.comma()
+                        output.print(node.argnames.length - offset)
+                    )
+                    output.semicolon()
+                    output.newline()
 
-                    if a.starargs:
-                        # Define the *args parameter, putting in whatever is left after assigning the formal parameters and the options object
-                        nargs = a.length - offset
-                        output.indent()
-                        output.spaced('var', a.starargs.name, '=', 'Array.prototype.slice.call(arguments,', nargs, ')')
-                        output.end_statement()
-                        # Remove the options object, if present
-                        output.indent()
-                        output.spaced('if', '(typeof', kw, '===', '"object"', '&&', kw, '[symbolfor("ՐՏ_kwargs_obj")]', '===', 'true)', a.starargs.name, '.pop()')
-                        output.end_statement()
+                # initialize default function arguments, if any
+                for arg in dir(node.argnames.defaults):
+                    output.indent()
+                    output.print("if")
+                    output.space()
+                    output.with_parens(def():
+                        output.print("typeof " + arg)
+                        output.space()
+                        output.print("===")
+                        output.space()
+                        output.print('"undefined"')
+                    )
+                    output.space()
+                    output.assign(arg)
+                    force_statement(node.argnames.defaults[arg], output)
+                    output.semicolon()
+                    output.newline()
 
             # rebind parent's methods and bind own methods
             # for now we'll make a naive assumption that a function
@@ -1305,6 +1278,7 @@ def OutputStream(options):
         self._do_print_body(output)
     )
 
+
     # -----[ functions ]-----
     def decorate(node, output, internalsub):
         wrap = def(d):
@@ -1329,13 +1303,19 @@ def OutputStream(options):
                 self.name.print(output)
 
             output.with_parens(def():
-                if not self.argnames or self.argnames.is_simple_func == True or self.argnames.is_simple_func == undefined:
-                    self.argnames.forEach(def(arg, i):
-                        if i:
-                            output.comma()
+                self.argnames.forEach(def(arg, i):
+                    if i:
+                        output.comma()
 
-                        arg.print(output)
-                    )
+                    arg.print(output)
+                )
+
+                # handle kwargs hook, if there is a kwargs decorator
+                if self.kwargs:
+                    if argnames.length:
+                        output.comma()
+                    # it's a generic argument name, we'll rename it in function body
+                    output.print('ՐՏ_kw')
             )
             output.space()
             print_bracketed(self, output, True)
@@ -1352,6 +1332,8 @@ def OutputStream(options):
     DEFPRINT(AST_Lambda, def(self, output):
         self._do_print(output)
     )
+
+
     # -----[ classes ]-----
     AST_Class.DEFMETHOD("_do_print", def(output):
         self = this
@@ -1375,16 +1357,22 @@ def OutputStream(options):
                 output.print(name)
 
                 output.with_parens(def():
-                    if not self.argnames or self.argnames.is_simple_func == True or self.argnames.is_simple_func == undefined:
-                        stmt.argnames.forEach(def(arg, i):
-                            # only strip first argument if the method isn't static
-                            if self.static.indexOf(name) != -1:
-                                i += 1
-                            if i > 1:
-                                output.comma()
-                            if i:
-                                arg.print(output)
-                        )
+                    stmt.argnames.forEach(def(arg, i):
+                        # only strip first argument if the method isn't static
+                        if self.static.indexOf(name) != -1:
+                            i += 1
+                        if i > 1:
+                            output.comma()
+                        if i:
+                            arg.print(output)
+                    )
+
+                    # handle kwargs hook, if there is a kwargs decorator
+                    if self.kwargs:
+                        if argnames.length:
+                            output.comma()
+                        # it's a generic argument name, we'll rename it in function body
+                        output.print('ՐՏ_kw')
                 )
                 print_bracketed(stmt, output, True)
 
@@ -1437,8 +1425,8 @@ def OutputStream(options):
             output.semicolon()
         else:
             internalsub()
-
         output.newline()
+
         # inheritance
         if self.parent:
             output.indent()
@@ -1451,6 +1439,13 @@ def OutputStream(options):
             output.semicolon()
             output.newline()
 
+        # class variables and statements
+        self.statements.forEach(def(stmt):
+            output.indent()
+            stmt.print(output)
+            output.newline()
+        )
+
         # actual methods
         self.body.forEach(def(stmt, i):
             if isinstance(stmt, AST_Method):
@@ -1462,6 +1457,12 @@ def OutputStream(options):
     )
     DEFPRINT(AST_Class, def(self, output):
         self._do_print(output)
+    )
+
+    DEFPRINT(AST_SymbolClassRef, def(self, output):
+        self.class.print(output)
+        output.print('.prototype.')
+        output.print(self.name)
     )
 
     # -----[ exits ]-----
@@ -1722,37 +1723,85 @@ def OutputStream(options):
     )
 
     # -----[ other expressions ]-----
+    CREATION = [] # FIXME: a hack, tracks variables that class is being assigned to for handling
+                  # kwargs on constructor gracefully, a better approach is to split this function
+                  # into AST_Call (normal functions), AST_ClassCall (class functions), and
+                  # AST_New (constructors), remove DEFPRINT for AST_BaseCall altogether, add
+                  # 'obj' property to AST_New and have it track the object it's assigned to. Then
+                  # use that property instead of this global stack. This would also have the benefit
+                  # of minimizing clutter that this function is currently dealing with.
     DEFPRINT(AST_BaseCall, def(self, output):
 
-        if isinstance(self, AST_ClassCall):
-            # class methods are called through the prototype unless static
-            if self.static:
-                self.class.print(output)
-                output.print(".")
-                output.print(self.method)
+        # logic for defining the format of a function call (class, static, normal, decorated)
+        call_format = def():
+            if isinstance(self, AST_ClassCall):
+                # class methods are called through the prototype unless static
+                if self.static:
+                    self.class.print(output)
+                    output.print(".")
+                    output.print(self.method)
+                else:
+                    self.class.print(output)
+                    output.print(".prototype.")
+                    output.print(self.method)
+                    output.print(".call")
             else:
-                self.class.print(output)
-                output.print(".prototype.")
-                output.print(self.method)
-                output.print(".call")
-        else:
-            # regular function call
-            rename = SPECIAL_METHODS.hasOwnProperty(self.expression.name) ? SPECIAL_METHODS[self.expression.name] : undefined
-            if rename:
-                # this is a special baselib function
-                output.print(rename)
-            else:
-                self.expression.print(output)
+                # regular function call
+                rename = SPECIAL_METHODS.hasOwnProperty(self.expression.name) ? SPECIAL_METHODS[self.expression.name] : undefined
+                if rename:
+                    # this is a special baselib function
+                    output.print(rename)
+                else:
+                    self.expression.print(output)
 
-        if isinstance(self, AST_New) and no_constructor_parens(self, output):
-            return
+        if isinstance(self, AST_New):
+            # FIXME: a hack to avoid building a new type of AST object for the
+            # special case of kwargs-based constructor
+            object = CREATION.pop()
 
+            if no_constructor_parens(self, output):
+                call_format()
+                return
+
+        # determine if we'll be using kwargs, since there are two possible triggers for them
         has_kwarg_items = self.args.kwarg_items and self.args.kwarg_items.length
         has_kwarg_formals = self.args.kwargs and self.args.kwargs.length
-        has_kwargs =  has_kwarg_items or has_kwarg_formals
+        has_kwargs = has_kwarg_items or has_kwarg_formals
 
+        if self.args.starargs or has_kwargs:
+            obj = isinstance(self, AST_New) ? object : (self.expression.expression ? self.expression.expression : new AST_This())
+            if isinstance(self, AST_New):
+                # class constructor
+                # we need to declare the class a bit differently with *args and **kwargs
+                call_format()
+                output.semicolon()
+                output.newline()
+                output.indent()
+                if has_kwargs:
+                    # **kwargs requires currying
+                    output.print('kwargs')
+                    output.with_parens(def():
+                        object.print(output)
+                        output.print('.__init__')
+                    )
+                else:
+                    # *args only requires that we call apply on __init__ rather than the object itself
+                    object.print(output)
+                    output.print('.__init__')
+            elif has_kwargs:
+                # regular **kwargs call
+                output.print('kwargs')
+                output.with_parens(def(): call_format();)
+            else:
+                # *args, the format of the prefix doesn't change
+                call_format()
+        else:
+            # regular call without *args or **kwargs
+            call_format()
+
+        # helper function for generating/dumping **kwargs argument
         output_kwargs = def():
-            output.print('desugar_kwargs(')
+            # items represented as **kw
             if has_kwarg_items:
                 self.args.kwarg_items.forEach(def(kwname, i):
                     if i > 0:
@@ -1764,6 +1813,7 @@ def OutputStream(options):
                     output.print(',')
                     output.space()
 
+            # implicit kwargs from positional arguments
             if has_kwarg_formals:
                 output.print('{')
                 self.args.kwargs.forEach(def(pair, i):
@@ -1774,49 +1824,56 @@ def OutputStream(options):
                     pair[1].print(output)
                 )
                 output.print('}')
-            output.print(')')
 
+        # *args logic requires unique compilation via apply() method
+        # **kwargs always needs to be the last argument
         if self.args.starargs:
-            obj = (self.expression.expression ? self.expression.expression.name : "this")
+            # *args
             output.print(".apply")
             output.with_parens(def():
-                output.print(obj)
+                obj.print(output)
                 output.comma()
-                # basic arguments
-                i = 0
-                while i < self.args.length:
-                    expr = self.args[i]
-                    is_first = i == 0
-                    if not is_first:
-                        output.print('.concat(')
-                    if expr.is_array:
-                        expr.print(output)
-                        i += 1
-                    else:
-                        output.print('[')
-                        while i < self.args.length and not self.args[i].is_array:
-                            self.args[i].print(output)
-                            if i + 1 < self.args.length and not self.args[i+1].is_array:
-                                output.print(',')
-                                output.space()
-                            i += 1
-                        output.print(']')
-                    if not is_first:
-                        output.print(')')
 
-                # now kwargs
-                if has_kwargs:
-                    if self.args.length:
-                        output.print('.concat(')
-                    output.print('[')
-                    output_kwargs()
-                    output.print(']')
-                    if self.args.length:
-                        output.print(')')
+                if self.args.length > 1:
+                    # start with basic arguments
+                    output.with_square(def():
+                        self.args[:-1].forEach(def(expr, i):
+                            if i:
+                                output.comma()
+                            expr.print(output)
+                        )
+                    )
+                else:
+                    # no basic args, just start with *args
+                    self.args[0].print(output)
+
+                # proceed to **kwargs
+                if has_kwargs or self.args.length > 1:
+                    output.print('.concat')
+                    output.with_parens(def():
+                        # add *args if we didn't yet
+                        if self.args.length > 1:
+                            self.args[-1].print(output)
+                            if has_kwargs:
+                                output.comma()
+                        output_kwargs()
+                    )
+            )
+
+        elif has_kwargs and (isinstance(self, AST_New) or self.expression and self.expression.expression):
+            # **kwargs for class methods require .call() notation since currying loses track of the context
+            output.print('.call')
+            output.with_parens(def():
+                obj.print(output)
+                for arg in self.args:
+                    output.comma()
+                    arg.print(output)
+                output.comma()
+                output_kwargs()
             )
         else:
+            # regular function call
             output.with_parens(def():
-                # normal args
                 self.args.forEach(def(expr, i):
                     if i:
                         output.comma()
@@ -1826,8 +1883,7 @@ def OutputStream(options):
                 # kwargs as hash
                 if has_kwargs:
                     if self.args.length:
-                        output.print(',')
-                        output.space()
+                        output.comma()
                     output_kwargs()
             )
     )
@@ -1932,14 +1988,20 @@ def OutputStream(options):
         }
         function_ops = {
             "in": "ՐՏ_in",
-            "**": "Math.pow"
+            "**": "Math.pow",
+            "//": "Math.floor"
         }
 
         if self.operator in function_ops:
             output.print(function_ops[self.operator])
             output.with_parens(def():
                 self.left.print(output)
-                output.comma()
+                if self.operator == "//":
+                    output.space()
+                    output.print('/')
+                    output.space()
+                else:
+                    output.comma()
                 self.right.print(output)
             )
         elif comparators[self.operator] and isinstance(self.left, AST_Binary) and comparators[self.left.operator]:
@@ -1977,6 +2039,17 @@ def OutputStream(options):
             self.right.print(output)
     )
     DEFPRINT(AST_Assign, def(self, output):
+        if self.operator == '//=':
+            output.assign(self.left)
+            output.print('Math.floor')
+            output.with_parens(def():
+                self.left.print(output)
+                output.space()
+                output.print('/')
+                output.space()
+                self.right.print(output)
+            )
+            return
         if isinstance(self.left, AST_Array):
             output.print("ՐՏ_Unpack")
         else:
@@ -1984,6 +2057,9 @@ def OutputStream(options):
         output.space()
         output.print(self.operator)
         output.space()
+        if isinstance(self.right, AST_New):
+            # FIXME: a hack, see declaration for full explanation
+            CREATION.push(self.left)
         self.right.print(output)
         if isinstance(self.left, AST_Array):
             output.semicolon()
@@ -2136,7 +2212,7 @@ def OutputStream(options):
             else:
                 return False
 
-    # self should be AST_New.  decide if we want to show parens or not.
+    # self should be AST_New, decide if we want to show parens or not.
     def no_constructor_parens(self, output):
         return self.args.length == 0 and not output.option("beautify")
 

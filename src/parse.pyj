@@ -72,7 +72,16 @@ NATIVE_CLASSES = {
     'RegExp': {},
     'Error': {},
     'Object': {
-        static: [ "getOwnPropertyNames", "keys", "create" ]
+        static: [
+            "assign",               # ES6
+            "getOwnPropertyNames",
+            "keys",
+            "create",
+            "defineProperty",
+            "defineProperties",
+            "getPrototypeOf",       # ES6
+            "setPrototypeOf",       # ES6
+        ]
     },
     'String': {
         static: [ "fromCharCode" ]
@@ -99,14 +108,15 @@ NATIVE_CLASSES = {
     'Uint32Array': {},
     'Uint8Array': {},
     'Uint8ClampedArray': {},
-    'Map': {},
-    'WeakMap': {},
-    'Set': {},
-    'WeakSet': {},
+    'Map': {},      # ES6
+    'WeakMap': {},  # ES6
+    'Set': {},      # ES6
+    'WeakSet': {},  # ES6
 
     # baselib
     "AssertionError": {},
     "IndexError": {},
+    "KeyError": {},
     "TypeError": {},
     "ValueError": {},
 }
@@ -137,6 +147,7 @@ OPERATORS = makePredicate([
     "**",
     "*",
     "/",
+    "//",
     "%",
     ">>",
     "<<",
@@ -155,6 +166,7 @@ OPERATORS = makePredicate([
     "+=",
     "-=",
     "/=",
+    "//=",
     "*=",
     "%=",
     ">>=",
@@ -203,30 +215,41 @@ UNICODE = {  # {{{
 BASELIB = {}
 STDLIB = [
     "abs",
-    "bind",
-    "rebind_all",
+    "bin",
+    "cmp",
+    "chr",
     "dir",
+    "hex",
+    "max",
+    "min",
     "mixin",
     "print",
     "range",
+    "reduce",
     "getattr",
     "setattr",
     "hasattr",
 
     # unique to RapydScript
     "eq",
+    "bind",
+    "rebind_all",
 
     # list operations
+    "all",
+    "any",
     "enumerate",
     "filter",
     "len",
     "map",
     "reversed",
     "sum",
+    "zip",
 
     # errors
     "AssertionError",
     "IndexError",
+    "KeyError",
     "TypeError",
     "ValueError",
 ]
@@ -805,7 +828,7 @@ UNARY_PREFIX = makePredicate([
 
 UNARY_POSTFIX = makePredicate([ "--", "++" ])
 
-ASSIGNMENT = makePredicate([ "=", "+=", "-=", "/=", "*=", "%=", ">>=", "<<=", ">>>=", "|=", "^=", "&=" ])
+ASSIGNMENT = makePredicate([ "=", "+=", "-=", "/=", "//=", "*=", "%=", ">>=", "<<=", ">>>=", "|=", "^=", "&=" ])
 
 PRECEDENCE = def(a, ret):
     for i in range(a.length):
@@ -824,7 +847,7 @@ PRECEDENCE = def(a, ret):
     [ "<", ">", "<=", ">=", "in", "instanceof" ],
     [ ">>", "<<", ">>>" ],
     [ "+", "-" ],
-    [ "*", "/", "%" ],
+    [ "*", "/", "//", "%" ],
     [ "**" ]
     # highest precedence
 ], {})
@@ -836,12 +859,12 @@ ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ]
 # -----[ Parser ]-----
 def parse($TEXT, options):
     options = defaults(options, {
-        strict: False,      # whether to use strict JavaScript mode
-        filename: None,     # name of the file being parsed
-        auto_bind: False,   # whether auto-binding of methods to classes is enabled
-        module_id:'__main__', # The id of the module being parsed
+        strict: False,          # whether to use strict JavaScript mode
+        filename: None,         # name of the file being parsed
+        auto_bind: False,       # whether auto-binding of methods to classes is enabled
+        module_id: '__main__',  # The id of the module being parsed
         toplevel: None,
-        classes: undefined  # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
+        classes: undefined      # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
     })
     module_id = options.module_id
     IMPORTED = options.IMPORTED or {}
@@ -1521,6 +1544,8 @@ def parse($TEXT, options):
             "static": [],
             bound: {}
         }
+
+        # class setup
         definition = new AST_Class({
             name: name,
             module_id:module_id,
@@ -1537,6 +1562,7 @@ def parse($TEXT, options):
             "static": class_details.static,
             external: externaldecorator != -1,
             bound: class_details.bound,
+            statements: [],
             decorators: def():
                 d = []
                 S.decorators.forEach(def(decorator):
@@ -1551,6 +1577,8 @@ def parse($TEXT, options):
             .call(this),
             body: def(loop, labels):
                 # navigate to correct location in the module tree and append the class
+
+                # state "push"
                 S.in_class.push(name.name)
                 S.classes[S.classes.length - 1][name.name] = class_details
                 S.classes.push({})
@@ -1558,21 +1586,55 @@ def parse($TEXT, options):
                 S.in_directives = True
                 S.in_loop = 0
                 S.labels = []
+
                 a = block_()
+
+                # state "pop"
                 S.in_function -= 1
                 S.classes.pop()
                 S.in_class.pop()
                 S.in_loop = loop
                 S.labels = labels
+
                 return a
             .call(this, S.in_loop, S.labels)
         })
+
         # find the constructor
         for i in dir(definition.body):
             stmt = definition.body[i]
             if isinstance(stmt, AST_Method) and stmt.name.name == "__init__":
                 definition.init = stmt
                 break
+
+        # find class variables
+        class_var_names = {}
+        # Ensure that if a class variable refers to another class variable in
+        # its initialization, the referenced variables' names are correctly
+        # mangled.
+        def walker():
+            this._visit = def(node, descend):
+                if isinstance(node, AST_Method):
+                    class_var_names[node.name.name] = True
+                    return
+                elif isinstance(node, AST_Assign) and isinstance(node.left, AST_SymbolRef):
+                    class_var_names[node.left.name] = True
+
+                for child in node:
+                    if isinstance(node[child], AST_SymbolRef) and Object.prototype.hasOwnProperty.call(class_var_names, node[child].name):
+                        node[child] = new AST_SymbolClassRef({
+                            'class': name,
+                            'name': node[child].name
+                        })
+                if descend:
+                    descend.call(node)
+        visitor = new walker()
+
+        for stmt in definition.body:
+            if not isinstance(stmt, AST_Class):
+                stmt.walk(visitor)
+                definition.statements.push(stmt)
+
         return definition
 
     function_ = def(in_class, ctor):
@@ -1617,6 +1679,10 @@ def parse($TEXT, options):
                     else:
                         expect(",")
                     if is_('operator', '**'):
+
+                        # FIXME: temporary assertion while I get the logic tested and out the door
+                        token_error(prev(), "**kwargs in function definition is not implemented yet, work in progress")
+
                         # **kwargs
                         next()
                         if a.kwargs:
@@ -1990,8 +2056,11 @@ def parse($TEXT, options):
             tmp.kwargs = []
             for i, arg in enumerate(a):
                 if isinstance(arg, AST_Assign):
+                    # arg=val
+                    BASELIB['kwargs'] = True
                     tmp.kwargs.push([arg.left, arg.right])
                 else:
+                    # regular argument
                     tmp.push(arg)
             a = tmp
 
@@ -2012,24 +2081,25 @@ def parse($TEXT, options):
             else:
                 expect(",")
             if is_('operator', '*'):
+                # starargs argument
                 next()
                 arg = expression(False)
                 arg.is_array = True
                 a.push(arg)
                 a.starargs = True
             elif is_('operator', '**'):
+                # kwargs argument
+                BASELIB['kwargs'] = True
                 next()
                 kwargs.push(as_symbol(AST_SymbolVar, False))
-                a.starargs = True
             else:
+                # arg=val assignment
                 arg = expression(False)
                 if isinstance(arg, AST_Assign):
+                    BASELIB['kwargs'] = True
                     a.kwargs.push([arg.left, arg.right])
                 else:
                     a.push(arg)
-        if a.kwargs:
-            BASELIB['symbolfor'] = True
-            BASELIB['desugar_kwargs'] = True
         next()
         return a
 

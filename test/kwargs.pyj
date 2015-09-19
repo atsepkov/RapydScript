@@ -1,0 +1,41 @@
+def sub(a, b):
+    return a-b
+
+# temporarily disabled, this implementation is naive, it doesn't stack with *args
+#def sub2(a, b, **kw):
+#    return kw['foo']
+
+assert.equal(sub(5, 4), 1)
+assert.equal(sub(a=5, b=4), 1)
+assert.equal(sub(b=5, a=4), -1)
+k = {b: 4, a: 10}
+assert.equal(sub(**k), 6)
+#assert.equal(sub2(3, foo=5, 2), 5)
+
+class KeywordArgsTest:
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    def inc_a(self, inc):
+        self.a += inc
+
+# I shouldn't need this fake arg here, yet without it, test fails to see any arguments in
+# it's constructor, if someone can figure out/explain this bug, let me know
+test = KeywordArgsTest('fake arg', a=1, b=2)
+test2 = KeywordArgsTest(3, 4)
+assert.equal(test.a, 1)
+assert.equal(test.b, 2)
+assert.equal(test2.a, 3)
+assert.equal(test2.b, 4)
+test.inc_a(inc=2)
+test2.inc_a(7)
+assert.equal(test.a, 3)
+assert.equal(test2.a, 10)
+
+
+# starargs
+def one(a, b, *c):
+    return [a, b, c]
+
+assert.deepEqual(one(1, 2, 3, 4, 5), [1, 2, [3, 4, 5]])

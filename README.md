@@ -23,6 +23,44 @@ RapydScript allows to write your front-end in Python without the overhead that o
 Let's not waste any more time with the introductions, however. The best way to learn a new language/framework is to dive in.
 
 
+Table of Contents
+-----------------
+	- [Community](#)
+	- [Installation](#)
+	- [Compilation](#)
+	- [Getting Started](#)
+	- [Leveraging other APIs](#)
+	- [Anonymous Functions](#)
+	- [Decorators](#)
+	- [Self-Executing Functions](#)
+	- [Chaining Blocks](#)
+	- [Function calling with optional arguments](#)
+	- [Inferred Tuple Packing/Unpacking](#)
+	- [Python vs JavaScript](#)
+	- [Loops](#)
+	- [List Comprehensions](#)
+	- [Inclusive/Exclusive Sequences](#)
+	- [Classes](#)
+		- [External Classes](#)
+		- [Method Binding](#)
+	- [Modules](#)
+	- [Exception Handling](#)
+	- [Scope Control](#)
+	- [Importing](#)
+	- [Available Libraries](#)
+	- [Advanced Usage Topics](#)
+		- [Browser Compatibility](#)
+		- [Code Conventions](#)
+			- [Tabs vs Spaces](#)
+			- [Object Literals vs Hashes/Dicts](#)
+			- [Semi-Colons](#)
+			- [Raw JavaScript](#)
+			- [jQuery-wrapped Elements](#)
+			- [Libraries](#)
+			- [External Libraries and Classes](#)
+	- [Quirks](#)
+
+
 Community
 ---------
 If you have questions, bug reports, or feature requests, feel free to post them on our mailing list:  
@@ -30,13 +68,13 @@ If you have questions, bug reports, or feature requests, feel free to post them 
 
 I bundled a few demos with RapydScript itself, but several members of the community put together much better demos themselves. If you would like to take a look at them to see what's possible with RapydScript, here are some examples:
 
-<http://salvatore.diodev.fr/RapydScript>  
+<http://salvatore.pythonanywhere.com/RapydScript>  
 This includes the demos from RapydScript's `examples` directory, as well as a few others.
 
-<http://salvatore.diodev.fr/RapydBox>  
+<http://salvatore.pythonanywhere.com/RapydBox>  
 This is a collection of very cool demos, showcasing RapydScript's similarity to real Python and at the same time its ability to work with other JavaScript. It relies on a JavaScript port of NodeBox (which was originally written in Python). NodeBox was ported from Python to JavaScript to allow cross-platform compatibility. Ironically, the original demos from Python version of NodeBox now work with JavaScript version of NodeBox with few changes (and sometimes none at all) by using RapydScript.
 
-<http://salvatore.diodev.fr/RapydGlow>
+<http://salvatore.pythonanywhere.com/RapydGlow>
 RapydScript making use of GlowScript, another project done by a member of our community
 
 
@@ -91,6 +129,8 @@ The rest of the option remain from UglifyJS and have not been tested, some may w
 
 Getting Started
 ---------------
+As you read the following sections, I suggest you start a RapydScript shell (by typing `rapydscript` without arguments) and follow along. You'll be able to see both, the generated JavaScript, and the output produced by the given RapydScript command.
+
 Like JavaScript, RapydScript can be used to create anything from a quick function to a complex web-app. RapydScript can access anything regular JavaScript can, in the same manner. Let's say we want to write a function that greets us with a "Hello World" pop-up. The following code will do it:
 
 	def greet():
@@ -373,6 +413,7 @@ each time the function is called.  This makes it slightly less efficient, but
 prevents the common bug in python caused by using a mutable object literal as
 the default value for an optional argument.
 
+
 Inferred Tuple Packing/Unpacking
 --------------------------------
 Like Python, RapydScript allows inferred tuple packing/unpacking and assignment. While inferred/implicit logic is usually bad, it can sometimes make the code cleaner, and based on the order of statements in the Zen of Python, 'beautiful' takes priority over 'explicit'. For example, if you wanted to swap two variables, the following looks cleaner than explicitly declaring a temporary variable:
@@ -446,8 +487,10 @@ There is a subtle difference between the last 2 lines above, arr.pop(2) will ret
 	True/true		true
 	undefined		undefined
 	this			this
+	NaN				NaN
+	Infinity		Infinity
 
-The JavaScript operators, however, are not supported. You will have to use Python versions of those. If you're unfamiliar with them, here is the mapping RapydScript uses:
+The basic operators like `+, +=, -, -=, /, /=, *, *=` work the same way in both languages as well. The JavaScript operators, however, are not supported. You will have to use Python versions of those. If you're unfamiliar with them, here is the mapping RapydScript uses:
 
 	RapydScript		JavaScript
 	
@@ -461,6 +504,7 @@ The JavaScript operators, however, are not supported. You will have to use Pytho
 	+=1				++
 	-=1				--
 	**				Math.pow()
+	//				floor division
 	
 Admittedly, `is` is not exactly the same thing in Python as `===` in JavaScript, but JavaScript is quirky when it comes to comparing objects anyway.
 
@@ -504,7 +548,7 @@ Which one looks cleaner is subject to personal preference (I'm used to seeing co
 
 Loops
 -----
-RapydScript's loops work like Python, not JavaScript. You can't, for example use 'for(i=0;i<max;i++)' syntax. You can, however, loop through arrays using 'for ... in' syntax without worrying about the extra irrelevant attributes regular JavaScript returns.
+RapydScript loops work like Python, not JavaScript. You can't, for example, use 'for(i=0;i<max;i++)' syntax. You can, however, loop through arrays using 'for ... in' syntax without worrying about the extra irrelevant attributes regular JavaScript returns.
 
 	animals = ['cat', 'dog', 'mouse', 'horse']
 	for animal in animals:
@@ -520,7 +564,10 @@ Like in Python, if you just want the index, you can use range:
 	for index in range(len(animals)):			# or range(animals.length)
 		print("animal "+index+" is a "+animals[index])
 
-When possible, RapydScript will automatically optimize the loop for you into JavaScript's basic syntax, so you're not missing much by not being able to call it directly.
+When possible, RapydScript will automatically optimize the loop for you into JavaScript basic syntax, so you're not missing much by not being able to call it directly. However, if for some reason you really need to, you always can:
+
+	for JS('i = 0; i < 50; i++'):
+		print(i)
 
 
 List Comprehensions

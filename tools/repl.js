@@ -37,16 +37,8 @@ function create_ctx(baselib, show_js, console) {
     vm.runInContext("Object.preventExtensions(repl)", ctx);
 
     // load baselib
-	vm.runInContext(baselib, ctx, {'filename':'baselib.js'});
-	var b = vm.runInContext('this', ctx);
-	for (var key in b) {
-		if (key.substr(0, 9) == '_$rapyd$_' && key.substr(key.length - 9) == '_polyfill') {
-			var symname = key.substr(9, key.length - 18);
-			vm.runInContext('var ' +  symname + ' = ' + key + '();', ctx);
-		}
-	}
-
-	RapydScript.AST_Node.warn_function = function() {};
+    vm.runInContext(baselib, ctx, {'filename': 'baselib.js'});
+    RapydScript.AST_Node.warn_function = function() {};
     return ctx;
 }
 
@@ -97,8 +89,8 @@ function write_history(options, history) {
     }
 }
 
-// Completion {{{
 
+// tab-completion
 function global_names(ctx, options) {
     try {
         var ans = vm.runInContext(options.enum_global, ctx);
@@ -211,10 +203,10 @@ function find_completions(line, ctx, options) {
     }
     return [];
 }
-// }}}
+
 
 module.exports = function(options) {
-	var output_options = {
+    var output_options = {
         'omit_baselib': true,
         'write_name': false,
         'private_scope': false,
@@ -223,9 +215,9 @@ module.exports = function(options) {
     options = repl_defaults(options);
     options.completer = completer;
     var rl = options.readline.createInterface(options);
-	ps1 = options.colored(options.ps1, 'green');
-	ps2 = options.colored(options.ps2, 'yellow');
-	var ctx = create_ctx(options.baselib, options.show_js, options.console);
+    ps1 = options.colored(options.ps1, 'green');
+    ps2 = options.colored(options.ps2, 'yellow');
+    var ctx = create_ctx(options.baselib, options.show_js, options.console);
     var buffer = [];
     var more = false;
     var LINE_CONTINUATION_CHARS = ':\\';
@@ -309,7 +301,9 @@ module.exports = function(options) {
         }
 
         if (show_result) {
-            if (result !== undefined) {
+            if (result == "use strict") {
+                // use strict is from our prepend, show nothing
+            } else if (result !== undefined) {
                 options.console.log(util.inspect(result, {
                     'colors': options.terminal,
                     'depth': vm.runInContext('repl.maxPrintDepth', ctx),
@@ -329,7 +323,7 @@ module.exports = function(options) {
                 'filename':'<repl>',
                 'readfile': fs.readFileSync,
                 'basedir': process.cwd(),
-                'libdir': options.src_lib_path,
+                'libdir': options.import_path,
                 'classes': classes
             });
         } catch(e) {
@@ -371,7 +365,7 @@ module.exports = function(options) {
         return incomplete;
     }
 
-	rl.on('line', function(line) {
+    rl.on('line', function(line) {
         sigint = false;
         if (more) {
             // We are in a block 
@@ -385,16 +379,16 @@ module.exports = function(options) {
         } else {
             more = push(line);  // Not in a block, evaluate line
         }
-		prompt();
-	})
-	
-	.on('close', function() {
-		options.console.log('Bye!');
+        prompt();
+    })
+    
+    .on('close', function() {
+        options.console.log('Bye!');
         if (rl.history) write_history(options, rl.history);
-		process.exit(0);
-	})
+        process.exit(0);
+    })
 
-	.on('SIGINT', function() {
+    .on('SIGINT', function() {
         if (sigint) {
             rl.close();
         } else {
@@ -405,12 +399,12 @@ module.exports = function(options) {
             more = false;
             prompt();
         }
-	})
+    })
 
-	.on('SIGCONT', function() {
-		prompt();
-	});
+    .on('SIGCONT', function() {
+        prompt();
+    });
 
     rl.history = read_history(options);
-	prompt();
+    prompt();
 };

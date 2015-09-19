@@ -318,7 +318,14 @@ AST_ListComprehension = DEFNODE("ListComprehension", "condition statement", {
     $propdoc: {
         condition: "[AST_Node] the `if` condition",
         statement: "[AST_Node] statement to perform on each element before returning it"
-    }
+    },
+    _walk: def(visitor):
+        node = this
+        return visitor._visit(node, def():
+            node.init._walk(visitor)
+            if (node.condition) node.condition._walk(visitor)
+            node.statement._walk(visitor)
+        )
 }, AST_ForIn)
 
 AST_With = DEFNODE("With", "expression", {
@@ -479,11 +486,12 @@ AST_Decorator = DEFNODE("Decorator", "name", {
     }
 })
 
-AST_Lambda = DEFNODE("Lambda", "name argnames uses_arguments decorators", {
+AST_Lambda = DEFNODE("Lambda", "name argnames kwargs uses_arguments decorators", {
     $documentation: "Base class for functions",
     $propdoc: {
         name: "[AST_SymbolDeclaration?] the name of this function",
         argnames: "[AST_SymbolFunarg*] array of function arguments",
+        kwargs: "[AST_SymbolFunarg?] kwargs symbol, if any",
         uses_arguments: "[boolean/S] tells whether this function accesses the arguments array",
         decorators: "[AST_Decorator*] function decorators, if any"
     },
@@ -496,6 +504,8 @@ AST_Lambda = DEFNODE("Lambda", "name argnames uses_arguments decorators", {
             node.argnames.forEach(def(arg):
                 arg._walk(visitor)
             )
+            if node.kwargs:
+                node.kwargs._walk(visitor)
             walk_body(node, visitor)
         )
 }, AST_Scope)
@@ -508,7 +518,7 @@ AST_Function = DEFNODE("Function", None, {
     $documentation: "A function expression"
 }, AST_Lambda)
 
-AST_Class = DEFNODE("Class", "init name parent static external bound decorators module_id", {
+AST_Class = DEFNODE("Class", "init name parent static external bound decorators module_id statements", {
     $documentation: "A class declaration",
     $propdoc: {
         name: "[AST_SymbolDeclaration?] the name of this class",
@@ -519,13 +529,15 @@ AST_Class = DEFNODE("Class", "init name parent static external bound decorators 
         bound: "[string*] hash of methods that need to be bound to behave correctly (function pointers)",
         decorators: "[AST_Decorator*] function decorators, if any",
         module_id: "[string] The id of the module this class is defined in",
+        statements: "[AST_Node*] list of statements in the class scope (excluding method definitions)",
     },
     _walk: def(visitor):
         node = this
         return visitor._visit(node, def():
             node.name._walk(visitor)
             walk_body(this, visitor)
-            node.parent._walk(visitor)
+            if node.parent:
+                node.parent._walk(visitor)
         )
 }, AST_Scope)
 
@@ -1070,6 +1082,13 @@ AST_SymbolRef = DEFNODE("SymbolRef", "parens", {
     $documentation: "Reference to some symbol (not definition/declaration)",
     $propdoc: {
         parens: "[boolean/S] if true, this variable is wrapped in parentheses"
+    }
+}, AST_Symbol)
+
+AST_SymbolClassRef = DEFNODE("SymbolClassRef", "class", {
+    $documentation: "Reference to class symbol",
+    $propdoc: {
+        class: "[AST_SymbolDeclaration?] the name of this class",
     }
 }, AST_Symbol)
 

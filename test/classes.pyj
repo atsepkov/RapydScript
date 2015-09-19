@@ -1,41 +1,41 @@
 # empty classes are allowed
 class Blank:
-	pass
+    pass
 blank = Blank()
 assert.ok(isinstance(blank, Blank))
 
 # basic class
 class Human:
-	def __init__(self, name):
-		self.name = name
+    def __init__(self, name):
+        self.name = name
 
-	def greet(self):
-		return "Hello, I'm " + self.name
+    def greet(self):
+        return "Hello, I'm " + self.name
 
-	@staticmethod
-	def getTypicalWeight():
-		return "150"
+    @staticmethod
+    def getTypicalWeight():
+        return "150"
 
 
 # don't have to declare __init__, it either gets inherited or stays empty
 # isinstance correctly sees inheritance
 class Friend(Human):
-	def greet(self):
-		return "Yo, it's me, " + self.name
+    def greet(self):
+        return "Yo, it's me, " + self.name
 
-	def nickname(self, name):
-		self.name = name
+    def nickname(self, name):
+        self.name = name
 
 # __init__ doesn't have to come first
 # can call methods of other classes
 class OldFriend(Friend):
-	def how_long(self):
-		return "I've known you for " + self.duration + " years"
-	def get_bound_method(self):
-		return bind(self.how_long, self)
-	def __init__(self, name, duration):
-		self.duration = duration
-		Friend.__init__(self, name)
+    def how_long(self):
+        return "I've known you for " + self.duration + " years"
+    def get_bound_method(self):
+        return bind(self.how_long, self)
+    def __init__(self, name, duration):
+        self.duration = duration
+        Friend.__init__(self, name)
 
 bob = Human("Bob")
 assert.equal(bob.greet(), "Hello, I'm Bob")
@@ -57,14 +57,14 @@ assert.equal(bound(), angela.how_long())
 
 # function methods
 assert.deepEqual(dir(angela).sort(), [
-	"__init__",
-	"constructor",
-	"duration",
-	"get_bound_method",
-	"greet",
-	"how_long",
-	"name",
-	"nickname"
+    "__init__",
+    "constructor",
+    "duration",
+    "get_bound_method",
+    "greet",
+    "how_long",
+    "name",
+    "nickname"
 ])
 
 # test that binding works in relation to the actual class, not the parent
@@ -73,22 +73,22 @@ assert.equal(angela.greet(), "Yo, it's me, Angie")
 
 dude = None
 (def fake_module():
-	# test that we can declare classes inside other blocks
-	# test that we can call methods of classes we didn't inherit from
-	nonlocal dude
-	class Stranger(Human):
-		def greet(self):
-			return Friend.greet(self)
-	dude = Stranger("some guy")
+    # test that we can declare classes inside other blocks
+    # test that we can call methods of classes we didn't inherit from
+    nonlocal dude
+    class Stranger(Human):
+        def greet(self):
+            return Friend.greet(self)
+    dude = Stranger("some guy")
 )()
 assert.equal(dude.greet(), "Yo, it's me, some guy")
 # also test that classes declared this way are not globally scoped (while normal ones are)
 assert.throws(
-	def():
-		Friend("another friend")
-		Stranger("another guy")
-	,
-	/Stranger is not defined/
+    def():
+        Friend("another friend")
+        Stranger("another guy")
+    ,
+    /Stranger is not defined/
 )
 
 # attributes
@@ -112,11 +112,11 @@ assert.ok(String.call(this, 'a') == 'a') # string literal via static method on s
 
 # self consistency
 class Counter:
-	def __init__(s, n=0):
-		s.count = n # first arg becomes 'self'
-	def getIncrementer(self):
-		return def():
-			self.count += 1
+    def __init__(s, n=0):
+        s.count = n # first arg becomes 'self'
+    def getIncrementer(self):
+        return def():
+            self.count += 1
 c = Counter(5)
 inc = c.getIncrementer()
 inc()
@@ -125,44 +125,44 @@ assert.equal(c.count, 6)
 # nested classes
 # not yet fully implemented
 #class Molecule:
-#	class Atom:
-#		def __init__(self, element):
-#			self.element = element
+#   class Atom:
+#       def __init__(self, element):
+#           self.element = element
 #
-#	def __init__(self, elements):
-#		self.structure = []
-#		for e in elements:
-#			self.structure.push(Molecule.Atom(e))
+#   def __init__(self, elements):
+#       self.structure = []
+#       for e in elements:
+#           self.structure.push(Molecule.Atom(e))
 #
 #water = Molecule(['H', "H", 'O'])
 #assert.equal(len(water.structure), 3)
 #assert.equal(water.structure[0].element, 'H')
 #for atom in water.structure:
-#	assert.ok(isinstance(atom, Molecule.Atom))
+#   assert.ok(isinstance(atom, Molecule.Atom))
 
 # starargs and method decorators
 def negate(fn):
-	def wrapped(*args):
-		return -fn(*args)
-	return wrapped
+    def wrapped(*args):
+        return -fn(*args)
+    return wrapped
 
 def add_pi(cls):
-	cls.prototype.pi = 3.14
-	return cls
+    cls.prototype.pi = 3.14
+    return cls
 
 @add_pi
 class Math:
-	def sum(s, *args):
-		# fakearg simply tests that offsets work correctly
-		ttl = 0
-		for i in args:
-			ttl += i
-		return ttl
-	def concatSum(s, string, *nums):
-		return string + s.sum(*nums)
-	@negate
-	def plus(s, a, b):
-		return a+b
+    def sum(s, *args):
+        # fakearg simply tests that offsets work correctly
+        ttl = 0
+        for i in args:
+            ttl += i
+        return ttl
+    def concatSum(s, string, *nums):
+        return string + s.sum(*nums)
+    @negate
+    def plus(s, a, b):
+        return a+b
 
 m = Math()
 assert.equal(m.sum(1,2,3), 6)
@@ -170,3 +170,15 @@ assert.equal(m.sum(1,*[2,3]), 6)
 assert.equal(m.concatSum("foo", 1, 2, 5), "foo8")
 assert.equal(m.plus(2, 5), -7)
 assert.equal(m.pi, 3.14)
+
+
+# class arguments
+class C:
+    a = b = 1
+    c = a + b
+    if True:
+        d = 1
+    else:
+        d = 2
+c = C()
+assert.deepEqual([c.a, c.b, c.c, c.d], [1, 1, 2, 1])
