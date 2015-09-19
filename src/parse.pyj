@@ -1713,9 +1713,6 @@ def parse($TEXT, options):
 
                 next()
                 a.defaults = defaults
-                a.is_simple_func = not a.starargs and not a.kwargs and not a.has_defaults
-                if not a.is_simple_func:
-                    BASELIB['symbolfor'] = True
                 return a
             .call(this, []),
             localvars: [],
@@ -2440,8 +2437,6 @@ def parse($TEXT, options):
                             right: args[1],
                             end: prev()
                         })
-                    elif tmp_ == 'symbolfor':
-                        BASELIB[tmp_ + '()'] = True
 
                 # fall-through to basic function call
                 return subscripts(new AST_Call({

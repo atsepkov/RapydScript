@@ -1,4 +1,0 @@
-assert.equal(typeof symbolfor, 'function')
-if typeof Symbol == 'function':
-    assert.equal(typeof symbolfor('a'), 'symbol')
-assert.equal(symbolfor('a'), symbolfor('a'))

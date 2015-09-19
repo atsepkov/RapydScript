@@ -258,31 +258,6 @@
                 args.push(kw)
         return f.apply(this, args)
 ,
-"symbolfor": def():
-    symbolfor = (def ՐՏ_symbolfor_polyfill():
-        if typeof Symbol == 'function' and typeof Symbol.for == 'function':
-            return Symbol.for
-        return (def(name):
-                return name + '-Symbol-' + '5d0927e5554349048cf0e3762a228256'
-        )
-    )()
-,
-"desugar_kwargs": def():
-    desugar_kwargs = (def ՐՏ_desugar_kwargs():
-        if Object.assign:
-            return def():
-                ans = {}
-                ans[symbolfor('ՐՏ_kwargs_obj')] = True
-                return Object.assign.apply(ans, arguments)
-        return def():
-            ans = {}
-            ans[symbolfor('ՐՏ_kwargs_obj')] = True
-            for JS('var i = 0; i < arguments.length; i++'):
-                for prop in Object.keys(arguments[i]):
-                    ans[prop] = arguments[i][prop]
-            return ans
-    )()
-,
 
 # Errors
 # temporarily implemented via a wrapper pattern since there is no mechanism for assigning
