@@ -1631,7 +1631,7 @@ def parse($TEXT, options):
         visitor = new walker()
 
         for stmt in definition.body:
-            if not isinstance(stmt, AST_Class):
+            if not isinstance(stmt, AST_Class) and not isinstance(stmt, AST_Method):
                 stmt.walk(visitor)
                 definition.statements.push(stmt)
 
