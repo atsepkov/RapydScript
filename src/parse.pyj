@@ -404,7 +404,7 @@ def tokenizer($TEXT, filename):  # {{{
 
         if type == "punc":
             #            if (value == ":" && peek() == "\n") {
-            if value == ":" and not S.index_or_slice.slice(-1)[0]
+            if value == ":" and not S.index_or_slice[-1]
             and (not S.text.substring(S.pos + 1, find("\n")).trim() or not S.text.substring(S.pos + 1, find("#")).trim()):
                 S.newblock = True
                 S.indentation_matters.push(True)
@@ -448,7 +448,7 @@ def tokenizer($TEXT, filename):  # {{{
     def test_indent_token(leading_whitespace):
         most_recent = S.whitespace_before[S.whitespace_before.length - 1] or ""
         S.endblock = False
-        if S.indentation_matters.slice(-1)[0] and leading_whitespace != most_recent:
+        if S.indentation_matters[-1] and leading_whitespace != most_recent:
             if S.newblock and leading_whitespace and leading_whitespace.indexOf(most_recent) == 0:
                 # positive indent, new block
                 S.newblock = False
@@ -663,10 +663,13 @@ def tokenizer($TEXT, filename):  # {{{
             if not backslash:
                 if ch == "\\":
                     if S.text.charAt(S.pos + 1) == "\n":
+                        # stitching lines together
                         S.pos += 2
                         continue
                     else:
-                        escaped = backslash = True, next()
+                        # actual backslash
+                        escaped = backslash = True
+                        next()
                 elif is_identifier_char(ch):
                     name += next()
                 else:
@@ -1215,7 +1218,7 @@ def parse($TEXT, options):
                 return class_()
             elif tmp_ == "def":
                 start = prev()
-                func = function_(S.in_class.slice(-1)[0])
+                func = function_(S.in_class[-1])
                 func.start = start
                 func.end = prev()
                 chain = subscripts(func, True)
@@ -1333,6 +1336,21 @@ def parse($TEXT, options):
             label: label
         })
 
+    def seq_to_array(seq):
+        # convert AST_Seq into AST_Array
+        tmp = []
+        iter = seq
+        while iter and iter.car:
+            tmp.push(iter.car)
+            iter = iter.cdr
+        tmp.push(iter)
+
+        return new AST_Array({
+            start: seq.start,
+            elements: tmp,
+            end: seq.end
+        })
+
     def for_(list_comp):
         #        expect("(");
         init = None
@@ -1340,18 +1358,7 @@ def parse($TEXT, options):
             init = expression(True, True)
             # standardize AST_Seq into array now for consistency
             if isinstance(init, AST_Seq):
-                tmp = []
-                iter = init
-                while iter and iter.car:
-                    tmp.push(iter.car)
-                    iter = iter.cdr
-
-                tmp.push(iter)
-                init = new AST_Array({
-                    start: init.start,
-                    elements: tmp,
-                    end: init.end
-                })
+                init = seq_to_array(init)
 
             if is_("operator", "in"):
                 if isinstance(init, AST_Var) and init.definitions.length > 1:
@@ -1815,7 +1822,11 @@ def parse($TEXT, options):
 
                 cur = []
                 branch = new AST_Case({
-                    start: (tmp = S.token, next(), tmp),
+                    start: (def():
+                        tmp = S.token
+                        next()
+                        return tmp
+                    )(),
                     expression: expression(True),
                     body: cur
                 })
@@ -1827,7 +1838,12 @@ def parse($TEXT, options):
 
                 cur = []
                 branch = new AST_Default({
-                    start: (tmp = S.token, next(), expect(":"), tmp),
+                    start: (def():
+                        tmp = S.token
+                        next()
+                        expect(":")
+                        return tmp
+                    )(),
                     body: cur
                 })
                 a.push(branch)
@@ -2574,18 +2590,20 @@ def parse($TEXT, options):
                     # AST_Seq representation is ugly to decode for
                     # assignments, let's convert data to array now
                     # to avoid dealing with it
-                    #                    return new AST_TupleUnpack({
-                    #                        start    : start,
-                    #                        elements : left,
-                    #                        right    : expression(true, no_in),
-                    #                        end      : peek()
-                    #                    });
-                    left[left.length - 1] = left.slice(-1)[0].left
+                    left[-1] = left[-1].left
+                    if left.length == 1:
+                        if isinstance(left[0], AST_Seq):
+                            leftAst = seq_to_array(left[0])
+                        else:
+                            leftAst = left[0]
+                    else:
+                        leftAst = new AST_Array({
+                            elements: left
+                        })
+
                     return new AST_Assign({
                         start: start,
-                        left: (left.length == 1 ? left[0] : new AST_Array({
-                            elements: left
-                        })),
+                        left: leftAst,
                         operator: expr.operator,
                         right: new AST_Seq({
                             car: expr.right,
@@ -2598,8 +2616,8 @@ def parse($TEXT, options):
                 left.push(expr)
 
             # if last one was an assignment, fix it
-            if left.length > 1 and isinstance(left.slice(-1)[0], AST_Assign):
-                left[left.length - 1] = left.slice(-1)[0].left
+            if left.length > 1 and isinstance(left[-1], AST_Assign):
+                left[left.length - 1] = left[-1].left
                 return new AST_Assign({
                     start: start,
                     left: new AST_Array({
@@ -2610,7 +2628,8 @@ def parse($TEXT, options):
                     end: peek()
                 })
 
-            return def build_seq(a):
+            #recursive sequence formation
+            return (def build_seq(a):
                 if a.length == 1:
                     return a[0]
 
@@ -2620,7 +2639,7 @@ def parse($TEXT, options):
                     cdr: build_seq(a),
                     end: peek()
                 })
-            .call(this, left)
+            )(left)
         return expr
 
     def in_loop(cont):
