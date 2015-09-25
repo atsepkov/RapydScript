@@ -2615,6 +2615,10 @@ def parse($TEXT, options):
                 expr = maybe_assign(no_in)
                 left.push(expr)
 
+            # transform assignments to (a, b, ...) into [a, b, ...]
+            if isinstance(expr, AST_Assign) and isinstance(expr.left, AST_Seq):
+                expr.left = seq_to_array(expr.left)
+
             # if last one was an assignment, fix it
             if left.length > 1 and isinstance(left[-1], AST_Assign):
                 left[left.length - 1] = left[-1].left
@@ -2640,6 +2644,7 @@ def parse($TEXT, options):
                     end: peek()
                 })
             )(left)
+
         return expr
 
     def in_loop(cont):

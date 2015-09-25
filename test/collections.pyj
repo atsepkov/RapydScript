@@ -47,11 +47,13 @@ one = "one"
 two = "two"
 one, two = two, one
 [x, y, z] = 'x', 'y', 'z'
+(t, u, v) = 1, 2, 3
 assert.equal(one, "two")
 assert.equal(two, "one")
 assert.equal(x, 'x')
 assert.equal(y, 'y')
 assert.equal(z, 'z')
+assert.deepEqual([v, u, t], [3, 2, 1])
 
 
 # DICTIONARIES
