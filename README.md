@@ -49,6 +49,7 @@ Table of Contents
 	- [Importing](#)
 	- [Available Libraries](#)
 	- [Advanced Usage Topics](#)
+		- [System Scripts](#)
 		- [Browser Compatibility](#)
 		- [Code Conventions](#)
 			- [Tabs vs Spaces](#)
@@ -977,8 +978,19 @@ Advanced Usage Topics
 ---------------------
 This section contains various topics which might be of interest to the programmer writing large projects using RapydScript, but might not be relevant to a programmer who is just getting started with RapydScript. The topics in this section focus on coding conventions to keep your code clean, optimizations, and additional libraries that come with RapydScript, as well as suggestions for writing your own libraries.
 
+### System Scripts
+I typically have a language I strongly prefer over others for writing miscellaneous system scripts, things like moving files around or automating certain tasks on my home (or work) machine. *Bash* tends to work well for simple tasks without too much conditional logic. For other things I used to prefer *Python*. Today, I use *RapydScript* instead. JavaScript has a powerful ecosystem, and it would be a shame to let it go to waste. You can have your *RapydScript* files run natively on your OS as well. Do do so, you can include the following line at the top of your file and `chmod a+x` it:
+
+		#!/usr/bin/env rapydscript -x
+
+This is identical to the following terminal operation:
+
+		rapydscript --execute [filename]
+
+It will trigger the script, omitting the compiled code. You can include the `--pretty` option to include output of the compiled code as well.
+
 ### Browser Compatibility
-By default, RapydScript compiles your logic such that it will work on modern browsers running HTML5, as well as older browser like IE6-8. To do so, the compiler sometimes has to generate rather messy and inefficient output. As of September, 2013, less than 8% of the world has been found to be using IE8. If you know that your users will not be using older browsers, you can compile your logic with `--screw-ie8` option to generate cleaner, faster code.
+By default, RapydScript compiles your logic such that it will work on modern browsers running HTML5. Previously I generated code that was compatible with older versions of IE, but have since decided that it wasn't worth it. It prevented me from making use of sensible JavaScript features many developers take for granted (setters, getters, strict mode, etc.), forced special cases on me, and required overly verbose JavaScript with unnecessary polyfill. RapydScript no longer supports versions of IE before 9, but you can easily bring that support back into RapydScript with the help of a tool like `Modernizr` or `Babel`.
 
 ### Code Conventions
 It's not hard to see that RapydScript is a cleaner language than JavaScript. However, like with all dynamically-typed languages (including Python), it's still easy to shoot yourself in the foot if you don't follow some sort of code conventions. Needless to say, they're called `conventions` for a reason, feel free to ignore them if you already have a set of conventions you follow or if you disagree with some.
