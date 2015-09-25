@@ -52,12 +52,15 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
     function write_output(output) {
         if (argv.output) {
             fs.writeFileSync(argv.output, output, "utf8");
+        } else if (argv.execute) {
+            if (argv.beautify) {
+                console.log('\n------------ Compilation -------------\n');
+                console.log(output);
+                console.log('\n------------ Execution -------------\n');
+            }
+            vm.runInNewContext(output, {'console':console}, {'filename':files[0]});
         } else {
             console.log(output);
-        }
-        if (argv.execute) {
-            console.log('\n------------ Running script -------------\n');
-            vm.runInNewContext(output, {'console':console}, {'filename':files[0]});
         }
     }
 
