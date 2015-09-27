@@ -47,9 +47,11 @@
 """
 "use strict"
 
+ES6_KEYWORDS = "yield"
 KEYWORDS = "as break case class const continue debugger default def del do elif else except " +
 "finally for from if import in instanceof is new nonlocal pass raise return switch til to " +
-"try typeof var void while with or and not"
+"try typeof var void while with or and not" + " " + ES6_KEYWORDS
+
 
 KEYWORDS_ATOM = "False None True"
 
@@ -62,6 +64,7 @@ KEYWORDS_BEFORE_EXPRESSION = "return new del raise elif else if"
 ALL_KEYWORDS = RESERVED_WORDS + " " + KEYWORDS_BEFORE_EXPRESSION
 
 KEYWORDS = makePredicate(KEYWORDS)
+ES6_KEYWORDS = makePredicate(ES6_KEYWORDS)
 RESERVED_WORDS = makePredicate(RESERVED_WORDS)
 KEYWORDS_BEFORE_EXPRESSION = makePredicate(KEYWORDS_BEFORE_EXPRESSION)
 KEYWORDS_ATOM = makePredicate(KEYWORDS_ATOM)
@@ -371,6 +374,7 @@ def tokenizer($TEXT, filename):  # {{{
         S.tokpos = S.pos
 
     def token(type, value, is_comment, keep_newline):
+
         S.regex_allowed = type == "operator" and not UNARY_POSTFIX[value] \
             or type == "keyword" and KEYWORDS_BEFORE_EXPRESSION(value) \
             or type == "punc" and PUNC_BEFORE_EXPRESSION(value)
@@ -866,6 +870,7 @@ def parse($TEXT, options):
         filename: None,         # name of the file being parsed
         auto_bind: False,       # whether auto-binding of methods to classes is enabled
         module_id: '__main__',  # The id of the module being parsed
+        es6: False,
         toplevel: None,
         classes: undefined      # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
     })
@@ -1178,6 +1183,10 @@ def parse($TEXT, options):
             return (is_token(peek(), "punc", ":") ? labeled_statement() : simple_statement())
         elif tmp_ == "keyword":
             tmp_ = S.token.value
+
+            if ES6_KEYWORDS(tmp_) and not options.es6:
+                token_error(prev(), "«" + tmp_ + "» keyword not supported with ES5-compatible output, use --ecmascript6 compilation flag")
+
             next()
             if tmp_ == "break":
                 return break_cont(AST_Break)
@@ -1235,7 +1244,7 @@ def parse($TEXT, options):
             elif tmp_ == "pass":
                 semicolon()
                 return new AST_EmptyStatement()
-            elif tmp_ == "return":
+            elif tmp_ == "return" or tmp_ == "yield":
                 if S.in_function == 0:
                     croak("'return' outside of function")
 
@@ -1556,7 +1565,7 @@ def parse($TEXT, options):
         definition = new AST_Class({
             name: name,
             module_id:module_id,
-            parent: def():
+            parent: (def():
                 if is_("punc", "("):
                     next()
                     a = expr_atom(False)
@@ -1564,13 +1573,13 @@ def parse($TEXT, options):
                     return a
                 else:
                     return None
-            .call(this),
+            )(),
             localvars: [],
             "static": class_details.static,
             external: externaldecorator != -1,
             bound: class_details.bound,
             statements: [],
-            decorators: def():
+            decorators: (def():
                 d = []
                 S.decorators.forEach(def(decorator):
                     if decorator == 'kwargs':
@@ -1581,8 +1590,8 @@ def parse($TEXT, options):
                 )
                 S.decorators = []
                 return d
-            .call(this),
-            body: def(loop, labels):
+            )(),
+            body: (def(loop, labels):
                 # navigate to correct location in the module tree and append the class
 
                 # state "push"
@@ -1604,7 +1613,7 @@ def parse($TEXT, options):
                 S.labels = labels
 
                 return a
-            .call(this, S.in_loop, S.labels)
+            )(S.in_loop, S.labels)
         })
 
         # find the constructor
@@ -1667,7 +1676,7 @@ def parse($TEXT, options):
 
         definition = new ctor({
             name: name,
-            argnames: def(a):
+            argnames: (def(a):
                 defaults = {}
                 first = True
                 seen_names = {}
@@ -1721,9 +1730,10 @@ def parse($TEXT, options):
                 next()
                 a.defaults = defaults
                 return a
-            .call(this, []),
+            )([]),
+            generator: False,
             localvars: [],
-            decorators: def():
+            decorators: (def():
                 d = []
                 S.decorators.forEach(def(decorator):
                     d.push(new AST_Decorator({
@@ -1732,22 +1742,29 @@ def parse($TEXT, options):
                 )
                 S.decorators = []
                 return d
-            .call(this),
-            body: def(loop, labels):
+            )(),
+            body: (def(loop, labels):
+                # parse function content
+
+                # state "push"
                 S.in_class.push(False)
                 S.classes.push({})
                 S.in_function += 1
                 S.in_directives = True
                 S.in_loop = 0
                 S.labels = []
+
                 a = block_()
+
+                # state "pop"
                 S.in_function -= 1
                 S.classes.pop()
                 S.in_class.pop()
                 S.in_loop = loop
                 S.labels = labels
+
                 return a
-            .call(this, S.in_loop, S.labels)
+            )(S.in_loop, S.labels)
         })
         if isinstance(definition, AST_Method):
             definition.static = staticmethod

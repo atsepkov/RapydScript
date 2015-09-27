@@ -45,6 +45,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
             readfile: fs.readFileSync,
             basedir: path.dirname(file),
             auto_bind: argv.auto_bind,
+            es6: argv.ecmascript6,
             libdir: path.join(src_path, 'lib'),
         });
     }

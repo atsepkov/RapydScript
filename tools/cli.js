@@ -196,6 +196,12 @@ themselves instead of using @bound decorator
 [experimental].
 */});
 
+opt("ecmascript6", '6, es6', 'bool', false, function(){/*
+Build for ES6 instead of default (ES5). Adds support 
+for additional features like generators and nested list 
+unpacking [experimental].
+*/});
+
 opt("beautify", 'p,prettify', 'bool', false, function(){/*
 Pretty print the generated javascript instead of 
 minifying it.
