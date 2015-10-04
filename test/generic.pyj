@@ -49,3 +49,18 @@ assert(JS("""
         s += i
     return s
 )())                        # shared scoping and equivalent capability
+
+
+# regex
+# test from coffeescript manual
+before = /// ^ (
+  ?: [-=]>             # function
+   | [-+*/%<>&|^!?=]=  # compound assign / compare
+   | >>>=?             # zero-fill right shift
+   | ([-+:])\1         # doubles
+   | ([&|<>])\2=?      # logic / shift
+   | \?\.              # soak access
+   | \.{2,3}           # range or splat
+) ///
+after = /^(?:[-=]>|[-+*/%<>&|^!?=]=|>>>=?|([-+:])\1|([&|<>])\2=?|\?\.|\.{2,3})/
+assert.equal(before.toString(), after.toString())

@@ -25,41 +25,42 @@ Let's not waste any more time with the introductions, however. The best way to l
 
 Table of Contents
 -----------------
-	- [Community](#)
-	- [Installation](#)
-	- [Compilation](#)
-	- [Getting Started](#)
-	- [Leveraging other APIs](#)
-	- [Anonymous Functions](#)
-	- [Decorators](#)
-	- [Self-Executing Functions](#)
-	- [Chaining Blocks](#)
-	- [Function calling with optional arguments](#)
-	- [Inferred Tuple Packing/Unpacking](#)
-	- [Python vs JavaScript](#)
-	- [Loops](#)
-	- [List Comprehensions](#)
-	- [Inclusive/Exclusive Sequences](#)
-	- [Classes](#)
-		- [External Classes](#)
-		- [Method Binding](#)
-	- [Modules](#)
-	- [Exception Handling](#)
-	- [Scope Control](#)
-	- [Importing](#)
-	- [Available Libraries](#)
-	- [Advanced Usage Topics](#)
-		- [System Scripts](#)
-		- [Browser Compatibility](#)
-		- [Code Conventions](#)
-			- [Tabs vs Spaces](#)
-			- [Object Literals vs Hashes/Dicts](#)
-			- [Semi-Colons](#)
-			- [Raw JavaScript](#)
-			- [jQuery-wrapped Elements](#)
-			- [Libraries](#)
-			- [External Libraries and Classes](#)
-	- [Quirks](#)
+- [Community](#)
+- [Installation](#)
+- [Compilation](#)
+- [Getting Started](#)
+- [Leveraging other APIs](#)
+- [Anonymous Functions](#)
+- [Decorators](#)
+- [Self-Executing Functions](#)
+- [Chaining Blocks](#)
+- [Function calling with optional arguments](#)
+- [Inferred Tuple Packing/Unpacking](#)
+- [Python vs JavaScript](#)
+- [Loops](#)
+- [List Comprehensions](#)
+- [Inclusive/Exclusive Sequences](#)
+- [Classes](#)
+	- [External Classes](#)
+	- [Method Binding](#)
+- [Modules](#)
+- [Exception Handling](#)
+- [Scope Control](#)
+- [Importing](#)
+- [Regular Expressions](#)
+- [Available Libraries](#)
+- [Advanced Usage Topics](#)
+	- [System Scripts](#)
+	- [Browser Compatibility](#)
+	- [Code Conventions](#)
+		- [Tabs vs Spaces](#)
+		- [Object Literals vs Hashes/Dicts](#)
+		- [Semi-Colons](#)
+		- [Raw JavaScript](#)
+		- [jQuery-wrapped Elements](#)
+		- [Libraries](#)
+		- [External Libraries and Classes](#)
+- [Quirks](#)
 
 
 Community
@@ -958,84 +959,128 @@ With RapydScript's importing, you don't need to worry about including each JavaS
 RapydScript already adds several modules you can import by default, like `stdlib` and `yql`. Check out the examples or the documentation in the modules themselves for usage.
 
 
-Available Libraries
+Regular Expressions
 -------------------
-One of Python's main strengths is the number of libraries available to the developer. This is something very few other `Python-in-a-browser` frameworks understand. In the browser JavaScript is king, and no matter how many libraries the community for the given project will write, the readily-available JavaScript libraries will always outnumber them. This is why RapydScript was designed with JavaScript and DOM integration in mind from the beginning. Indeed, plugging `underscore.js` in place of RapydScript's `stdlib` will work just as well, and some developers may choose to do so, after all, `underscore.js` is very Pythonic and very complete. Likewise, `sprintf.js` (<https://npmjs.org/package/sprintf-js>) can be used with RapydScript to replicate Python's string interpolation.
+RapydScript supports Pythonic and JavaScript way of declaring regular expressions. Additionally, like CoffeeScript, RapydScript supports verbose mode (which works like Perl's `/x` modifier or Python's `VERBOSE` modifier) - flags, if any, are at the end:
 
-It is for that reason that I try to keep RapydScript bells and whistles to a minimum. RapydScript's main strength is easy integration with JavaScript and DOM, which allows me to stay sane and not rewrite my own versions of the libraries that are already available. That doesn't mean, however, that pythonic libraries can't be written for RapydScript. To prove that, I have implemented lightweight clones of several popular Python libraries and bundled them into RapydScript, you can find them in `src` directory. The following libraries are included:
+		# regular
+		op = /^(?:[-=]>|[-+*/%<>&|^!?=]=|>>>=?|([-+:])\1|([&|<>])\2=?|\?\.|\.{2,3})/
 
-	stdlib/stdlib2		# see stdlib section
-	math				# replicates almost all of the functionality from Python's math library
-	re					# replicates almost all of the functionality from Python's re library
-	unittest			# replicates almost all of the functionality from Python's unittest library
-	random				# replicates most of the functionality from Python's random library
-	yql					# lightweight library for performing Yahoo Query Language requests
+		# verbose
+		op = /// ^ (
+			?: [-=]>             # function
+			 | [-+*/%<>&|^!?=]=  # compound assign / compare
+			 | >>>=?             # zero-fill right shift
+			 | ([-+:])\1         # doubles
+			 | ([&|<>])\2=?      # logic / shift
+			 | \?\.              # soak access
+			 | \.{2,3}           # range or splat
+		) ///
 
-For the most part, the logic implemented in these libraries functions identically to the Python versions. One notable exception is that unittest library requires that classes be bound to the `global` (nodejs) or `window` (browser) object to be picked up by `unittest.main()`. An example in `unitetest.pyj` shows this usage. I'd be happy to include more libraries, if other members of the community want to implement them (it's fun to do, `re.pyj` is a good example), but I want to reemphasize that unlike most other Python-to-JavaScript compilers, RapydScript doesn't need them to be complete since there are already tons of available JavaScript libraries that it can use natively.
+And the Pythonic alternative (note that importing `re` module also brings in other logic into your code, you'll end up with more functionality at the expense of performance - unless you need that extra functionality, I recommend JavaScript version show above):
+
+		# pythonic
+		import re
+		op = re.compile('^(?:[-=]>|[-+*/%<>&|^!?=]=|>>>=?|([-+:])\1|([&|<>])\2=?|\?\.|\.{2,3})')
+
+		# verbose pythonic (re.VERBOSE is not implemented, since VERBOSE conversion in current engine happens at
+		# compile time, for Pythonic re.VERBOSE syntax we'd need to duplicate this logic in re module to run at
+		# runtime instead)
+		op = re.compile(/// ^ (
+			?: [-=]>             # function
+			 | [-+*/%<>&|^!?=]=  # compound assign / compare
+			 | >>>=?             # zero-fill right shift
+			 | ([-+:])\1         # doubles
+			 | ([&|<>])\2=?      # logic / shift
+			 | \?\.              # soak access
+			 | \.{2,3}           # range or splat
+		) ///)
+
+As in JavaScript, you can also use the `RegExp` class:
+
+		regex = /ab+c/i
+		regex = RegExp('ab+c', 'i')
+		regex = RegExp(/ab+c/, 'i')
 
 
-Advanced Usage Topics
----------------------
-This section contains various topics which might be of interest to the programmer writing large projects using RapydScript, but might not be relevant to a programmer who is just getting started with RapydScript. The topics in this section focus on coding conventions to keep your code clean, optimizations, and additional libraries that come with RapydScript, as well as suggestions for writing your own libraries.
+	Available Libraries
+	-------------------
+	One of Python's main strengths is the number of libraries available to the developer. This is something very few other `Python-in-a-browser` frameworks understand. In the browser JavaScript is king, and no matter how many libraries the community for the given project will write, the readily-available JavaScript libraries will always outnumber them. This is why RapydScript was designed with JavaScript and DOM integration in mind from the beginning. Indeed, plugging `underscore.js` in place of RapydScript's `stdlib` will work just as well, and some developers may choose to do so, after all, `underscore.js` is very Pythonic and very complete. Likewise, `sprintf.js` (<https://npmjs.org/package/sprintf-js>) can be used with RapydScript to replicate Python's string interpolation.
 
-### System Scripts
-I typically have a language I strongly prefer over others for writing miscellaneous system scripts, things like moving files around or automating certain tasks on my home (or work) machine. *Bash* tends to work well for simple tasks without too much conditional logic. For other things I used to prefer *Python*. Today, I use *RapydScript* instead. JavaScript has a powerful ecosystem, and it would be a shame to let it go to waste. You can have your *RapydScript* files run natively on your OS as well. Do do so, you can include the following line at the top of your file and `chmod a+x` it:
+	It is for that reason that I try to keep RapydScript bells and whistles to a minimum. RapydScript's main strength is easy integration with JavaScript and DOM, which allows me to stay sane and not rewrite my own versions of the libraries that are already available. That doesn't mean, however, that pythonic libraries can't be written for RapydScript. To prove that, I have implemented lightweight clones of several popular Python libraries and bundled them into RapydScript, you can find them in `src` directory. The following libraries are included:
 
-		#!/usr/bin/env rapydscript -x
+		stdlib/stdlib2		# see stdlib section
+		math				# replicates almost all of the functionality from Python's math library
+		re					# replicates almost all of the functionality from Python's re library
+		unittest			# replicates almost all of the functionality from Python's unittest library
+		random				# replicates most of the functionality from Python's random library
+		yql					# lightweight library for performing Yahoo Query Language requests
 
-This is identical to the following terminal operation:
+	For the most part, the logic implemented in these libraries functions identically to the Python versions. One notable exception is that unittest library requires that classes be bound to the `global` (nodejs) or `window` (browser) object to be picked up by `unittest.main()`. An example in `unitetest.pyj` shows this usage. I'd be happy to include more libraries, if other members of the community want to implement them (it's fun to do, `re.pyj` is a good example), but I want to reemphasize that unlike most other Python-to-JavaScript compilers, RapydScript doesn't need them to be complete since there are already tons of available JavaScript libraries that it can use natively.
 
-		rapydscript --execute [filename]
 
-It will trigger the script, omitting the compiled code. You can include the `--pretty` option to include output of the compiled code as well.
+	Advanced Usage Topics
+	---------------------
+	This section contains various topics which might be of interest to the programmer writing large projects using RapydScript, but might not be relevant to a programmer who is just getting started with RapydScript. The topics in this section focus on coding conventions to keep your code clean, optimizations, and additional libraries that come with RapydScript, as well as suggestions for writing your own libraries.
 
-### Browser Compatibility
-By default, RapydScript compiles your logic such that it will work on modern browsers running HTML5. Previously I generated code that was compatible with older versions of IE, but have since decided that it wasn't worth it. It prevented me from making use of sensible JavaScript features many developers take for granted (setters, getters, strict mode, etc.), forced special cases on me, and required overly verbose JavaScript with unnecessary polyfill. RapydScript no longer supports versions of IE before 9, but you can easily bring that support back into RapydScript with the help of a tool like `Modernizr` or `Babel`.
+	### System Scripts
+	I typically have a language I strongly prefer over others for writing miscellaneous system scripts, things like moving files around or automating certain tasks on my home (or work) machine. *Bash* tends to work well for simple tasks without too much conditional logic. For other things I used to prefer *Python*. Today, I use *RapydScript* instead. JavaScript has a powerful ecosystem, and it would be a shame to let it go to waste. You can have your *RapydScript* files run natively on your OS as well. Do do so, you can include the following line at the top of your file and `chmod a+x` it:
 
-### Code Conventions
-It's not hard to see that RapydScript is a cleaner language than JavaScript. However, like with all dynamically-typed languages (including Python), it's still easy to shoot yourself in the foot if you don't follow some sort of code conventions. Needless to say, they're called `conventions` for a reason, feel free to ignore them if you already have a set of conventions you follow or if you disagree with some.
+			#!/usr/bin/env rapydscript -x
 
-#### Tabs vs Spaces
-This seems to be a very old debate. Python code conventions suggest 4-space indent, most of the bundled RapydScript files use 1-tab for indentation. The old version of RapydScript relied on tabs, new one uses spaces since that seems to be more consistent in both Python and JavaScript communities. Use whichever one you prefer, as long as you stay consistent. If you intend to submit your code to RapydScript, it must use spaces to be consistent with the rest of the code int he repository.
+	This is identical to the following terminal operation:
 
-#### Object Literals vs Hashes/Dicts
-JavaScript treats object literals and hashes as the same thing. I'm not a fan of this policy. Some of the problems you can see resulting from this is Google Closure compiler's ADVANACED_OPTIMIZATIONS breaking a lot of seemingly-good JavaScript code. The main problem for most of the code that breaks seems to be renaming of methods/variables in one place and not another. My suggestion is to ALWAYS treat object literals as object literals and ALWAYS treat hashes as hashes, basically be consistent about quoting your keys. As an added bonus, your code will have a much better chance of compiling correctly via Closure compiler. For example:
+			rapydscript --execute [filename]
 
-	obj = {
-		foo:	1,
-		bar:	def(): print('bar' + str(foo))
-	}
-	hash = {
-		'foo':	1,
-		'bar':	def(): print('bar' + str(foo))
-	}
-	
-	obj.bar()		# good
-	obj['bar']()	# bad
-	
-	hash.bar()		# bad
-	hash['bar']()	# good
+	It will trigger the script, omitting the compiled code. You can include the `--pretty` option to include output of the compiled code as well.
 
-#### Semi-Colons
-Don't abuse semi-colons. They're meant as a way to group related logic together, not to fit your entire web-app on one line. The following is fine:
+	### Browser Compatibility
+	By default, RapydScript compiles your logic such that it will work on modern browsers running HTML5. Previously I generated code that was compatible with older versions of IE, but have since decided that it wasn't worth it. It prevented me from making use of sensible JavaScript features many developers take for granted (setters, getters, strict mode, etc.), forced special cases on me, and required overly verbose JavaScript with unnecessary polyfill. RapydScript no longer supports versions of IE before 9, but you can easily bring that support back into RapydScript with the help of a tool like `Modernizr` or `Babel`.
 
-	X = 0; Y = 1
+	### Code Conventions
+	It's not hard to see that RapydScript is a cleaner language than JavaScript. However, like with all dynamically-typed languages (including Python), it's still easy to shoot yourself in the foot if you don't follow some sort of code conventions. Needless to say, they're called `conventions` for a reason, feel free to ignore them if you already have a set of conventions you follow or if you disagree with some.
 
-Anything that requires more than a couple semi-colons, however, or involves long mathematical computations, is better off on its own line. Use your discretion, if the logic requires more than one visual pass-through from the programmer to understand the flow, you probably shouldn't use semi-colons. A Fibanacci function, as shown below, would probably be the upper limit of the kind of logic you could sanely represent with semi-colons:
+	#### Tabs vs Spaces
+	This seems to be a very old debate. Python code conventions suggest 4-space indent, most of the bundled RapydScript files use 1-tab for indentation. The old version of RapydScript relied on tabs, new one uses spaces since that seems to be more consistent in both Python and JavaScript communities. Use whichever one you prefer, as long as you stay consistent. If you intend to submit your code to RapydScript, it must use spaces to be consistent with the rest of the code int he repository.
 
-	fib = def(x): if x<=1: return 1; return fib(x-1)+fib(x-2)
+	#### Object Literals vs Hashes/Dicts
+	JavaScript treats object literals and hashes as the same thing. I'm not a fan of this policy. Some of the problems you can see resulting from this is Google Closure compiler's ADVANACED_OPTIMIZATIONS breaking a lot of seemingly-good JavaScript code. The main problem for most of the code that breaks seems to be renaming of methods/variables in one place and not another. My suggestion is to ALWAYS treat object literals as object literals and ALWAYS treat hashes as hashes, basically be consistent about quoting your keys. As an added bonus, your code will have a much better chance of compiling correctly via Closure compiler. For example:
 
-Even for this example, however, I'd personally prefer to use multiple lines.
+		obj = {
+			foo:	1,
+			bar:	def(): print('bar' + str(foo))
+		}
+		hash = {
+			'foo':	1,
+			'bar':	def(): print('bar' + str(foo))
+		}
+		
+		obj.bar()		# good
+		obj['bar']()	# bad
+		
+		hash.bar()		# bad
+		hash['bar']()	# good
 
-#### Raw JavaScript
-Occasionally you may need to use raw JavaScript due to a limitation of RapydScript. To keep code legible and consistent, I suggest minimizing the chunk of code contained within `JS`, keeping most of the logic within RapydScript itself. For example, instead of accessing a variable that shares reserved keyword as `JS('module.exports')` use `JS('module').exports`. This will make it more visually-obvious what you're trying to do as well as allow your syntax highlighter to do its job.
+	#### Semi-Colons
+	Don't abuse semi-colons. They're meant as a way to group related logic together, not to fit your entire web-app on one line. The following is fine:
 
-#### jQuery-wrapped Elements
-If you use jQuery with your app, you will probably be storing these into variables a lot. If you've written a decently sized app, you've probably mistaken a bare element with wrapped element at least once. This is especially true of objects like `canvas`, where you need to access object's attributes and methods directly. My solution for these is simple, prepend jQuery-wrapped elements with `$`:
+		X = 0; Y = 1
 
-	$canvas = ('<canvas></canvas>')
-	canvas = $canvas.get(0)
-	ctx = canvas.getContext('2d')
+	Anything that requires more than a couple semi-colons, however, or involves long mathematical computations, is better off on its own line. Use your discretion, if the logic requires more than one visual pass-through from the programmer to understand the flow, you probably shouldn't use semi-colons. A Fibanacci function, as shown below, would probably be the upper limit of the kind of logic you could sanely represent with semi-colons:
+
+		fib = def(x): if x<=1: return 1; return fib(x-1)+fib(x-2)
+
+	Even for this example, however, I'd personally prefer to use multiple lines.
+
+	#### Raw JavaScript
+	Occasionally you may need to use raw JavaScript due to a limitation of RapydScript. To keep code legible and consistent, I suggest minimizing the chunk of code contained within `JS`, keeping most of the logic within RapydScript itself. For example, instead of accessing a variable that shares reserved keyword as `JS('module.exports')` use `JS('module').exports`. This will make it more visually-obvious what you're trying to do as well as allow your syntax highlighter to do its job.
+
+	#### jQuery-wrapped Elements
+	If you use jQuery with your app, you will probably be storing these into variables a lot. If you've written a decently sized app, you've probably mistaken a bare element with wrapped element at least once. This is especially true of objects like `canvas`, where you need to access object's attributes and methods directly. My solution for these is simple, prepend jQuery-wrapped elements with `$`:
+
+		$canvas = ('<canvas></canvas>')
+		canvas = $canvas.get(0)
+		ctx = canvas.getContext('2d')
 	$canvas.appendTo(document)
 
 This is especially useful with function definitions, since you will immediately know what kind of object the function takes in just by skimming its signature.
