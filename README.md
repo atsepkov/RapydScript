@@ -38,7 +38,7 @@ Table of Contents
 - [Inferred Tuple Packing/Unpacking](#)
 - [Python vs JavaScript](#)
 - [Loops](#)
-- [List Comprehensions](#)
+- [Dict and List Comprehensions](#)
 - [Inclusive/Exclusive Sequences](#)
 - [Classes](#)
 	- [External Classes](#)
@@ -381,7 +381,7 @@ and variable numbers of named arguments. Some examples will illustrate this
 best:
 
 	def f1(a, b=2):
-	   return [a, b]
+		return [a, b]
 
 	f1(1, 3) == f1(1, b=3) == [1, 3]
 
@@ -391,7 +391,7 @@ best:
 	f2(1, 2, 3) == [1, [2, 3]]
 
 	def f3(a, b=2, **kwargs):
-	    return [a, b, kwargs]
+		return [a, b, kwargs]
 
 	f3(1, b=3, c=4) == [1, 3, {c:4}]
 
@@ -411,7 +411,7 @@ will not complain if an optional argument is specified twice.
 
 Another difference is that that, unlike Python, RapydScript will create a
 separate object for an optional argument specified as an object literal
-each time the function is called.  This makes it slightly less efficient, but
+each time the function is called. This makes it slightly less efficient, but
 prevents the common bug in python caused by using a mutable object literal as
 the default value for an optional argument.
 
@@ -572,8 +572,8 @@ When possible, RapydScript will automatically optimize the loop for you into Jav
 		print(i)
 
 
-List Comprehensions
--------------------
+Dict and List Comprehensions
+----------------------------
 RapydScript also supports list comprehensions, using Python syntax. Instead of the following, for example:
 
 	myArray = []
@@ -585,7 +585,9 @@ You could write this:
 
 	myArray = [i*i for i in range(1,20) if i*i%3 == 0]
 
-**NOTE:** The rest of this section has been removed since the quirks it mentions have not been relevant since the old, Python-based compiler. Current implementation works just as well as a normal loop.
+Dict comprehensions are also supported:
+
+	alphabet = {String.charFromCode(64+n): n for n in [1 to 26]}
 
 
 Inclusive/Exclusive Sequences
