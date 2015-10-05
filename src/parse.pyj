@@ -2235,7 +2235,7 @@ def parse($TEXT, options):
         first = True
         a = []
         while not is_("punc", "}"):
-            if not first and not maybe_dict_comprehension:
+            if not first:
                 expect(",")
             if not options.strict and is_("punc", "}"):
                 # allow trailing comma
@@ -2243,9 +2243,16 @@ def parse($TEXT, options):
 
             start = S.token
             type = start.type
-            key = as_property_name()
-            name = key.value
-            quoted = key.type == "string"
+            if first and peek().value != ':':
+                # possibly dict comprehension
+                maybe_dict_comprehension = True
+                key = expression(False)
+                name = None
+            else:
+                key = as_property_name()
+                name = key.value
+                quoted = key.type == "string"
+
             if type == "name" and not is_("punc", ":"):
                 if name == "get":
                     a.push(new AST_ObjectGetter({
@@ -2267,7 +2274,13 @@ def parse($TEXT, options):
                     }))
                     continue
 
+            if first and not is_('punc', ':'):
+                # possibly a dict comprehension, continue parsing
+                while not is_('punc', ':'):
+                    aaa = expression(False)
+                    console.log(aaa)
             expect(":")
+
             a.push(new AST_ObjectKeyVal({
                 start: start,
                 key: name,
@@ -2278,7 +2291,7 @@ def parse($TEXT, options):
 
             if a.length == 1 and is_('keyword', 'for'):
                 return read_comprehension(new AST_DictComprehension({
-                    statement: as_atom_node(a[0].start),
+                    statement: maybe_dict_comprehension ? key : as_atom_node(a[0].start),
                     value_statement: a[0].value
                 }))
 
@@ -2359,6 +2372,7 @@ def parse($TEXT, options):
                 # slice [:n]
                 slice_bounds.push(None)
             else:
+                # slice [n?]
                 slice_bounds.push(expression(False))
 
             if is_("punc", ":"):

@@ -112,7 +112,8 @@ assert.deepEqual(d2, {
     'F': 70
 })
 # not supported yet
-#d3 = {String.fromCharCode(n) for n in [65 to 70]}
+d3 = {String.fromCharCode(n): n for n in [65 to 70]}
+assert.deepEqual(d3, d2)
 
 # common collection methods
 collection = [1 til 50]

@@ -1172,9 +1172,7 @@ def OutputStream(options):
                 output.space()
                 output.print('=')
                 output.space()
-                output.with_parens(def():
-                    self.value_statement.print(output)
-                )
+                self.value_statement.print(output)
                 output.semicolon()
                 output.newline()
         else:
