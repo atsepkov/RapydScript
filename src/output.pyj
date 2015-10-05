@@ -1155,6 +1155,39 @@ def OutputStream(options):
         self._do_print_body(output)
     )
     DEFPRINT(AST_ListComprehension, def(self, output):
+        # this logic is shares by list and dict comprehensions, since the difference in output
+        # isn't big
+        constructor = {
+            'ListComprehension': '[]',
+            'DictComprehension': '{}'
+        }[self.TYPE]
+
+        if isinstance(self, AST_DictComprehension):
+            add_entry = def():
+                output.indent()
+                output.print("ՐՏ_Result")
+                output.with_square(def():
+                    self.statement.print(output)
+                )
+                output.space()
+                output.print('=')
+                output.space()
+                output.with_parens(def():
+                    self.value_statement.print(output)
+                )
+                output.semicolon()
+                output.newline()
+        else:
+            #list comprehension
+            add_entry = def():
+                output.indent()
+                output.print("ՐՏ_Result.push")
+                output.with_parens(def():
+                    self.statement.print(output)
+                )
+                output.semicolon()
+                output.newline()
+
         output.with_parens(def():
             output.print("function")
             output.print("()")
@@ -1168,7 +1201,7 @@ def OutputStream(options):
                 )
                 output.comma()
                 output.assign("ՐՏ_Result")
-                output.print("[]")
+                output.print(constructor)
                 # make sure to locally scope loop variables
                 if isinstance(self.init, AST_Array):
                     self.init.elements.forEach(def(i):
@@ -1213,15 +1246,6 @@ def OutputStream(options):
                         output.print("ՐՏ_Iter[ՐՏ_Index];")
                         output.newline()
 
-                    add_to_list = def():
-                        output.indent()
-                        output.print("ՐՏ_Result.push")
-                        output.with_parens(def():
-                            self.statement.print(output)
-                        )
-                        output.semicolon()
-                        output.newline()
-
                     if self.condition:
                         output.indent()
                         output.print("if")
@@ -1231,11 +1255,11 @@ def OutputStream(options):
                         )
                         output.space()
                         output.with_block(def():
-                            add_to_list()
+                            add_entry()
                         )
                         output.newline()
                     else:
-                        add_to_list()
+                        add_entry()
                 )
                 output.newline()
                 output.indent()

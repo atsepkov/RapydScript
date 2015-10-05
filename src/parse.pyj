@@ -1956,7 +1956,7 @@ def parse($TEXT, options):
         while True:
             a.push(new AST_VarDef({
                 start: S.token,
-                name: as_symbol((in_const ? AST_SymbolConst : AST_SymbolVar)),
+                name: as_symbol(in_const ? AST_SymbolConst : AST_SymbolVar),
                 value: (is_("operator", "=") ? (next(), expression(False, no_in)) : None),
                 end: prev()
             }))
@@ -1998,11 +1998,11 @@ def parse($TEXT, options):
             end: prev()
         }), True)
 
-    def as_atom_node():
-        tok = S.token
+    def as_atom_node(token):
+        tok = token or S.token
         tmp_ = tok.type
         if tmp_ == "name":
-            return as_symbol(AST_SymbolRef)
+            ret = as_symbol(AST_SymbolRef, token=tok)
         elif tmp_ == "num":
             ret = new AST_Number({
                 start: tok,
@@ -2039,7 +2039,8 @@ def parse($TEXT, options):
                     end: tok
                 })
 
-        next()
+        if not token:
+            next()
         return ret
 
     expr_atom = def(allow_calls):
@@ -2163,6 +2164,19 @@ def parse($TEXT, options):
         next()
         return a
 
+    def read_comprehension(object):
+        # shared by list and dict comprehensions
+        terminator = isinstance(object, AST_DictComprehension) ? '}' : ']'
+        expect_token('keyword', 'for')
+        forloop = for_(True)
+        BASELIB["iterable"] = True
+        object.init = forloop.init
+        object.name = forloop.name
+        object.object = forloop.object
+        object.condition = is_("punc", terminator) ? None : (expect_token("keyword", "if"), expression(True))
+        expect(terminator)
+        return object
+
     array_ = embed_tokens(def():
         expect("[")
         expr = []
@@ -2170,18 +2184,7 @@ def parse($TEXT, options):
             expr.push(expression(False))
             if is_("keyword", "for"):
                 # list comprehension
-                next()
-                forloop = for_(True)
-                BASELIB["iterable"] = True
-                ret = new AST_ListComprehension({
-                    statement: expr[0],
-                    init: forloop.init,
-                    name: forloop.name,
-                    object: forloop.object,
-                    condition: (is_("punc", "]") ? None : (expect_token("keyword", "if"), expression(True)))
-                })
-                expect("]")
-                return ret
+                return read_comprehension(new AST_ListComprehension({ statement: expr[0] }))
 
             if is_("operator", "til"):
                 # up to but not including upper limit
@@ -2227,13 +2230,12 @@ def parse($TEXT, options):
         })
     )
     object_ = embed_tokens(def():
+        maybe_dict_comprehension = False
         expect("{")
         first = True
         a = []
         while not is_("punc", "}"):
-            if first:
-                first = False
-            else:
+            if not first and not maybe_dict_comprehension:
                 expect(",")
             if not options.strict and is_("punc", "}"):
                 # allow trailing comma
@@ -2243,7 +2245,7 @@ def parse($TEXT, options):
             type = start.type
             key = as_property_name()
             name = key.value
-            quoted = (key.type == "string" ? True : False)
+            quoted = key.type == "string"
             if type == "name" and not is_("punc", ":"):
                 if name == "get":
                     a.push(new AST_ObjectGetter({
@@ -2274,6 +2276,14 @@ def parse($TEXT, options):
                 end: prev()
             }))
 
+            if a.length == 1 and is_('keyword', 'for'):
+                return read_comprehension(new AST_DictComprehension({
+                    statement: as_atom_node(a[0].start),
+                    value_statement: a[0].value
+                }))
+
+            first = False
+
         next()
         return new AST_Object({
             properties: a
@@ -2298,25 +2308,27 @@ def parse($TEXT, options):
         else:
             unexpected()
 
-    def as_symbol(type, noerror):
-        if not is_("name"):
+    def as_symbol(type, noerror, token):
+        token_ = token or S.token
+        if not is_token(token_, "name"):
             if not noerror:
                 croak("Name expected")
             return None
 
-        name = S.token.value
-        sym = new ((name == "this" ? AST_This : type))({
-            name: JS("String(S.token.value)"),
-            start: S.token,
-            end: S.token
+        name = token_.value
+        sym = new (name == "this" ? AST_This : type)({
+            name: (String)(token_.value),
+            start: token_,
+            end: token_
         })
-        next()
+        if not token:
+            next()
         return sym
 
     # for generating/inserting a new symbol
     def new_symbol(type, name):
         sym = new ((name == "this" ? AST_This : type))({
-            name: JS("String(name)"),
+            name: (String)(name),
             start: None,
             end: None
         })

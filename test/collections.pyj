@@ -100,6 +100,20 @@ hash = {
 }
 assert.deepEqual(Object.keys(hash), [k for k in hash])
 
+# dict comprehensions
+alphabet = ['A', 'B', 'C', 'D', 'E', 'F']
+d2 = {key: key.charCodeAt(0) for key in alphabet}
+assert.deepEqual(d2, {
+    'A': 65,
+    'B': 66,
+    'C': 67,
+    'D': 68,
+    'E': 69,
+    'F': 70
+})
+# not supported yet
+#d3 = {String.fromCharCode(n) for n in [65 to 70]}
+
 # common collection methods
 collection = [1 til 50]
 
