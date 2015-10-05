@@ -962,44 +962,44 @@ Regular Expressions
 -------------------
 RapydScript supports Pythonic and JavaScript way of declaring regular expressions. Additionally, like CoffeeScript, RapydScript supports verbose mode (which works like Perl's `/x` modifier or Python's `VERBOSE` modifier) - flags, if any, are at the end:
 
-		# regular
-		op = /^(?:[-=]>|[-+*/%<>&|^!?=]=|>>>=?|([-+:])\1|([&|<>])\2=?|\?\.|\.{2,3})/
+	# regular
+	op = /^(?:[-=]>|[-+*/%<>&|^!?=]=|>>>=?|([-+:])\1|([&|<>])\2=?|\?\.|\.{2,3})/
 
-		# verbose
-		op = /// ^ (
-			?: [-=]>             # function
-			 | [-+*/%<>&|^!?=]=  # compound assign / compare
-			 | >>>=?             # zero-fill right shift
-			 | ([-+:])\1         # doubles
-			 | ([&|<>])\2=?      # logic / shift
-			 | \?\.              # soak access
-			 | \.{2,3}           # range or splat
-		) ///
+	# verbose
+	op = /// ^ (
+		?: [-=]>             # function
+		 | [-+*/%<>&|^!?=]=  # compound assign / compare
+		 | >>>=?             # zero-fill right shift
+		 | ([-+:])\1         # doubles
+		 | ([&|<>])\2=?      # logic / shift
+		 | \?\.              # soak access
+		 | \.{2,3}           # range or splat
+	) ///
 
 And the Pythonic alternative (note that importing `re` module also brings in other logic into your code, you'll end up with more functionality at the expense of performance - unless you need that extra functionality, I recommend JavaScript version shown above):
 
-		# pythonic
-		import re
-		op = re.compile('^(?:[-=]>|[-+*/%<>&|^!?=]=|>>>=?|([-+:])\1|([&|<>])\2=?|\?\.|\.{2,3})')
+	# pythonic
+	import re
+	op = re.compile('^(?:[-=]>|[-+*/%<>&|^!?=]=|>>>=?|([-+:])\1|([&|<>])\2=?|\?\.|\.{2,3})')
 
-		# verbose pythonic (re.VERBOSE is not implemented, since VERBOSE conversion in current engine happens at
-		# compile time, for Pythonic re.VERBOSE syntax we'd need to duplicate this logic in re module to run at
-		# runtime instead)
-		op = re.compile(/// ^ (
-			?: [-=]>             # function
-			 | [-+*/%<>&|^!?=]=  # compound assign / compare
-			 | >>>=?             # zero-fill right shift
-			 | ([-+:])\1         # doubles
-			 | ([&|<>])\2=?      # logic / shift
-			 | \?\.              # soak access
-			 | \.{2,3}           # range or splat
-		) ///)
+	# verbose pythonic (re.VERBOSE is not implemented, since VERBOSE conversion in current engine happens at
+	# compile time, for Pythonic re.VERBOSE syntax we'd need to duplicate this logic in re module to run at
+	# runtime instead)
+	op = re.compile(/// ^ (
+		?: [-=]>             # function
+		 | [-+*/%<>&|^!?=]=  # compound assign / compare
+		 | >>>=?             # zero-fill right shift
+		 | ([-+:])\1         # doubles
+		 | ([&|<>])\2=?      # logic / shift
+		 | \?\.              # soak access
+		 | \.{2,3}           # range or splat
+	) ///)
 
 As in JavaScript, you can also use the `RegExp` class:
 
-		regex = /ab+c/i
-		regex = RegExp('ab+c', 'i')
-		regex = RegExp(/ab+c/, 'i')
+	regex = /ab+c/i
+	regex = RegExp('ab+c', 'i')
+	regex = RegExp(/ab+c/, 'i')
 
 
 Available Libraries
@@ -1008,12 +1008,12 @@ One of Python's main strengths is the number of libraries available to the devel
 
 It is for that reason that I try to keep RapydScript bells and whistles to a minimum. RapydScript's main strength is easy integration with JavaScript and DOM, which allows me to stay sane and not rewrite my own versions of the libraries that are already available. That doesn't mean, however, that pythonic libraries can't be written for RapydScript. To prove that, I have implemented lightweight clones of several popular Python libraries and bundled them into RapydScript, you can find them in `src` directory. The following libraries are included:
 
-		stdlib/stdlib2		# see stdlib section
-		math				# replicates almost all of the functionality from Python's math library
-		re					# replicates almost all of the functionality from Python's re library
-		unittest			# replicates almost all of the functionality from Python's unittest library
-		random				# replicates most of the functionality from Python's random library
-		yql					# lightweight library for performing Yahoo Query Language requests
+	stdlib/stdlib2		# see stdlib section
+	math				# replicates almost all of the functionality from Python's math library
+	re					# replicates almost all of the functionality from Python's re library
+	unittest			# replicates almost all of the functionality from Python's unittest library
+	random				# replicates most of the functionality from Python's random library
+	yql					# lightweight library for performing Yahoo Query Language requests
 
 For the most part, the logic implemented in these libraries functions identically to the Python versions. One notable exception is that unittest library requires that classes be bound to the `global` (nodejs) or `window` (browser) object to be picked up by `unittest.main()`. An example in `unitetest.pyj` shows this usage. I'd be happy to include more libraries, if other members of the community want to implement them (it's fun to do, `re.pyj` is a good example), but I want to reemphasize that unlike most other Python-to-JavaScript compilers, RapydScript doesn't need them to be complete since there are already tons of available JavaScript libraries that it can use natively.
 
@@ -1025,11 +1025,11 @@ This section contains various topics which might be of interest to the programme
 ### System Scripts
 I typically have a language I strongly prefer over others for writing miscellaneous system scripts, things like moving files around or automating certain tasks on my home (or work) machine. *Bash* tends to work well for simple tasks without too much conditional logic. For other things I used to prefer *Python*. Today, I use *RapydScript* instead. JavaScript has a powerful ecosystem, and it would be a shame to let it go to waste. You can have your *RapydScript* files run natively on your OS as well. Do do so, you can include the following line at the top of your file and `chmod a+x` it:
 
-		#!/usr/bin/env rapydscript -x
+	#!/usr/bin/env rapydscript -x
 
 This is identical to the following terminal operation:
 
-		rapydscript --execute [filename]
+	rapydscript --execute [filename]
 
 It will trigger the script, omitting the compiled code. You can include the `--pretty` option to include output of the compiled code as well.
 
@@ -1045,29 +1045,29 @@ This seems to be a very old debate. Python code conventions suggest 4-space inde
 #### Object Literals vs Hashes/Dicts
 JavaScript treats object literals and hashes as the same thing. I'm not a fan of this policy. Some of the problems you can see resulting from this is Google Closure compiler's ADVANACED_OPTIMIZATIONS breaking a lot of seemingly-good JavaScript code. The main problem for most of the code that breaks seems to be renaming of methods/variables in one place and not another. My suggestion is to ALWAYS treat object literals as object literals and ALWAYS treat hashes as hashes, basically be consistent about quoting your keys. As an added bonus, your code will have a much better chance of compiling correctly via Closure compiler. For example:
 
-		obj = {
-			foo:	1,
-			bar:	def(): print('bar' + str(foo))
-		}
-		hash = {
-			'foo':	1,
-			'bar':	def(): print('bar' + str(foo))
-		}
-		
-		obj.bar()		# good
-		obj['bar']()	# bad
-		
-		hash.bar()		# bad
-		hash['bar']()	# good
+	obj = {
+		foo:	1,
+		bar:	def(): print('bar' + str(foo))
+	}
+	hash = {
+		'foo':	1,
+		'bar':	def(): print('bar' + str(foo))
+	}
+	
+	obj.bar()		# good
+	obj['bar']()	# bad
+	
+	hash.bar()		# bad
+	hash['bar']()	# good
 
 #### Semi-Colons
 Don't abuse semi-colons. They're meant as a way to group related logic together, not to fit your entire web-app on one line. The following is fine:
 
-		X = 0; Y = 1
+	X = 0; Y = 1
 
 Anything that requires more than a couple semi-colons, however, or involves long mathematical computations, is better off on its own line. Use your discretion, if the logic requires more than one visual pass-through from the programmer to understand the flow, you probably shouldn't use semi-colons. A Fibanacci function, as shown below, would probably be the upper limit of the kind of logic you could sanely represent with semi-colons:
 
-		fib = def(x): if x<=1: return 1; return fib(x-1)+fib(x-2)
+	fib = def(x): if x<=1: return 1; return fib(x-1)+fib(x-2)
 
 Even for this example, however, I'd personally prefer to use multiple lines.
 
@@ -1077,10 +1077,10 @@ Occasionally you may need to use raw JavaScript due to a limitation of RapydScri
 #### jQuery-wrapped Elements
 If you use jQuery with your app, you will probably be storing these into variables a lot. If you've written a decently sized app, you've probably mistaken a bare element with wrapped element at least once. This is especially true of objects like `canvas`, where you need to access object's attributes and methods directly. My solution for these is simple, prepend jQuery-wrapped elements with `$`:
 
-		$canvas = ('<canvas></canvas>')
-		canvas = $canvas.get(0)
-		ctx = canvas.getContext('2d')
-		$canvas.appendTo(document)
+	$canvas = ('<canvas></canvas>')
+	canvas = $canvas.get(0)
+	ctx = canvas.getContext('2d')
+	$canvas.appendTo(document)
 
 This is especially useful with function definitions, since you will immediately know what kind of object the function takes in just by skimming its signature.
 
