@@ -1,3 +1,4 @@
+
 RapydScript
 ===========
 
@@ -25,42 +26,39 @@ Let's not waste any more time with the introductions, however. The best way to l
 
 Table of Contents
 -----------------
-- [Community](#)
-- [Installation](#)
-- [Compilation](#)
-- [Getting Started](#)
-- [Leveraging other APIs](#)
-- [Anonymous Functions](#)
-- [Decorators](#)
-- [Self-Executing Functions](#)
-- [Chaining Blocks](#)
-- [Function calling with optional arguments](#)
-- [Inferred Tuple Packing/Unpacking](#)
-- [Python vs JavaScript](#)
-- [Loops](#)
-- [Dict and List Comprehensions](#)
-- [Inclusive/Exclusive Sequences](#)
-- [Classes](#)
-	- [External Classes](#)
-	- [Method Binding](#)
-- [Modules](#)
-- [Exception Handling](#)
-- [Scope Control](#)
-- [Importing](#)
-- [Regular Expressions](#)
-- [Available Libraries](#)
-- [Advanced Usage Topics](#)
-	- [System Scripts](#)
-	- [Browser Compatibility](#)
-	- [Code Conventions](#)
-		- [Tabs vs Spaces](#)
-		- [Object Literals vs Hashes/Dicts](#)
-		- [Semi-Colons](#)
-		- [Raw JavaScript](#)
-		- [jQuery-wrapped Elements](#)
-		- [Libraries](#)
-		- [External Libraries and Classes](#)
-- [Quirks](#)
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [What is RapydScript?](#what-is-rapydscript)
+- [Community](#community)
+- [Installation](#installation)
+- [Compilation](#compilation)
+- [Getting Started](#getting-started)
+- [Leveraging other APIs](#leveraging-other-apis)
+- [Anonymous Functions](#anonymous-functions)
+- [Decorators](#decorators)
+- [Self-Executing Functions](#self-executing-functions)
+- [Chaining Blocks](#chaining-blocks)
+- [Function calling with optional arguments](#function-calling-with-optional-arguments)
+- [Inferred Tuple Packing/Unpacking](#inferred-tuple-packingunpacking)
+- [Python vs JavaScript](#python-vs-javascript)
+- [Loops](#loops)
+- [Dict and List Comprehensions](#dict-and-list-comprehensions)
+- [Inclusive/Exclusive Sequences](#inclusiveexclusive-sequences)
+- [Classes](#classes)
+	- [External Classes](#external-classes)
+	- [Method Binding](#method-binding)
+- [Modules](#modules)
+- [Exception Handling](#exception-handling)
+- [Scope Control](#scope-control)
+- [Importing](#importing)
+- [Regular Expressions](#regular-expressions)
+		- [Libraries](#libraries)
+		- [External Libraries and Classes](#external-libraries-and-classes)
+- [Quirks](#quirks)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 
 Community
