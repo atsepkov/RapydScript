@@ -2274,11 +2274,6 @@ def parse($TEXT, options):
                     }))
                     continue
 
-            if first and not is_('punc', ':'):
-                # possibly a dict comprehension, continue parsing
-                while not is_('punc', ':'):
-                    aaa = expression(False)
-                    console.log(aaa)
             expect(":")
 
             a.push(new AST_ObjectKeyVal({
