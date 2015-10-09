@@ -10,16 +10,17 @@ RapydScript (pronounced 'RapidScript') is a pre-compiler for JavaScript, similar
 
 RapydScript allows to write your front-end in Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with CoffeeScript, RapydScript is like CoffeeScript, but inspired by Python's readability rather than Ruby's cleverness. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
 
-- classes that work and feel similar to Python
-- modules that can be used for logic abstraction and allow more flexibility than Python's modules
-- optional function arguments that work similar to Python
-- inheritance system that's both, more powerful than Python and cleaner than JavaScript
+- classes that work and feel very similar to Python
+- pythonic import system (you can also use `require()`)
+- optional function arguments that work just like Python (`func(third='foo')`)
+- inheritance system that's both, more powerful than Python and cleaner than JavaScript (single inheritance w/ mixins);
 - support for object literals with anonymous functions, like in JavaScript
 - ability to invoke any JavaScript/DOM object/function/method as if it's part of the same framework, without the need for special syntax
-- variable and object scoping that make sense (no need for repetitive 'var' or 'new' keywords)
+- variable and object scoping that make sense (no need for repetitive `var` or `new` keywords)
 - ability to use both, Python's methods/functions and JavaScript's alternatives
 - similar to above, ability to use both, Python's and JavaScript's tutorials (as well as widgets)
-- it's self-hosting, that means the compiler is itself written in RapydScript and compiles into JavaScript
+- decorators, list comprehensions, dict comprehensions, verbose regex, starargs, kwargs, you name it
+- it's self-hosting, the compiler is itself written in RapydScript and compiles into JavaScript
 
 Let's not waste any more time with the introductions, however. The best way to learn a new language/framework is to dive in.
 
@@ -117,13 +118,17 @@ files.
 The available options are:
 
 	-o, --output       Output file (default STDOUT).
+	-x, --execute      Execute the file in-place (no compiled output generated)
 	-b, --bare         Omit scope-protection wrapper around generated code
-	-p, --prettify     Beautify output/specify output options.            [string]
-	-v, --verbose      Verbose                                           [boolean]
-	-V, --version      Print version number and exit.                    [boolean]
+	-p, --prettify     Beautify output/specify output options.
+	-V, --version      Print version number and exit.
 	-t, --test         Run unit tests, making sure the compiler produces usable code
+	-6, --es6          Build code for ES6, cleaner output with support for more features (EXPERIMENTAL)
 	-m, --omit-baselib Omit base library from generated code, make sure you're including baselib.js if you use this
 	-i, --auto-bind    Automatically bind methods to the class they belong to (more Pythonic, but could interfere with other JS libs)
+	-h, --help         Print usage and more information on each of these options
+		--self         Compile the compiler itself
+		--stats        Show compilation metrics in STDERR (time to parse, generate code, etc.)
 	-l, --lint         Check file for errors and compilation problems
 
 The rest of the option remain from UglifyJS and have not been tested, some may work, but most will not, since the AST is different between RapydScript and UglifyJS. These option  will eventually be removed or modified to be relevant to RapydScript.
@@ -374,46 +379,28 @@ In my opinion, this is something even Python could benefit from. Like with funct
 
 Function calling with optional arguments
 -------------------------------------------
+RapydScript supports the same function calling format as Python. You can have named optional arguments, create functions with variable numbers of arguments and variable numbers of named arguments. Some examples will illustrate this best:
 
-RapydScript supports the same function calling format as Python. You can have
-named optional arguments, create functions with variable numbers of arguments
-and variable numbers of named arguments. Some examples will illustrate this
-best:
-
-	def f1(a, b=2):
+	def foo(a, b=2):
 		return [a, b]
+	foo(1) == foo(1, 2) == [1, 2]
 
-	f1(1, 3) == f1(1, b=3) == [1, 3]
+	def bar(a, b, c):
+		return [a, b, c]
+	bar(3, 2, 1) == bar(c=1, b=2, a=3) == [3, 2, 1]
 
-	def f2(a, *args):
+	def baz(a, *args):
 		return [a, args]
+	baz(1, 2, 3) == [1, [2, 3]]
 
-	f2(1, 2, 3) == [1, [2, 3]]
-
-	def f3(a, b=2, **kwargs):
+	def qux(a, b=2, **kwargs):
 		return [a, b, kwargs]
+	qux(1, b=3, c=4) == [1, 3, {c:4}]
 
-	f3(1, b=3, c=4) == [1, 3, {c:4}]
+RapydScript is not as strict as Python when it comes to validating function arguments. This is both for performance and to make it easier to interoperate with other JavaScript libraries. So if you do not pass enough arguments when calling a function, the
+extra arguments will be set to undefined instead of raising a TypeError, as would be the case in Python. Similarly, when mixing `**kwargs` and optional arguments, RapydScript will not complain if an optional argument is specified twice, it will use the one specified in kwargs.
 
-	def f4(*args, **kwargs):
-		return [args, kwargs]
-
-	f4(1, 2, 3, a=1, b=2):
-		return [[1, 2, 3], {a:1, b:2}]
-
-On difference between RapydScript and Python is that RapydScript is not as
-strict as Python when it comes to validating function arguments. This is both
-for performance and to make it easier to interoperate with other JavaScript
-libraries. So if you do not pass enough arguments when calling a function, the
-extra arguments will be set to undefined instead of raising a TypeError, as in
-Python. Similarly, when mixing ``*args`` and optional arguments, RapydScript
-will not complain if an optional argument is specified twice.
-
-Another difference is that that, unlike Python, RapydScript will create a
-separate object for an optional argument specified as an object literal
-each time the function is called. This makes it slightly less efficient, but
-prevents the common bug in python caused by using a mutable object literal as
-the default value for an optional argument.
+RapydScript will also create a separate object for an optional argument each time the function is called. This makes it slightly less efficient, but prevents the common bug in python caused by using a mutable object literal as the default value for an optional argument.
 
 
 Inferred Tuple Packing/Unpacking

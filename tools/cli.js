@@ -196,7 +196,7 @@ themselves instead of using @bound decorator
 [experimental].
 */});
 
-opt("ecmascript6", '6, es6', 'bool', false, function(){/*
+opt("ecmascript6", '6,es6', 'bool', false, function(){/*
 Build for ES6 instead of default (ES5). Adds support 
 for additional features like generators and nested list 
 unpacking [experimental].
@@ -246,13 +246,11 @@ or cascading statements into sequences.
 */});
 
 opt("stats", undefined, 'bool', false, function(){/*
-Display operations run time on STDERR.
+Display run timings of various compilation steps in STDERR.
 */});
 
 opt("execute", 'x,exec', 'bool', false, function(){/*
-When compiling RapydScript code, after outputting
-it, execute it in node itself. This acts as a poor
-man's REPL :)
+Execute code in-place, after compiling it into memory.
 */});
 
 opt("lint", 'l', 'bool', false, function(){/*
