@@ -338,6 +338,7 @@ module.exports = function(options) {
             return false;
         }
         var output = RapydScript.OutputStream(output_options);
+        toplevel.strict = true;
         toplevel.print(output);
         output = output.toString();
         if (classes) {
