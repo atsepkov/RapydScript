@@ -238,7 +238,7 @@ module.exports = function(options) {
 
     if (options.show_js) {
         options.console.log(options.colored(
-            'Use repl.showJavascript=True to stop the REPL from showing the compiled JavaScript.',
+            'Use repl.showJavascript=False to stop the REPL from showing the compiled JavaScript.',
             'green',
             true
         ));

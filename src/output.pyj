@@ -880,7 +880,7 @@ def OutputStream(options):
             if self.strict:
                 declare_vars(self.localvars, output)
 
-            display_body(self.body, True, output)
+            display_complex_body(self, True, output)
 
     )
     def print_module(self, output):
