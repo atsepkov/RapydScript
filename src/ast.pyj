@@ -942,6 +942,10 @@ AST_Binary = DEFNODE("Binary", "left operator right", {
         )
 })
 
+AST_DeepEquality = DEFNODE("DeepEquality", None, {
+    $documentation: "Pythonic deep equality operator"
+}, AST_Binary)
+
 AST_Conditional = DEFNODE("Conditional", "condition consequent alternative", {
     $documentation: "Conditional expression using the ternary operator, i.e. `a ? b : c`",
     $propdoc: {

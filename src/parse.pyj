@@ -192,8 +192,8 @@ OP_MAP = {
     'del': "delete",
     'None': "null",
     'is': "===",
-    '==': "===",
-    '!=': "!=="
+    '==': "==",
+    '!=': "!="
 }
 
 WHITESPACE_CHARS = makePredicate(characters(" \u00a0\n\r\t\f\u000b\u200b\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"));
@@ -893,6 +893,9 @@ STATEMENTS_WITH_LABELS = array_to_hash([ "for", "do", "while", "switch" ])
 
 ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ])
 
+# per-module list of danger_zone flaga, if any
+DANGER_ZONE = {}
+
 # -----[ Parser ]-----
 def parse($TEXT, options):
     options = defaults(options, {
@@ -900,14 +903,15 @@ def parse($TEXT, options):
         filename: None,         # name of the file being parsed
         auto_bind: False,       # whether auto-binding of methods to classes is enabled
         module_id: '__main__',  # The id of the module being parsed
-        es6: False,
-        toplevel: None,
+        es6: False,             # whether we're using EcmaScript 6 mode
+        toplevel: None,         # existing tree to append to, if None, new tree will be started
         classes: undefined      # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
     })
     module_id = options.module_id
     IMPORTED = options.IMPORTED or {}
     IMPORTING = options.IMPORTING or {}
     IMPORTING[module_id] = True
+    DANGER_ZONE[module_id] = {}
 
     S = {
         input: (typeof $TEXT == "string" ? tokenizer($TEXT, options.filename) : $TEXT),
@@ -1551,6 +1555,9 @@ def parse($TEXT, options):
                 imp.argnames = argnames = []
                 while True:
                     aname = as_symbol(AST_ImportedVar)
+                    if from_import and name.name == 'danger_zone' and aname.name == 'equality':
+                        DANGER_ZONE[options.module_id].equality = True
+                        BASELIB["eq"] = True
                     if is_('keyword', 'as'):
                         next()
                         aname.alias = as_symbol(AST_SymbolAlias)
@@ -2581,13 +2588,22 @@ def parse($TEXT, options):
         if prec != None and prec > min_prec:
             next()
             right = expr_op(maybe_unary(True), prec, no_in)
-            ret = new AST_Binary({
-                start: left.start,
-                left: left,
-                operator: op,
-                right: right,
-                end: right.end
-            })
+            if DANGER_ZONE[options.module_id].equality and op in ['==', '!=']:
+                ret = new AST_DeepEquality({
+                    start: left.start,
+                    left: left,
+                    operator: op,
+                    right: right,
+                    end: right.end
+                })
+            else:
+                ret = new AST_Binary({
+                    start: left.start,
+                    left: left,
+                    operator: op,
+                    right: right,
+                    end: right.end
+                })
             if not_in:
                 ret = new AST_UnaryPrefix({
                     start: left.start,

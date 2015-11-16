@@ -1,0 +1,16 @@
+# The intent of this module is to provide extra safety for binary operations that should
+# have been handled by 'strict' mode but isn't. This includes:
+#   object + object -> error
+#   object + array  -> error
+#   array + array   -> error
+#   string + object -> error
+#   etc.
+
+# TODO: implement String polyfill
+
+Object.prototype.toString = def():
+    raise TypeError("Object doesn't support binary operations")
+
+Array.prototype.toString = def():
+    raise TypeError("Array doesn't support binary operations")
+

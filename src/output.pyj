@@ -1992,6 +1992,12 @@ def OutputStream(options):
             "//": "Math.floor"
         }
 
+        # handle strict equality gracefully
+        normalize = def(op):
+            if op == '==': return '==='
+            elif op == '!=': return '!=='
+            return op
+
         if self.operator in function_ops:
             output.print(function_ops[self.operator])
             output.with_parens(def():
@@ -2005,6 +2011,8 @@ def OutputStream(options):
                 self.right.print(output)
             )
         elif comparators[self.operator] and isinstance(self.left, AST_Binary) and comparators[self.left.operator]:
+            operator = normalize(self.operator)
+
             if isinstance(self.left.right, AST_Symbol):
                 # left side compares against a regular variable,
                 # no caching needed
@@ -2028,15 +2036,82 @@ def OutputStream(options):
             output.space()
             output.print(leftvar)
             output.space()
-            output.print(self.operator)
+            output.print(operator)
             output.space()
             self.right.print(output)
         else:
+            operator = normalize(self.operator)
+
             self.left.print(output)
             output.space()
-            output.print(self.operator)
+            output.print(operator)
             output.space()
             self.right.print(output)
+    )
+    DEFPRINT(AST_DeepEquality, def(self, output):
+        # a fast implementation of deep equality
+        # TODO: this does not handle comparators logic yet
+
+        if self.operator == '==':
+            # positive case, eliminate truthy immutable comparisons
+            self.left.print(output)
+            output.space()
+            output.print('===')
+            output.space()
+            self.right.print(output)
+            output.space()
+
+            # negative case, eliminate falsy immutable comparisons
+            output.print('||')
+            output.space()
+            output.print('typeof ')
+            self.left.print(output)
+            output.space()
+            output.print('===')
+            output.space()
+            output.print('"object"')
+            output.space()
+
+            # deep case
+            output.print('&&')
+            output.space()
+            output.print('eq')
+            output.with_parens(def():
+                self.left.print(output)
+                output.comma()
+                self.right.print(output)
+            )
+        else:
+            # positive case, eliminate truthy immutable comparisons
+            self.left.print(output)
+            output.space()
+            output.print('!==')
+            output.space()
+            self.right.print(output)
+            output.space()
+
+            # negative case, eliminate falsy immutable comparisons
+            output.print('&&')
+            output.space()
+            output.with_parens(def():
+                output.print('typeof ')
+                self.left.print(output)
+                output.space()
+                output.print('!==')
+                output.space()
+                output.print('"object"')
+                output.space()
+
+                # deep case
+                output.print('||')
+                output.space()
+                output.print('!eq')
+                output.with_parens(def():
+                    self.left.print(output)
+                    output.comma()
+                    self.right.print(output)
+                )
+            )
     )
     DEFPRINT(AST_Assign, def(self, output):
         if self.operator == '//=':

@@ -1,0 +1,58 @@
+from danger_zone import equality
+
+# basic equality
+assert.ok(True == True)
+assert.ok(1 == 1)
+assert.ok('1' == '1')
+assert.ok(None == None)
+assert.ok(undefined == undefined)
+assert.notOk(True == False)
+assert.notOk(True == 1)
+assert.notOk(1 == '1')
+
+# deep equality
+a = { "one": 1 }
+b = { one:1 }
+c = range(10)
+d = [1 to 9]; d.unshift(0)
+f = [1 to 9]
+g = {}
+h = { "one":1, "two":[3 to 5] }
+assert.ok(a == b)       # deep equality
+assert.notOk(a is b)    # identity
+assert.ok(c == d)       # deep equality
+assert.notOk(c is d)    # identity
+assert.notOk(a == d)
+assert.notOk(d == f)
+assert.notOk(a == g)
+assert.notOk(a == h)
+a["two"] = [3, 4, 5]
+assert.ok(a == h)
+
+
+# basic inequality
+assert.notOk(True != True)
+assert.notOk(1 != 1)
+assert.notOk('1' != '1')
+assert.notOk(None != None)
+assert.notOk(undefined != undefined)
+assert.ok(True != False)
+assert.ok(True != 1)
+assert.ok(1 != '1')
+
+# deep inequality
+a = { "one": 1 }
+b = { one:1 }
+c = range(10)
+d = [1 to 9]; d.unshift(0)
+f = [1 to 9]
+g = {}
+h = { "one":1, "two":[3 to 5] }
+assert.notOk(a != b)
+assert.notOk(c != d)
+assert.ok(a != d)
+assert.ok(d != f)
+assert.ok(a != g)
+assert.ok(a != h)
+a["two"] = [3, 4, 5]
+assert.notOk(a != h)

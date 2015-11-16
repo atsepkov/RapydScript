@@ -1,0 +1,40 @@
+# Pythonic equality operation, the purpose of this module is to bring Python's deep
+# equality to JavaScript, and fix any expectations for list traversal
+
+
+Array.prototype.indexOf = def(subject, target, fromIndex):
+    length = subject.length
+    i = 0
+
+    if typeof(fromIndex) is 'number':
+        i = 0
+        if i < 0:
+            i += length
+            if i < 0:
+                i = 0
+
+    while i < length:
+        if subject[i] == target:
+            return i
+        i += 1
+
+    return -1
+
+
+Array.prototype.lastIndexOf = def(subject, target, fromIndex):
+    length = subject.length
+    i = length - 1
+
+    if typeof(fromIndex) is 'number':
+        i = fromIndex
+        if i < 0:
+            i += length
+
+    while i >= 0:
+        if subject[i] == target:
+            return i
+        i -= 1
+
+    return -1
+
+
