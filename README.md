@@ -95,7 +95,7 @@ If you're using OSX, you can probably use the same commands (let me know if that
 
 Quick Start Guide
 -----------------
-First lets creat a very minimal example in which we will have a simple html page that can be loaded in any modern browser and will display a button that will activate our Rapydscript JavaScript to alter the page.
+First lets create a very minimal example in which we will have a simple html page that can be loaded in any modern browser and will display a button that will activate our Rapydscript JavaScript to alter the page.
 First the HTML code for test.html:
 ```html
     <html> 
