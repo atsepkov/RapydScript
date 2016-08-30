@@ -30,9 +30,10 @@ Table of Contents
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [What is RapydScript?](#what-is-rapydscript)
-- [Community](#community)
+
 - [Installation](#installation)
+- [Quick Start Guide](#quick-start-guide)
+- [Community](#community)
 - [Compilation](#compilation)
 - [Getting Started](#getting-started)
 - [Leveraging other APIs](#leveraging-other-apis)
@@ -47,38 +48,28 @@ Table of Contents
 - [Dict and List Comprehensions](#dict-and-list-comprehensions)
 - [Inclusive/Exclusive Sequences](#inclusiveexclusive-sequences)
 - [Classes](#classes)
-	- [External Classes](#external-classes)
-	- [Method Binding](#method-binding)
+  - [External Classes](#external-classes)
+  - [Method Binding](#method-binding)
 - [Modules](#modules)
 - [Exception Handling](#exception-handling)
 - [Scope Control](#scope-control)
 - [Importing](#importing)
 - [Regular Expressions](#regular-expressions)
-		- [Libraries](#libraries)
-		- [External Libraries and Classes](#external-libraries-and-classes)
+- [Available Libraries](#available-libraries)
+- [Advanced Usage Topics](#advanced-usage-topics)
+  - [System Scripts](#system-scripts)
+  - [Browser Compatibility](#browser-compatibility)
+  - [Code Conventions](#code-conventions)
+    - [Tabs vs Spaces](#tabs-vs-spaces)
+    - [Object Literals vs Hashes/Dicts](#object-literals-vs-hashesdicts)
+    - [Semi-Colons](#semi-colons)
+    - [Raw JavaScript](#raw-javascript)
+    - [jQuery-wrapped Elements](#jquery-wrapped-elements)
+    - [Libraries](#libraries)
+    - [External Libraries and Classes](#external-libraries-and-classes)
 - [Quirks](#quirks)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-
-Community
----------
-If you have questions, bug reports, or feature requests, feel free to post them on our mailing list:  
-<http://groups.google.com/group/rapydscript>
-
-I bundled a few demos with RapydScript itself, but several members of the community put together much better demos. If you would like to take a look at them to see what's possible with RapydScript, here are some examples:
-
-<http://salvatore.pythonanywhere.com/RapydScript>  
-This includes the demos from RapydScript's `examples` directory, as well as a few others.
-
-<http://salvatore.pythonanywhere.com/RapydBox>  
-This is a collection of very cool demos, showcasing RapydScript's similarity to real Python and at the same time its ability to work with other JavaScript. It relies on a JavaScript port of NodeBox (which was originally written in Python). NodeBox was ported from Python to JavaScript to allow cross-platform compatibility. Ironically, the original demos from Python version of NodeBox now work with JavaScript version of NodeBox with few changes (and sometimes none at all) by using RapydScript.
-
-<http://salvatore.pythonanywhere.com/RapydGlow>  
-RapydScript making use of GlowScript, another project done by a member of our community
-
-<https://github.com/atsepkov/puzzles/tree/master/project-euler>  
-My solutions to Project Euler challenges in RapydScript. For those unfamiliar with projecteuler.net, it's a collection of mathematical puzzles for developers testing their ability to come up with clever/efficient algorithms as well as brevity/elegance of their chosen language. While Python and Ruby are popular choices, barely any solutions are in JavaScript (probably due to the language's arcane syntax and error handling and very limited utility for mathematical challenges out of the box). RapydScript, however, does quite well - sometimes allowing for identical solution as Python, sometimes a more clever one. Execution speed is typically faster than Python, but in some cases lags behind (i.e. when Python version uses sets or optimized numpy logic).
 
 
 Installation
@@ -100,6 +91,67 @@ From Git:
 	npm link .
 
 If you're using OSX, you can probably use the same commands (let me know if that's not the case). If you're using Windows, you should be able to follow similar commands after installing node.js and git on your system.
+
+
+Quick Start Guide
+-----------------
+First lets create a very minimal example in which we will have a simple html page that can be loaded in any modern browser and will display a button that will activate our Rapydscript JavaScript to alter the page.
+First the HTML code for test.html:
+```html
+    <html> 
+        <head> 
+            <meta charset="utf-8"/>
+            <script type="text/JavaScript" src="rapid-test.js" charset="UTF-8"> </script> 
+        </head> 
+        <body> 
+            <h3>Try This</h3> 
+            <div id="demo"><h2>Push the button to change this text.</h2></div>
+            <button type="button" onclick="javascript:RapydScript.change_text();">Change Content</button>
+        </body> 
+    </html> 
+```
+This simple HTML code builds a page that will load our generated JavaScript and executes the code when the button is clicked using the onclick method.
+Next we will write some RapydScript using the familiar Python syntax that will find the element that has an id of "demo" and then alter it's inner HTML just like the normal JavaScript DOM.
+The code for the rapid-test.py:
+```python
+    class Bunch:
+        pass
+
+    window.RapydScript = Bunch()        
+
+    def change_text():
+        document.getElementById('demo').innerHTML = '<p>RapydScript JavaScript has replaced this text.</p>'
+
+    window.RapydScript.change_text = change_text
+```  
+An explanation of the code; first the Bunch class is just a convient class that we can register and add all of our other classes and functions to in order to provide a unique NameSpace and prevent conflicting with other JavaScript or DOM objects. We then access the DOM using window element and create a NameSpace of "window.RapydScript" because the default behavior of RapydScript is to apply scope protection to your functions and classes; another words this makes your functions and classes reachable via the window.RapydScript NameSpace. Next we define our function which uses some JavaScript to find the element by id and then access the innerHTML property and change it. Finally we register our function to the NameSpace we created earlier window.RapydScript.
+
+Next we need to compile the RapydScript code into Javascript to do this we simply execute the following command (which assumes that you have already installed RapydScript):
+
+     rapydscript rapid-test.py --output rapid-test.js
+     
+Now if you ensure that "rapid-test.js" and "test.html" are in the same directory you can now open the "test.html" file in your browser and press the button to see the text change.
+> Warning: You can not perform AJAX requests without having a running web server due to cross site requests protections in most browsers.
+> Note: You could remove the default scope protection and avoid the NameSpaces by executing the command using the -b or --bare option.
+
+Community
+---------
+If you have questions, bug reports, or feature requests, feel free to post them on our mailing list:  
+<http://groups.google.com/group/rapydscript>
+
+I bundled a few demos with RapydScript itself, but several members of the community put together much better demos. If you would like to take a look at them to see what's possible with RapydScript, here are some examples:
+
+<http://salvatore.pythonanywhere.com/RapydScript>  
+This includes the demos from RapydScript's `examples` directory, as well as a few others.
+
+<http://salvatore.pythonanywhere.com/RapydBox>  
+This is a collection of very cool demos, showcasing RapydScript's similarity to real Python and at the same time its ability to work with other JavaScript. It relies on a JavaScript port of NodeBox (which was originally written in Python). NodeBox was ported from Python to JavaScript to allow cross-platform compatibility. Ironically, the original demos from Python version of NodeBox now work with JavaScript version of NodeBox with few changes (and sometimes none at all) by using RapydScript.
+
+<http://salvatore.pythonanywhere.com/RapydGlow>  
+RapydScript making use of GlowScript, another project done by a member of our community
+
+<https://github.com/atsepkov/puzzles/tree/master/project-euler>  
+My solutions to Project Euler challenges in RapydScript. For those unfamiliar with projecteuler.net, it's a collection of mathematical puzzles for developers testing their ability to come up with clever/efficient algorithms as well as brevity/elegance of their chosen language. While Python and Ruby are popular choices, barely any solutions are in JavaScript (probably due to the language's arcane syntax and error handling and very limited utility for mathematical challenges out of the box). RapydScript, however, does quite well - sometimes allowing for identical solution as Python, sometimes a more clever one. Execution speed is typically faster than Python, but in some cases lags behind (i.e. when Python version uses sets or optimized numpy logic).
 
 
 Compilation
