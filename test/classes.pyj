@@ -22,7 +22,6 @@ class Human:
 class Friend(Human):
     def greet(self):
         return "Yo, it's me, " + self.name
-
     def nickname(self, name):
         self.name = name
 
@@ -182,3 +181,36 @@ class C:
         d = 2
 c = C()
 assert.deepEqual([c.a, c.b, c.c, c.d], [1, 1, 2, 1])
+
+
+# mixins
+class Flyable:
+    def fly(self):
+        return "flying..."
+
+class Quackable:
+    def fly(self):
+        return "N/A"
+    def quack(self):
+        return "quack!"
+
+class Mute:
+    def fly(self):
+        return "..."
+
+class FlyingDuck(Flyable):
+    def __init__(self):
+        Flyable.__init__(self)
+mixin(FlyingDuck, Quackable)
+
+flyingduck = FlyingDuck()
+
+assert.equal(flyingduck.fly(), "flying...")
+assert.equal(flyingduck.quack(), "quack!")
+
+mixin(FlyingDuck, Mute)
+assert.equal(flyingduck.fly(), "flying...")
+
+mixin(FlyingDuck, Mute, True)
+assert.equal(flyingduck.fly(), "...")
+
