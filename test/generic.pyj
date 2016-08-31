@@ -13,8 +13,9 @@ assert.equal(a, 33)
 assert.ok(3<5<7)
 
 
-# strings
+# strings (the modifiers currently have no effect)
 assert(u'unicode' == 'unicode')
+assert(r'raw' == 'raw')
 
 
 # strict equality
