@@ -4,8 +4,8 @@ class Blank:
 blank = Blank()
 assert.ok(isinstance(blank, Blank))
 
-# basic class
-class Human:
+# basic class, also with unneeded parentheses
+class Human():
     def __init__(self, name):
         self.name = name
 

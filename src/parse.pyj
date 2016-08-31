@@ -1610,6 +1610,10 @@ def parse($TEXT, options):
             parent: (def():
                 if is_("punc", "("):
                     next()
+                    if is_('punc', ')'):
+                        S.in_parenthesized_expr = False
+                        next()
+                        return None
                     a = expr_atom(False)
                     expect(")")
                     return a
