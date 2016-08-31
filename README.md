@@ -6,9 +6,52 @@ RapydScript
 
 What is RapydScript?
 --------------------
-RapydScript (pronounced 'RapidScript') is a pre-compiler for JavaScript, similar to CoffeeScript, but with cleaner, more readable syntax. The syntax is very similar to Python, but allows JavaScript as well. This project was written as an alternative to Pyjamas for those wishing Python-like JavaScript without the extra overhead and complexity Pyjamas introduces.
+RapydScript (pronounced 'RapidScript') is a pre-compiler for JavaScript, similar to CoffeeScript, but with cleaner, more readable syntax. The syntax is very similar to Python, but allows JavaScript as well. This project was written as an alternative to Pyjamas for those wishing Python-like JavaScript without the extra overhead and complexity Pyjamas introduces. Here is a quick example of a high-performance Fibinacci function in RapydScript and the JavaScript it produces after compilation:
 
-RapydScript allows to write your front-end in Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with CoffeeScript, RapydScript is like CoffeeScript, but inspired by Python's readability rather than Ruby's cleverness. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
+```python
+def memoize(f):
+    memo = {}
+    return def(x):
+        if x not in memo: memo[x] = f(x)
+        return memo[x]
+
+@memoize
+def fib(n):
+    if n == 0: return 0
+    elif n == 1: return 1
+    else: return fib(n-1) + fib(n-2)
+```
+
+```javascript
+function _$rapyd$_in(val, arr) {
+    if (arr instanceof Array || typeof arr === "string") return arr.indexOf(val) != -1;
+    else {
+        if (arr.hasOwnProperty(val)) return true;
+        return false;
+    }
+}
+function memoize(f) {
+    var memo = {};
+    return function(x) {
+        if (!(_$rapyd$_in(x, memo))) {
+            memo[x] = f(x);
+        }
+        return memo[x];
+    };
+}
+
+fib = memoize(function fib(n) {
+    if (n === 0) {
+        return 0;
+    } else if (n === 1) {
+        return 1;
+    } else {
+        return fib(n - 1) + fib(n - 2);
+    }
+});
+```
+
+RapydScript allows to write your JavaScript app in a language much closer to Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with CoffeeScript, RapydScript is like CoffeeScript, but inspired by Python's readability rather than Ruby's cleverness. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
 
 - classes that work and feel very similar to Python
 - pythonic import system (you can also use `require()`)
@@ -95,7 +138,7 @@ If you're using OSX, you can probably use the same commands (let me know if that
 
 Quick Start Guide
 -----------------
-First lets create a very minimal example in which we will have a simple html page that can be loaded in any modern browser and will display a button that will activate our Rapydscript JavaScript to alter the page.
+First lets create a very minimal example in which we will have a simple html page that can be loaded in any modern browser and will display a button that will activate our RapydScript JavaScript to alter the page.
 First the HTML code for test.html:
 ```html
     <html> 
@@ -112,7 +155,7 @@ First the HTML code for test.html:
 ```
 This simple HTML code builds a page that will load our generated JavaScript and executes the code when the button is clicked using the onclick method.
 Next we will write some RapydScript using the familiar Python syntax that will find the element that has an id of "demo" and then alter it's inner HTML just like the normal JavaScript DOM.
-The code for the rapid-test.py:
+The code for the test.py:
 ```python
     class Bunch:
         pass
@@ -124,13 +167,13 @@ The code for the rapid-test.py:
 
     window.RapydScript.change_text = change_text
 ```  
-An explanation of the code; first the Bunch class is just a convient class that we can register and add all of our other classes and functions to in order to provide a unique NameSpace and prevent conflicting with other JavaScript or DOM objects. We then access the DOM using window element and create a NameSpace of "window.RapydScript" because the default behavior of RapydScript is to apply scope protection to your functions and classes; another words this makes your functions and classes reachable via the window.RapydScript NameSpace. Next we define our function which uses some JavaScript to find the element by id and then access the innerHTML property and change it. Finally we register our function to the NameSpace we created earlier window.RapydScript.
+The Bunch class is just a convenience class that we can register and add all of our other classes and functions to in order to provide a unique namespace and prevent conflicting with other JavaScript or DOM objects. We then access the DOM using window element and create a NameSpace of "window.RapydScript" because the default behavior of RapydScript is to apply scope protection to your functions and classes; another words this makes your functions and classes reachable via the window.RapydScript namespace. Next we define our function which uses some JavaScript to find the element by id and then access the innerHTML property and change it. Finally we register our function to the namespace we created earlier window.RapydScript.
 
-Next we need to compile the RapydScript code into Javascript to do this we simply execute the following command (which assumes that you have already installed RapydScript):
+Next we need to compile the RapydScript code into JavaScript to do this we simply execute the following command (which assumes that you have already installed RapydScript):
 
-     rapydscript rapid-test.py --output rapid-test.js
+     rapydscript test.py --output test.js
      
-Now if you ensure that "rapid-test.js" and "test.html" are in the same directory you can now open the "test.html" file in your browser and press the button to see the text change.
+Put `test.js` and `test.html` in the same directory and open the "test.html" file in your browser and press the button to see the text change.
 > Warning: You can not perform AJAX requests without having a running web server due to cross site requests protections in most browsers.
 > Note: You could remove the default scope protection and avoid the NameSpaces by executing the command using the -b or --bare option.
 
@@ -149,6 +192,12 @@ This is a collection of very cool demos, showcasing RapydScript's similarity to 
 
 <http://salvatore.pythonanywhere.com/RapydGlow>  
 RapydScript making use of GlowScript, another project done by a member of our community
+
+<https://github.com/adousen/RapydScript-pyjTransformer>
+An in-browser compiler that allows you to use uncompiled RapydScript files in the browser directly via script tags:
+```html
+<script type="text/pyj" otype="text/jsx" src="helloworld.pyj" async="false"></script>
+```
 
 <https://github.com/atsepkov/puzzles/tree/master/project-euler>  
 My solutions to Project Euler challenges in RapydScript. For those unfamiliar with projecteuler.net, it's a collection of mathematical puzzles for developers testing their ability to come up with clever/efficient algorithms as well as brevity/elegance of their chosen language. While Python and Ruby are popular choices, barely any solutions are in JavaScript (probably due to the language's arcane syntax and error handling and very limited utility for mathematical challenges out of the box). RapydScript, however, does quite well - sometimes allowing for identical solution as Python, sometimes a more clever one. Execution speed is typically faster than Python, but in some cases lags behind (i.e. when Python version uses sets or optimized numpy logic).
