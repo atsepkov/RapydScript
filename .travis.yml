@@ -3,6 +3,9 @@ language: node_js
 node_js:
     - 0.11
     - 0.12
+    - 4.x
+    - 5.x
+    - 6.x
 
 before_script: "npm run-script build-self"
 
