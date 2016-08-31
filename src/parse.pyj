@@ -611,25 +611,7 @@ def tokenizer($TEXT, filename):  # {{{
                 parse_error("End of line while scanning string literal.")
 
             if ch == "\\":
-                # read OctalEscapeSequence (XXX: deprecated if "strict mode")
-                # https://github.com/mishoo/RapydScript/issues/178
-                octal_len = 0
-                first = None
-                ch = read_while(def(ch):
-                    nonlocal first
-                    if ch >= "0" and ch <= "7":
-                        if not first:
-                            first = ch
-                            return octal_len += 1
-                        elif first <= "3" and octal_len <= 2:
-                            return octal_len += 1
-                        elif first >= "4" and octal_len <= 1:
-                            return octal_len += 1
-                    return False
-                )
-                if octal_len > 0:
-                    ch = String.fromCharCode(parseInt(ch, 8))
-                elif peek() == "\n":
+                if peek() == "\n":
                     # skip newlines if escaped by backslash
                     next(True)
                     continue
