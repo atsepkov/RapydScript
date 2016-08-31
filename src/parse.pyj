@@ -258,6 +258,7 @@ STDLIB = [
 ]
 
 IDENTIFIER_PAT = /^[a-z_$][_a-z0-9$]*$/i
+STRING_MODIFIERS = 'urUR'
 
 class ImportError(Error):
     def __init__(self, message):
@@ -277,6 +278,12 @@ def is_unicode_combining_mark(ch):
 
 def is_unicode_connector_punctuation(ch):
     return UNICODE.connector_punctuation.test(ch)
+
+def is_string_modifier(val):
+    for ch in val:
+        if STRING_MODIFIERS.indexOf(ch) == -1:
+            return False
+    return True
 
 def is_identifier(name):
     return not RESERVED_WORDS(name) and IDENTIFIER_PAT.test(name)
@@ -373,7 +380,10 @@ def tokenizer($TEXT, filename):  # {{{
         S.tokcol = S.col
         S.tokpos = S.pos
 
-    def token(type, value, is_comment, keep_newline):
+    def token(full_type, value, is_comment, keep_newline):
+        full_type = full_type.split(':')
+        type = full_type[0]
+        subtype = full_type[1]
 
         S.regex_allowed = type == "operator" and not UNARY_POSTFIX[value] \
             or type == "keyword" and KEYWORDS_BEFORE_EXPRESSION(value) \
@@ -388,6 +398,7 @@ def tokenizer($TEXT, filename):  # {{{
 
         ret = {
             type: type,
+            subtype: subtype,
             value: value,
             line: S.tokline,
             col: S.tokcol,
@@ -555,7 +566,11 @@ def tokenizer($TEXT, filename):  # {{{
             num = num << 4 | digit
         return num
 
-    read_string = with_eof_error("Unterminated string constant", def():
+    read_string = with_eof_error("Unterminated string constant", def(modifier):
+        token_type = "string"
+        if modifier:
+            token_type += ":" + modifier
+
         quote = next()
         ret = ""
         if peek() == quote:
@@ -586,9 +601,9 @@ def tokenizer($TEXT, filename):  # {{{
                     find_newlines = ret.match(/\n/g)
                     if find_newlines:
                         S.line += find_newlines.length
-                    return token("string", ret)
+                    return token(token_type, ret)
             else:
-                return token("string", "")
+                return token(token_type, "")
 
         while True:
             ch = next(True)
@@ -623,7 +638,7 @@ def tokenizer($TEXT, filename):  # {{{
             elif ch == quote:
                 break
             ret += ch
-        return token("string", ret)
+        return token(token_type, ret)
     )
 
     def read_line_comment(shebang=False):
@@ -836,7 +851,15 @@ def tokenizer($TEXT, filename):  # {{{
             return next_token()
 
         if code == 92 or is_identifier_start(code):
-            return read_word()
+            tok = read_word()
+            if peek() in '\'"' and is_string_modifier(tok.value):
+                mods = tok.value.toLowerCase()
+                string_tok = read_string(mods)
+                tok.endpos = string_tok.endpos
+                tok.value = string_tok.value
+                tok.subtype = string_tok.subtype
+                tok.type = string_tok.type
+            return tok
 
         parse_error("Unexpected character «" + ch + "»")
 
@@ -2020,7 +2043,8 @@ def parse($TEXT, options):
             ret = new AST_String({
                 start: tok,
                 end: tok,
-                value: tok.value
+                value: tok.value,
+                modifier: tok.subtype
             })
         elif tmp_ == "regexp":
             ret = new AST_RegExp({
@@ -2462,7 +2486,7 @@ def parse($TEXT, options):
                 # raw JavaScript chunk of code
                 str_ = expression(False)
                 if not (isinstance(str_, AST_String)):
-                    token_error(prev(), "Compile-time function JS() can't process variables or expressions")
+                    token_error(prev(), "Compile-time function JS() can't evaluate variables or expressions")
 
                 ret = new AST_Verbatim({
                     start: start,

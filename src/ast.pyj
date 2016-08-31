@@ -1127,10 +1127,11 @@ AST_Constant = DEFNODE("Constant", None, {
         return this.value
 })
 
-AST_String = DEFNODE("String", "value", {
+AST_String = DEFNODE("String", "value modifier", {
     $documentation: "A string literal",
     $propdoc: {
-        value: "[string] the contents of this string"
+        value: "[string] the contents of this string",
+        modifier: "[string] string type modifier"
     }
 }, AST_Constant)
 

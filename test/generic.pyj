@@ -13,6 +13,10 @@ assert.equal(a, 33)
 assert.ok(3<5<7)
 
 
+# strings
+assert(u'unicode' == 'unicode')
+
+
 # strict equality
 assert(1 == 1)                  # number vs number: ok
 assert(True == True)            # boolean vs boolean: ok
@@ -34,21 +38,20 @@ JS('var def = {}')                # ability to bypass reserved keywords in decla
 JS('def').item = 3            # ability to use reserved keywords
 assert(JS('def.item') == 3)
 
-n = 5
 assert(JS("""
-(function() {
+(function(n) {
     var s = 0;
     for (var i=0; i<=n; i++) {
         s += i;
     }
     return s;
-})()
-""") == (def():
+})(5)
+""") == (def(n):
     s = 0
     for i in [0 to n]:
         s += i
     return s
-)())                        # shared scoping and equivalent capability
+)(5))                        # shared scoping and equivalent capability
 
 
 # regex
