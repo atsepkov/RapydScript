@@ -1,0 +1,10 @@
+# RapydScript browser test suite
+# the idea behind this test is to test how RapydScript baselib functions handle interaction with DOM elements, i.e. use of iterators
+# Author: Alexander Tsepkov
+
+describe('DOM tests', def():
+
+    it('tests HTMLCollection', def():
+        expect(element).to.not.equal(null)
+    )
+)

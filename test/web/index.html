@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+    <body>
+        <script src="mocha.js"></script>
+        <script src="chai.js"></script>
+        <script>
+            mocha.ui('bdd');
+            mocha.reporter('html');
+            var expect = chai.expect;
+        </script>
+        <script src="tests.js"></script>
+        <script>
+            mocha.run();
+        </script>
+    </body>
+</html>

@@ -3,3 +3,4 @@
 *.swp
 *.tmp
 *.orig
+node_modules

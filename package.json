@@ -1,7 +1,7 @@
 {
   "name": "rapydscript",
   "description": "Pythonic JavaScript that doesn't suck",
-  "homepage": "http://rapydscript.pyjeon.com",
+  "homepage": "http://rapydscript.com",
   "keywords": [
     "javascript",
     "rapydscript",
@@ -10,10 +10,10 @@
   ],
   "main": "tools/compiler.js",
   "scripts": {
-	  "test": "bin/rapydscript --test",
-	  "build-self": "bin/rapydscript --self"
+    "test": "bin/rapydscript --test",
+    "build-self": "bin/rapydscript --self"
   },
-  "version": "0.3.9",
+  "version": "0.4.0",
   "license": "BSD-2-Clause",
   "engines": {
     "node": ">=0.12.0"
@@ -22,16 +22,19 @@
     {
       "name": "Alexander Tsepkov",
       "email": "atsepkov@pyjeon.com",
-      "web": "http://rapydscript.pyjeon.com"
+      "web": "http://rapydscript.com"
     }
   ],
   "repository": {
-      "type": "git",
-      "url": "https://github.com/atsepkov/RapydScript.git"
+    "type": "git",
+    "url": "https://github.com/atsepkov/RapydScript.git"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "bin": {
     "rapydscript": "bin/rapydscript"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "mocha": "^3.0.2"
   }
 }

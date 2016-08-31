@@ -223,6 +223,11 @@ from those files. For example:
 --test baselib functions
 */});
 
+opt("test_all", 'T', 'bool', false, function(){/*
+Run full RapydScript test suite, including DOM 
+tests and performance.
+*/});
+
 opt("self", undefined, 'bool', false, function(){/*
 Compile the compiler itself. It will only actually 
 compile if something has changed since the last time 
