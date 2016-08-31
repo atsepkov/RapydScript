@@ -1026,7 +1026,7 @@ def OutputStream(options):
                 # if we're using multiple iterators, unpack them
                 output.indent()
                 if isinstance(self.init, AST_Array):
-                    output.assign("ՐՏ_Unpack")
+                    output.assign("var ՐՏ_Unpack")
                     output.print("ՐՏ_Iter" + INDEX_COUNTER + "[ՐՏ_Index" + INDEX_COUNTER + "];")
                     output.newline()
                     unpack_tuple(self.init, output)
@@ -1235,7 +1235,7 @@ def OutputStream(options):
                 output.with_block(def():
                     output.indent()
                     if isinstance(self.init, AST_Array):
-                        output.assign("ՐՏ_Unpack")
+                        output.assign("var ՐՏ_Unpack")
                         output.print("ՐՏ_Iter[ՐՏ_Index];")
                         output.newline()
                         unpack_tuple(self.init, output)
