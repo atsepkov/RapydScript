@@ -28,6 +28,8 @@ assert.notOk(a == g)
 assert.notOk(a == h)
 a["two"] = [3, 4, 5]
 assert.ok(a == h)
+assert.ok([] == [])
+assert.ok({} == {})
 
 
 # basic inequality

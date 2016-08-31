@@ -4,6 +4,9 @@ assert.notOk = def(val): assert.ok(not val)
 
 # immutables
 a = [4,5,6,7]
+aa = [1,
+        2,
+        3]
 
 # mutables
 class Item:
@@ -23,6 +26,7 @@ assert.deepEqual(a[2:], [6,7])
 assert.ok(7 in a)
 assert.ok(i1 in b)
 assert.ok(i2 not in b)
+assert.ok(3 in aa)
 
 # assignment
 a[-1] = 9
