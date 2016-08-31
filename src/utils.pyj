@@ -321,7 +321,7 @@ Dictionary.prototype = {
 colors = ['red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
 def ansi(code):
     code = code or 0
-    return '\033[' + code + 'm'
+    return '\u001b[' + code + 'm'
 
 def colored(string, color, bold):
     prefix = []
