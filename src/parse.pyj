@@ -281,9 +281,9 @@ def is_unicode_connector_punctuation(ch):
 
 def is_string_modifier(val):
     for ch in val:
-        if STRING_MODIFIERS.indexOf(ch) == -1:
-            return False
-    return True
+        if ch in STRING_MODIFIERS:
+            return True
+    return False
 
 def is_identifier(name):
     return not RESERVED_WORDS(name) and IDENTIFIER_PAT.test(name)
@@ -651,7 +651,7 @@ def tokenizer($TEXT, filename):  # {{{
         else:
             S.col += a[n - 1].length
         S.col += 2
-        S.newline_before = S.newline_before or text.indexOf("\n") >= 0
+        S.newline_before = S.newline_before or "\n" in text
         return token("comment2", text, True)
     )
 
@@ -733,7 +733,7 @@ def tokenizer($TEXT, filename):  # {{{
                 break
             elif ch == "\\":
                 prev_backslash = True
-            elif verbose_regexp and not in_class and ' \n\r\t'.indexOf(ch) != -1:
+            elif verbose_regexp and not in_class and ch in ' \n\r\t':
                 pass
             elif verbose_regexp and not in_class and ch == '#':
                 in_comment = True
@@ -1096,10 +1096,10 @@ def parse($TEXT, options):
                         # iteration via implicit tuple
                         vars.push("ՐՏ_Unpack")
                         body[stmt].init.elements.forEach(def(elem):
-                            if vars.indexOf(elem.name) == -1:
+                            if elem.name not in vars:
                                 vars.push(elem.name)
                         )
-                    elif vars.indexOf(body[stmt].init.name) == -1:
+                    elif body[stmt].init.name not in vars:
                         # iteration via a single variable
                         vars.push(body[stmt].init.name)
                 elif isinstance(body[stmt], AST_DWLoop):
@@ -1124,10 +1124,10 @@ def parse($TEXT, options):
                 # assignment to an implicit tuple
                 vars.push("ՐՏ_Unpack")
                 body.left.elements.forEach(def(elem):
-                    if not (isinstance(elem, AST_PropAccess)) and vars.indexOf(elem.name) == -1:
+                    if not (isinstance(elem, AST_PropAccess)) and elem.name not in vars:
                         vars.push(elem.name)
                 )
-            elif body.left.name and vars.indexOf(body.left.name) == -1:
+            elif body.left.name and body.left.name not in vars:
                 # assignment to a single variable
                 vars.push(body.left.name)
 
@@ -2360,7 +2360,7 @@ def parse($TEXT, options):
         return sym
 
     def is_static_method(cls, method):
-        if COMMON_STATIC.indexOf(method) != -1 or cls.static and cls.static.indexOf(method) != -1:
+        if method in COMMON_STATIC or cls.static and method in cls.static:
             return True
         else:
             return False
