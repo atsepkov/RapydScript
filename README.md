@@ -6,7 +6,7 @@ RapydScript
 
 What is RapydScript?
 --------------------
-RapydScript (pronounced 'RapidScript') is a pre-compiler for JavaScript, similar to CoffeeScript, but with cleaner, more readable syntax. The syntax is very similar to Python, but allows JavaScript as well. This project was written as an alternative to Pyjamas for those wishing Python-like JavaScript without the extra overhead and complexity Pyjamas introduces. Here is a quick example of a high-performance Fibinacci function in RapydScript and the JavaScript it produces after compilation:
+RapydScript is a pre-compiler for JavaScript. The syntax is very similar to Python, but allows JavaScript as well. This project was written as a cleaner alternative to CoffeeScript. Here is a quick example of a high-performance Fibinacci function in RapydScript and the JavaScript it produces after compilation:
 
 ```python
 def memoize(f):
