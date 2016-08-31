@@ -131,9 +131,7 @@
 ,
 "in": def ՐՏ_in(val, arr):
     if Array.isArray(arr) or JS('typeof arr') == 'string': return arr.indexOf(val) != -1
-    else:
-        if arr.hasOwnProperty(val): return True
-        return False
+    else: return arr.hasOwnProperty(val) ? True : False
 ,
 "iterable": def ՐՏ_Iterable(iterable):
     if Array.isArray(iterable) or isinstance(iterable, String) or JS('typeof iterable') == 'string': return iterable
