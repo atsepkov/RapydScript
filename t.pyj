@@ -1,0 +1,5 @@
+styles = {
+    "border-style":"solid",
+    "border-color":"#dddddd",
+    "border-width":"1px"
+}

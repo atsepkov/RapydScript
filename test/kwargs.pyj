@@ -1,8 +1,11 @@
 def sub(a, b):
     return a-b
 
+def sub2(a, b, kw):
+    return kw['foo']
+
 # temporarily disabled, this implementation is naive, it doesn't stack with *args
-#def sub2(a, b, **kw):
+#def sub3(a, b, **kw):
 #    return kw['foo']
 
 assert.equal(sub(5, 4), 1)
@@ -10,7 +13,7 @@ assert.equal(sub(a=5, b=4), 1)
 assert.equal(sub(b=5, a=4), -1)
 k = {b: 4, a: 10}
 assert.equal(sub(**k), 6)
-#assert.equal(sub2(3, foo=5, 2), 5)
+assert.equal(sub2(3, foo=5, 2), 5)
 
 class KeywordArgsTest:
     def __init__(self, a, b):
