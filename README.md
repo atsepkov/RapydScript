@@ -21,7 +21,7 @@ def fib(n):
     elif n == 1: return 1
     else: return fib(n-1) + fib(n-2)
 ```
-
+JavaScript:
 ```javascript
 function _$rapyd$_in(val, arr) {
     if (arr instanceof Array || typeof arr === "string") return arr.indexOf(val) != -1;
@@ -50,6 +50,18 @@ fib = memoize(function fib(n) {
     }
 });
 ```
+
+Here are just a few examples of cleaner RapydScript syntax:
+| RapydScript              | JavaScript                                                                     |
+|--------------------------|--------------------------------------------------------------------------------|
+| `foo = 1`                | `var foo = 1;`                                                                 |
+| `thing in stuff`         | `stuff.indexOf(element) != -1`                                                 |
+| `a < b < c`              | `a < b && b < c`                                                               |
+| `def(a, b='foo'):`       | `function(a, b) { if (typeof b === 'undefined') b = 'foo'; }`                  |
+| `array[-1]`              | `array[array.length-1]`                                                        |
+| `array[3:5] = [7, 8, 9]` | `[].splice.apply(array, [3, 5-3].concat([ 7, 8, 9 ]))`                         |
+| `[5 to 15]`              | `Array.apply(null, {length: 11}).map(Number.call, function(n){ return n+5; })` |
+| `[a**2 for a in array]`  | `// Really, really long of for-loop code...`                                   |
 
 RapydScript allows to write your JavaScript app in a language much closer to Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with CoffeeScript, RapydScript is like CoffeeScript, but inspired by Python's readability rather than Ruby's cleverness. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
 
@@ -175,7 +187,7 @@ Next we need to compile the RapydScript code into JavaScript to do this we simpl
      
 Put `test.js` and `test.html` in the same directory and open the "test.html" file in your browser and press the button to see the text change.
 > Warning: You can not perform AJAX requests without having a running web server due to cross site requests protections in most browsers.
-> Note: You could remove the default scope protection and avoid the NameSpaces by executing the command using the -b or --bare option.
+> Note: You could remove the default scope protection and avoid the namespace by executing the command using the -b or --bare option.
 
 Community
 ---------
