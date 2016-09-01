@@ -62,7 +62,7 @@ Here are just a few examples of cleaner RapydScript syntax:
 | `array[-1]`              | `array[array.length-1]`                                                        |
 | `array[3:5] = [7, 8, 9]` | `[].splice.apply(array, [3, 5-3].concat([ 7, 8, 9 ]))`                         |
 | `[5 to 15]`              | `Array.apply(null, {length: 11}).map(Number.call, function(n){ return n+5; })` |
-| `[a**2 for a in array]`  | `// Really, really long of for-loop code...`                                   |
+| `[a**2 for a in array]`  | `// Really, really long for-loop code...`                                      |
 
 RapydScript allows to write your JavaScript app in a language much closer to Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with CoffeeScript, RapydScript is like CoffeeScript, but inspired by Python's readability rather than Ruby's cleverness. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
 
