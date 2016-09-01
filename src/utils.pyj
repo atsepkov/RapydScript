@@ -170,7 +170,7 @@ MAP = def():
 .call(this)
 
 def push_uniq(array, el):
-    if array.indexOf(el) < 0:
+    if el not in array:
         array.push(el)
 
 def string_template(text, props):

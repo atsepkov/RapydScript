@@ -166,7 +166,7 @@ def OutputStream(options):
         str_ = JS("String(str_)")
         ch = str_.charAt(0)
         if might_need_semicolon:
-            if (not ch or ";}".indexOf(ch) < 0) and not /[;]$/.test(last):
+            if (not ch or ch not in ";}") and not /[;]$/.test(last):
                 if options.semicolons or requireSemicolonChars(ch):
                     OUTPUT += ";"
                     current_col += 1
@@ -1343,7 +1343,7 @@ def OutputStream(options):
         class_def = def(method):
             output.indent()
             self.name.print(output)
-            if method and self.static.indexOf(method) != -1:
+            if method and method in self.static:
                 output.assign("." + method)
             else:
                 output.assign(".prototype" + ((method ? "." + method : "")))
@@ -1359,7 +1359,7 @@ def OutputStream(options):
                 output.with_parens(def():
                     stmt.argnames.forEach(def(arg, i):
                         # only strip first argument if the method isn't static
-                        if self.static.indexOf(name) != -1:
+                        if name in self.static:
                             i += 1
                         if i > 1:
                             output.comma()
