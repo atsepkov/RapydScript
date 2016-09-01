@@ -219,12 +219,12 @@ def mergeSort(array, cmp):
 
 def set_difference(a, b):
     return a.filter(def(el):
-        return b.indexOf(el) < 0
+        return el not in b
     )
 
 def set_intersection(a, b):
     return a.filter(def(el):
-        return b.indexOf(el) >= 0
+        return el in b
     )
 
 # this function is taken from Acorn [1], written by Marijn Haverbeke

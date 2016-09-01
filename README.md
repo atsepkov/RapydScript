@@ -24,11 +24,10 @@ def fib(n):
 JavaScript:
 ```javascript
 function _$rapyd$_in(val, arr) {
-    if (arr instanceof Array || typeof arr === "string") return arr.indexOf(val) != -1;
-    else {
-        if (arr.hasOwnProperty(val)) return true;
-        return false;
+    if (arr instanceof Array || typeof arr === "string") {
+        return arr.indexOf(val) != -1;
     }
+    return arr.hasOwnProperty(val) ? true : false;
 }
 function memoize(f) {
     var memo = {};
