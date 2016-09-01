@@ -52,6 +52,7 @@ fib = memoize(function fib(n) {
 ```
 
 Here are just a few examples of cleaner RapydScript syntax:
+
 | RapydScript              | JavaScript                                                                     |
 | ------------------------ | ------------------------------------------------------------------------------ |
 | `foo = 1`                | `var foo = 1;`                                                                 |
