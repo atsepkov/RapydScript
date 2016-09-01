@@ -53,7 +53,7 @@ fib = memoize(function fib(n) {
 
 Here are just a few examples of cleaner RapydScript syntax:
 | RapydScript              | JavaScript                                                                     |
-|--------------------------|--------------------------------------------------------------------------------|
+| ------------------------ | ------------------------------------------------------------------------------ |
 | `foo = 1`                | `var foo = 1;`                                                                 |
 | `thing in stuff`         | `stuff.indexOf(element) != -1`                                                 |
 | `a < b < c`              | `a < b && b < c`                                                               |
