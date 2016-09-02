@@ -1,15 +1,28 @@
 from danger_zone import equality
 
-bench.add('identity', def():
+bench.add('identity, truthy', def():
     1 is 1
 )
-bench.add('native/broken equality', def():
+bench.add('native/broken equality, truthy', def():
     JS('1 == 1')
 )
-bench.add('RS/proper equality', def():
+bench.add('RS/proper equality, truthy', def():
     1 == 1
 )
-bench.add('deep equality', def():
+bench.add('deep equality, truthy', def():
     eq(1, 1)
+)
+
+bench.add('identity, falsy', def():
+    1 is 2
+)
+bench.add('native/broken equality, falsy', def():
+    JS('1 == 2')
+)
+bench.add('RS/proper equality, falsy', def():
+    1 == 2
+)
+bench.add('deep equality, falsy', def():
+    eq(1, 2)
 )
 

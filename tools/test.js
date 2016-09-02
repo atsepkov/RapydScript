@@ -127,19 +127,16 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
             eval(code);
 
             bench.on('complete', function() {
+                var baseline = this[0].hz;
                 console.log(file + ':');
                 var s = function(num) {
                     if (num > 1e3) return parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-                    if (num < 1e-1) {
-                        var parts = num.toString().split('e');
-                        parts[0] = Math.round(parts[0] * 1000) / 1000;
-                        return parts.join('e');
-                    }
-                    return Math.round(num * 1000) / 1000;
+                    return num.toPrecision(4);
                 };
                 this.forEach(function(item) {
+                    var normalized = item.hz/baseline * 100;
                     console.log("  " + item.name + ":");
-                    console.log("    " + s(item.hz) + " ops/s, " + s(item.stats.mean) + " +/- " + s(item.stats.deviation) + " s/op");
+                    console.log("    " + s(item.hz) + " ops/s, " + s(item.stats.mean) + " +/- " + s(item.stats.deviation) + " s/op (" + s(normalized) + "%)");
                 });
             }).run();
         });
