@@ -1,0 +1,20 @@
+# take these tests with a grain of salt, 
+array = [1 til 100] # pregenerate array so forEach isn't penalized for element creation
+
+bench.add('native', def():
+    for JS('var i = 0; i < 100; i++'):
+        pass
+)
+bench.add('RS regular', def():
+    for i in range(100):
+        pass
+)
+bench.add('forEach', def():
+    array.forEach(def():
+        pass
+    )
+)
+bench.add('list comprehension', def():
+    # note that we're effectivelly getting penalized for building an array object here
+    [i for i in array]
+)
