@@ -134,7 +134,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
             OUTPUT_OPTIONS.comments = function(node, comment) {
                 var text = comment.value;
                 var type = comment.type;
-                if (type == "comment2") {
+                if (type == "comment:multiline") {
                     // multiline comment
                     return /@preserve|@license|@cc_on/i.test(text);
                 }

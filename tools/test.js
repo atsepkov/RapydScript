@@ -1,7 +1,7 @@
 /*
  * test.js
  * Copyright (C) 2016 Alexander Tsepkov
- * original author: Kovid Goyal <kovid at kovidgoyal.net>
+ * originally based on work from Kovid Goyal <kovid at kovidgoyal.net>
  *
  * Distributed under terms of the MIT license.
  */
