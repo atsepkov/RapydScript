@@ -100,7 +100,8 @@
 ,
 "enumerate": def enumerate(item):
     arr = []
-    for JS('var i=0;i<item.length;i++'): arr[arr.length] = [i, item[i]]
+    for i in range(item):
+        arr[arr.length] = [i, item[i]]
     return arr
 ,
 "eslice": def ՐՏ_eslice(arr, step, start, end):
