@@ -1,18 +1,22 @@
 # take these tests with a grain of salt, 
-array = [1 til 100] # pregenerate array so forEach isn't penalized for element creation
+array = [9 til 100] # pregenerate array so forEach isn't penalized for element creation
 
 bench.add('native', def():
-    for JS('var i = 0; i < 100; i++'):
+    for JS('var i = 9; i < 100; i++'):
         pass
 )
 bench.add('RS regular', def():
-    for i in range(100):
+    for i in range(9, 100):
         pass
 )
 bench.add('forEach', def():
     array.forEach(def():
         pass
     )
+)
+bench.add('til operator', def():
+    # note that we're effectivelly getting penalized for building an array object here
+    [9 til 100]
 )
 bench.add('list comprehension', def():
     # note that we're effectivelly getting penalized for building an array object here
