@@ -32,7 +32,9 @@ if (argv.self) {
 } else if (argv.test) {
     load('test')(argv, base_path, src_path, lib_path);
 } else if (argv.test_all) {
-    load('test')(argv, base_path, src_path, lib_path, true);
+    load('test')(argv, base_path, src_path, lib_path, 'full');
+} else if (argv.bench) {
+    load('test')(argv, base_path, src_path, lib_path, 'bench');
 } else if (argv.lint) {
     load('lint').cli(argv, base_path, src_path, lib_path);
 } else if (argv.files.length === 0 && process.stdin.isTTY) {

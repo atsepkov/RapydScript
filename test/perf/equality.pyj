@@ -1,0 +1,15 @@
+from danger_zone import equality
+
+bench.add('identity', def():
+    1 is 1
+)
+bench.add('native/broken equality', def():
+    JS('1 == 1')
+)
+bench.add('RS/proper equality', def():
+    1 == 1
+)
+bench.add('deep equality', def():
+    eq(1, 1)
+)
+

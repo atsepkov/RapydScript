@@ -1,0 +1,9 @@
+array = [1 to 50]
+
+bench.add('indexOf', def():
+    array.indexOf(11) != -1
+)
+bench.add('in', def():
+    11 in array
+)
+

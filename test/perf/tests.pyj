@@ -1,7 +1,0 @@
-suite = Benchmark.Suite
-
-suite.add('deep equality', def():
-    1 == 1
-).add('dumb equality', def():
-    JS('1 == 1')
-)

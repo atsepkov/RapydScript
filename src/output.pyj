@@ -479,10 +479,10 @@ def OutputStream(options):
                     )
 
                 comments.forEach(def(c):
-                    if c.type == "comment1":
+                    if c.type == "comment:line":
                         output.print("//" + c.value + "\n")
                         output.indent()
-                    elif c.type == "comment2":
+                    elif c.type == "comment:multiline":
                         output.print("/*" + c.value + "*/")
                         if start.nlb:
                             output.print("\n")

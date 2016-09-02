@@ -635,7 +635,7 @@ def tokenizer($TEXT, filename):  # {{{
             ret = S.text.substring(S.pos, i)
             S.pos = i
 
-        return token(shebang ? "shebang" : "comment1", ret, True)
+        return token(shebang ? "shebang" : "comment:line", ret, True)
 
     read_multiline_comment = with_eof_error("Unterminated multiline comment", def():
         next()
@@ -652,7 +652,7 @@ def tokenizer($TEXT, filename):  # {{{
             S.col += a[n - 1].length
         S.col += 2
         S.newline_before = S.newline_before or "\n" in text
-        return token("comment2", text, True)
+        return token("comment:multiline", text, True)
     )
 
     def read_name():

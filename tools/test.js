@@ -10,7 +10,7 @@ var path = require('path');
 var fs = require('fs');
 var RapydScript = require('./compiler');
 
-module.exports = function(argv, base_path, src_path, lib_path, full_test_suite) {
+module.exports = function(argv, base_path, src_path, lib_path, test_type) {
     // run all tests and exit
     var assert = require("assert");
     var os = require('os');
@@ -18,18 +18,9 @@ module.exports = function(argv, base_path, src_path, lib_path, full_test_suite) 
     var vm = require('vm');
     var test_dir = path.join(base_path, 'test/basic');
     var web_dir = path.join(base_path, 'test/web');
+    var perf_dir = path.join(base_path, 'test/perf');
 	var baselib = RapydScript.parse_baselib(src_path, true);
     var files, ok;
-
-    if (argv.files.length) {
-        files = [];
-		argv.files.forEach(function(fname) { files.push(fname + '.pyj'); });
-	} else {
-        files = fs.readdirSync(test_dir).filter(function(name){
-            // omit files that start with underscores
-            return /^[^_].*\.pyj$/.test(name);
-        });
-	}
 
     // this function is the actual transcompiler, the rest of the code in this module is
     // just a test harness
@@ -57,37 +48,49 @@ module.exports = function(argv, base_path, src_path, lib_path, full_test_suite) 
         return output;
     }
 
-    files.forEach(function(file){
-        var output = compileFile(file);
-        var code = output.toString();
-
-        // test that output performs correct JS operations
-        var jsfile = path.join(os.tmpdir(), file + '.js');
-        fs.writeFileSync(jsfile, code);
-        try {
-            vm.runInNewContext(code, {
-                'assert':require('assert'),
-                'require':require,
-                'RapydScript':RapydScript,
-                'console':console,
-                'base_path': base_path
-            }, {'filename':jsfile});
-			ok = true;
-            fs.unlinkSync(jsfile);
-        } catch (e) {
-            ok = false;
-            if (e.stack) {
-                console.log(file + ":\t" + e.stack + "\n\n");
-            } else {
-                console.log(file + ":\t" + e + "\n\n");
-            }
+    if (test_type !== 'bench') {
+        if (argv.files.length) {
+            files = [];
+            argv.files.forEach(function(fname) { files.push(fname + '.pyj'); });
+        } else {
+            files = fs.readdirSync(test_dir).filter(function(name){
+                // omit files that start with underscores
+                return /^[^_].*\.pyj$/.test(name);
+            });
         }
-		if (ok) console.log(file + ":\ttest completed successfully\n");
-        else { all_ok = false; console.log(file + ":\ttest failed\n"); }
-    });
+        files.forEach(function(file){
+            var output = compileFile(file);
+            var code = output.toString();
 
-    if (full_test_suite) {
-        // DOM tests
+            // test that output performs correct JS operations
+            var jsfile = path.join(os.tmpdir(), file + '.js');
+            fs.writeFileSync(jsfile, code);
+            try {
+                vm.runInNewContext(code, {
+                    'assert':require('assert'),
+                    'require':require,
+                    'RapydScript':RapydScript,
+                    'console':console,
+                    'base_path': base_path
+                }, {'filename':jsfile});
+                ok = true;
+                fs.unlinkSync(jsfile);
+            } catch (e) {
+                ok = false;
+                if (e.stack) {
+                    console.log(file + ":\t" + e.stack + "\n\n");
+                } else {
+                    console.log(file + ":\t" + e + "\n\n");
+                }
+            }
+            if (ok) console.log(file + ":\ttest completed successfully\n");
+            else { all_ok = false; console.log(file + ":\ttest failed\n"); }
+        });
+    }
+
+    // DOM/web tests
+    if (test_type === 'full') {
+        console.log('\nRUNNING DOM TESTS\n');
         var output = compileFile('tests.pyj', web_dir);
         var code = output.toString();
         //fs.writeFileSync(path.join(web_dir, 'tests.js'), code);
@@ -100,6 +103,45 @@ module.exports = function(argv, base_path, src_path, lib_path, full_test_suite) 
             describe('starting headless browser tests', function() {
                 eval(code);
             });
+        });
+    }
+
+    // performance benchmarks
+    if (test_type === 'full' || test_type === 'bench') {
+        var Benchmark = require('benchmark');
+        if (argv.files.length) {
+            files = [];
+            argv.files.forEach(function(fname) { files.push(fname + '.pyj'); });
+        } else {
+            files = fs.readdirSync(perf_dir).filter(function(name){
+                // omit files that start with underscores
+                return /^[^_].*\.pyj$/.test(name);
+            });
+        }
+        files.forEach(function(file) {
+            var bench = new Benchmark.Suite;
+            var output = compileFile(file, perf_dir);
+            var code = output.toString();
+
+            // add test cases
+            eval(code);
+
+            bench.on('complete', function() {
+                console.log(file + ':');
+                var s = function(num) {
+                    if (num > 1e3) return parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                    if (num < 1e-1) {
+                        var parts = num.toString().split('e');
+                        parts[0] = Math.round(parts[0] * 1000) / 1000;
+                        return parts.join('e');
+                    }
+                    return Math.round(num * 1000) / 1000;
+                };
+                this.forEach(function(item) {
+                    console.log("  " + item.name + ":");
+                    console.log("    " + s(item.hz) + " ops/s, " + s(item.stats.mean) + " +/- " + s(item.stats.deviation) + " s/op");
+                });
+            }).run();
         });
     }
 

@@ -228,6 +228,13 @@ Run full RapydScript test suite, including DOM
 tests and performance.
 */});
 
+opt("bench", undefined, 'bool', false, function(){/*
+Run performance benchmarks and exit. You can specify the
+name of individual test files to only run tests 
+from those files. For example:
+--bench equality
+*/});
+
 opt("self", undefined, 'bool', false, function(){/*
 Compile the compiler itself. It will only actually 
 compile if something has changed since the last time 
