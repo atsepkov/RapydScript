@@ -1,0 +1,22 @@
+a = 1
+b = 2
+c = [1, 2]
+
+bench.add('single variable', def():
+    a = 1
+)
+bench.add('variable packing', def():
+    a = 1, 2
+)
+bench.add('variable unpacking', def():
+    a, b = c
+)
+bench.add('traditional swap', def():
+    tmp = a
+    a = b
+    b = tmp
+)
+bench.add('RS swap', def():
+    # note: this will likely incur overhead due to building an array object, which regular unpacking wouldn't need to do
+    a, b = b, a
+)
