@@ -100,7 +100,7 @@
 ,
 "enumerate": def enumerate(item):
     arr = []
-    for i in range(item):
+    for i in range(len(item)):
         arr[arr.length] = [i, item[i]]
     return arr
 ,
@@ -246,21 +246,25 @@
         return True
     return False
 ,
-"kwargs": def kwargs(f):
+"kwargs": def():
     # WARNING: when using this function decorator, you will not be able to use obfuscators that rename local variables
-    argNames = f.toString().match(/\(([^\)]+)/)[1]
-    argNames = argNames ? argNames.split(',').map(def(s): return s.trim();) : []
-    return def():
-        args = [].slice.call(arguments)
-        if args.length:
-            kw = args[-1]
-            if type(kw) == 'object':
-                for i in range(argNames.length):
-                    if argNames[i] in dir(kw):
-                        args[i] = kw[argNames[i]]
-            else:		
-                args.push(kw)
-        return f.apply(this, args)
+    def kwargs(f):
+        argNames = f.toString().match(/\(([^\)]+)/)[1]
+        if not kwargs.memo[argNames]:
+            kwargs.memo[argNames] = argNames ? argNames.split(',').map(def(s): return s.trim();) : []
+        argNames = kwargs.memo[argNames]
+        return def():
+            args = [].slice.call(arguments)
+            if args.length:
+                kw = args[-1]
+                if type(kw) is 'object':
+                    for i in range(argNames.length):
+                        if argNames[i] in dir(kw):
+                            args[i] = kw[argNames[i]]
+                else:
+                    args.push(kw)
+            return f.apply(this, args)
+    kwargs.memo = {}
 ,
 
 # Errors
