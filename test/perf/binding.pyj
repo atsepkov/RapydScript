@@ -2,6 +2,7 @@
 # Moral of the story: don't bind methods of objects you create often and try to minimize
 # the number of methods you're binding. The overhead will increase for each additional
 # method that exists on the object.
+# Author: Alexander Tsepkov
 
 class Item:
     def __init__(self):

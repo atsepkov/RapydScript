@@ -131,8 +131,8 @@
 "hex": def hex(a): return '0x' + (a >>> 0).toString(16)
 ,
 "in": def ՐՏ_in(val, arr):
-    if Array.isArray(arr) or JS('typeof arr') == 'string': return arr.indexOf(val) != -1
-    return arr.hasOwnProperty(val) ? True : False
+    if JS('typeof arr.indexOf') is 'function': return arr.indexOf(val) != -1
+    return arr.hasOwnProperty(val)
 ,
 "iterable": def ՐՏ_Iterable(iterable):
     if Array.isArray(iterable) or isinstance(iterable, String) or JS('typeof iterable') == 'string': return iterable

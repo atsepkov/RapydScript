@@ -1,5 +1,6 @@
 # Take these tests with a grain of salt, Depending on the operations being done, and the use case, the times may vary.
 # Moreover, the operation being done within the loop will often matter much more than the speed of the loop mechanism itself.
+# Author: Alexander Tsepkov
 
 array = [9 til 100] # pregenerate array so forEach isn't penalized for element creation
 

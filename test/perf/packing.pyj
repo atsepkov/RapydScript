@@ -1,3 +1,6 @@
+# Performance tests for RapydScript's implicity packing and unpacking
+# Author: Alexander Tsepkov
+
 a = 1
 b = 2
 c = [1, 2]

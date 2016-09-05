@@ -1,3 +1,6 @@
+# Performance tests for RapydScript's deep equality trick
+# Author: Alexander Tsepkov
+
 from danger_zone import equality
 
 bench.add('identity, truthy', def():

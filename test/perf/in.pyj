@@ -1,9 +1,19 @@
+# Performance tests for RapydScript in operator
+# Author: Alexander Tsepkov
+
 array = [1 to 50]
+hash = {foo: 1, bar: 2, baz: 3}
 
 bench.add('indexOf', def():
     array.indexOf(11) != -1
 )
-bench.add('in', def():
+bench.add('in array', def():
     11 in array
+)
+bench.add('hasOwnProperty', def():
+    hash.hasOwnProperty('bar')
+)
+bench.add('in hash', def():
+    'bar' in hash
 )
 
