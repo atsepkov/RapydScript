@@ -1,0 +1,32 @@
+# the bound creation tests the equivalent of using --auto-bind flag in the compiler.
+# Moral of the story: don't bind methods of objects you create often and try to minimize
+# the number of methods you're binding. The overhead will increase for each additional
+# method that exists on the object.
+
+class Item:
+    def __init__(self):
+        self.name = "i"
+
+    def unboundMethod(self):
+        return self.name
+
+    def boundMethod(self):
+        return self.name
+
+item = Item()
+item.boundMethod = bind(getattr(item, 'boundMethod'), item)
+
+
+bench.add('unbound call', def():
+    item.unboundMethod()
+)
+bench.add('bound call', def():
+    item.boundMethod()
+)
+bench.add('unbound creation', def():
+    a = Item()
+)
+bench.add('bound creation', def():
+    a = Item()
+    rebind_all(a)
+)
