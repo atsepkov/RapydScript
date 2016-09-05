@@ -1,0 +1,18 @@
+# Performance tests for len function
+# Author: Alexander Tsepkov
+
+hash = {foo: 1, bar: 2, baz: 3, qux: 4, quux: 5}
+arr = [1 to 10]
+
+bench.add('array.length', def():
+    return arr.length
+)
+bench.add('len(array)', def():
+    return len(arr)
+)
+bench.add('Object.keys(hash).length', def():
+    return Object.keys(hash).length
+)
+bench.add('len(hash)', def():
+    return len(hash)
+)
