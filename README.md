@@ -922,7 +922,20 @@ files ending with the suffix `.pyj` and packages are directories containing
 an `__init__.pyj` file. The only caveat is that star imports are not
 currently supported (this is by design, star imports are easily abused).
 
-Also, currently, aliasing with `as` is not supported, this is on my TODO list.
+For those unfamiliar with Python, here are a few examples that will cover all the user cases you will encounter:
+
+	import foo
+	from baz import anotherMethod, andAnotherMethod
+	import bar as qux
+
+	foo.methodInFoo()
+	anotherMethod()
+	andAnotherMethod()
+	qux.methodInBar()
+
+RapydScript first tries to search the current directory of the file for the import. If that fails, it tries to search user-defined imports (which
+can be set via RAPYDSCRIPT_PATH environment variable as colon-separated directories, or semi-colon separated on Windows), and finally in the RapydScript
+builtin directory. This search order allows the user to easily override inbuilt functions.
 
 Exception Handling
 ------------------

@@ -324,6 +324,7 @@ module.exports = function(options) {
                 'readfile': fs.readFileSync,
                 'basedir': process.cwd(),
                 'libdir': options.import_path,
+                'import_dirs': RapydScript.get_import_dirs(),
                 'classes': classes
             });
         } catch(e) {

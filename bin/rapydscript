@@ -11,7 +11,11 @@ function load(mod) {
     try {
         lib = require('../tools/' + mod);
     } catch (e) {
-        lib = require('../lib/' + mod);
+        if (/Cannot find module/.test(e)) {
+            lib = require('../lib/' + mod);
+        } else {
+            throw '../tools/' + mod + '.js: ' + e;
+        }
     }
     return lib;
 }

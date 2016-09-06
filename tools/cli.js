@@ -242,6 +242,16 @@ it was called. To force a recompilation, simply
 delete lib/signatures.json
 */});
 
+opt("import_path", "imp", 'string', '', function(){/*
+A list of paths in which to look for imported modules.
+Multiple paths must be separated by the path separator 
+(: on Unix and ; on Windows). You can also use the
+environment variable RAPYDSCRIPT_PATH for this,
+with identical syntax. Note that these directories
+are searched before the builtin paths, which means you
+can use them to replace builtin modules.
+*/});
+
 opt("comments", undefined, 'string', '', function(){/*
 Preserve copyright comments in the output.
 By default this works like Google Closure, keeping 

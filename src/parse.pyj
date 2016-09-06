@@ -910,9 +910,16 @@ def parse($TEXT, options):
         module_id: '__main__',  # The id of the module being parsed
         es6: False,             # whether we're using EcmaScript 6 mode
         toplevel: None,         # existing tree to append to, if None, new tree will be started
+        import_dirs: [],        # List of directories to scan for imports
         classes: undefined      # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
     })
     module_id = options.module_id
+
+    # fallthrough order: --> relative basedir, user-specified import dirs, standard libdir
+    import_dirs = options.import_dirs[:]
+    if options.libdir: import_dirs.push(options.libdir)
+    if options.basedir: import_dirs.unshift(options.basedir)
+
     IMPORTED = options.IMPORTED or {}
     IMPORTING = options.IMPORTING or {}
     IMPORTING[module_id] = True
@@ -1501,14 +1508,14 @@ def parse($TEXT, options):
         src_code = filename = None
         modpath = key.replace('.', '/')
 
-        for location in [options.basedir, options.libdir]:
+        for location in import_dirs:
             if location:
                 data, filename = safe_read(location + '/' + modpath)
                 if data is not None:
                     src_code = data
                     break
         if src_code is None:
-            raise "Failed Import: '" + key + "' module doesn't exist in either '" + options.basedir + "' or '" + options.libdir + "'"
+            raise "Failed Import: '" + key + "' module doesn't exist in any of the import directories: " + import_dirs.join(', ')
         contents = parse(src_code, {
                 filename: filename,
                 toplevel: None,

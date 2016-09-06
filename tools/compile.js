@@ -47,6 +47,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
             auto_bind: argv.auto_bind,
             es6: argv.ecmascript6,
             libdir: path.join(src_path, 'lib'),
+            import_dirs: RapydScript.get_import_dirs(argv.import_path)
         });
     }
 

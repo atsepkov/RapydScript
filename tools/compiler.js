@@ -124,6 +124,19 @@ for (var i in RapydScript) {
     }
 }
 
+exports.get_import_dirs = function(paths_string, ignore_env) {
+    var path = require('path');
+    var paths = [];
+    function merge(new_path) {
+        if (paths.indexOf(new_path) == -1) paths.push(new_path);
+    }
+    if (!ignore_env && process && process.env && process.env.RAPYDSCRIPT_PATH) {
+        process.env.RAPYDSCRIPT_PATH.split(path.delimiter).forEach(merge);
+    }
+    if (paths_string) paths_string.split(path.delimiter).forEach(merge);
+    return paths;
+}
+
 exports.minify = function(files, options) {
     options = RapydScript.defaults(options, {
         fromString   : false,
