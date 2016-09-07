@@ -596,6 +596,10 @@ AST_Return = DEFNODE("Return", None, {
     $documentation: "A `return` statement"
 }, AST_Exit)
 
+AST_Yield = DEFNODE("Yield", None, {
+    $documentation: "A `yield` statement"
+}, AST_Exit)
+
 AST_Throw = DEFNODE("Throw", None, {
     $documentation: "A `throw` statement"
 }, AST_Exit)

@@ -1297,6 +1297,8 @@ def OutputStream(options):
         def internalsub():
             if not nokeyword:
                 output.print("function")
+                if self.generator:
+                    output.print("*")
 
             if self.name:
                 output.space()
@@ -1477,6 +1479,9 @@ def OutputStream(options):
     )
     DEFPRINT(AST_Return, def(self, output):
         self._do_print(output, "return")
+    )
+    DEFPRINT(AST_Yield, def(self, output):
+        self._do_print(output, "yield")
     )
     DEFPRINT(AST_Throw, def(self, output):
         self._do_print(output, "throw")

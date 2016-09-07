@@ -587,17 +587,22 @@ def parse($TEXT, options):
                 if S.in_function == 0:
                     croak("'return' outside of function")
 
-                return new AST_Return({
+                if tmp_ == "yield":
+                    ctor = AST_Yield
+                else:
+                    ctor = AST_Return
+
+                return new ctor({
                     value: (is_("punc", ";") ?
-                        def():
+                        (def():
                             semicolon()
                             return None
-                        .call(this) : (can_insert_semicolon() ? None
-                            : def():
+                        )() : (can_insert_semicolon() ? None
+                            : (def():
                                 tmp = expression(True)
                                 semicolon()
                                 return tmp
-                            .call(this)
+                            )()
                         )
                     )
                 })
@@ -942,7 +947,7 @@ def parse($TEXT, options):
 
                 # state "push"
                 S.in_class.push(name.name)
-                S.classes[S.classes.length - 1][name.name] = class_details
+                S.classes[-1][name.name] = class_details
                 S.classes.push({})
                 S.in_function += 1
                 S.in_directives = True
@@ -1005,16 +1010,21 @@ def parse($TEXT, options):
         if in_class and not name:
             unexpected()
 
+        generator = False
         staticmethod = False
-        if in_class:
-            staticloc = S.decorators.indexOf("staticmethod")
-            if staticloc != -1:
+        has_special_decorator = def(name):
+            index = S.decorators.indexOf(name)
+            if index != -1:
                 S.decorators.splice(staticloc, 1)
-                S.classes[S.classes.length - 2][in_class].static.push(name.name)
+                return True
+            return False
+        if in_class:
+            if has_special_decorator("staticmethod"):
+                S.classes[-2][in_class].static.push(name.name)
                 staticmethod = True
-            elif name.name != "__init__" and options.auto_bind:
+            if has_special_decorator("bind") or name.name != "__init__" and options.auto_bind:
                 BASELIB["bind"] = True
-                S.classes[S.classes.length - 2][in_class].bound[name.name] = True
+                S.classes[-2][in_class].bound[name.name] = True
 
         expect("(")
         if not ctor:
@@ -1022,6 +1032,7 @@ def parse($TEXT, options):
 
         definition = new ctor({
             name: name,
+            generator: generator,
             argnames: (def(a):
                 defaults = {}
                 first = True
