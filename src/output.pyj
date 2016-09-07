@@ -47,6 +47,8 @@
 """
 "use strict"
 
+from tokenizer import is_identifier, is_identifier_char
+
 def OutputStream(options):
     options = defaults(options, {
         indent_start: 0,
