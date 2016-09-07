@@ -85,6 +85,10 @@ def DefaultsError(msg, defs):
     this.msg = msg
     this.defs = defs
 
+class ImportError(Error):
+    def __init__(self, message):
+        self.message = message
+
 def defaults(args, defs, croak):
     if args is True:
         args = {}

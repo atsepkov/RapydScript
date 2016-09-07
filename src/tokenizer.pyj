@@ -162,10 +162,6 @@ IDENTIFIER_PAT = /^[a-z_$][_a-z0-9$]*$/i
 STRING_MODIFIERS = 'urUR'
 UNARY_POSTFIX = makePredicate([ "--", "++" ])
 
-class ImportError(Error):
-    def __init__(self, message):
-        self.message = message
-
 def is_letter(code):
     return code >= 97 and code <= 122 or code >= 65 and code <= 90 or code >= 170 and UNICODE.letter.test(String.fromCharCode(code))
 

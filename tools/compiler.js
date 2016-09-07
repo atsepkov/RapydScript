@@ -103,7 +103,8 @@ var FILENAMES = exports.FILENAMES = [
     "baselib",
     "utils",
     "ast",
-    "parse",
+    "tokenizer",
+    "parser",
     "output",
 ];
 

@@ -48,9 +48,6 @@
 
 "use strict"
 
-from tokenizer import tokenizer, is_token, js_error, UNARY_POSTFIX, ES6_KEYWORDS, ALL_KEYWORDS, IDENTIFIER_PAT
-# ALL_KEYWORDS and IDENTIFIER_PAT are only used by REPL
-
 NATIVE_CLASSES = {
     # javascript
     'Image': {},
