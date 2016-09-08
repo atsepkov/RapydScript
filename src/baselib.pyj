@@ -141,9 +141,7 @@
 "len": def len(obj):
     # naive assumption that indexOf will only exist on arrays and strings buys us a huge performance boost over the slow isArray check
     if JS('typeof obj.indexOf') is 'function': return obj.length
-    length = 0
-    for JS('var i in obj'): JS('length++')
-    return length
+    return Object.keys(obj).length
 ,
 "map": def map(oper, arr):
     return arr.map(oper)

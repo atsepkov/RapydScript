@@ -142,6 +142,6 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
         });
     }
 
-    if (!all_ok) console.log('There were some test failures!!');
+    if (!all_ok) console.log('There were some test failures!');
     process.exit((all_ok) ? 0 : 1);
 };

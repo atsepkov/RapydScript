@@ -1009,10 +1009,10 @@ def OutputStream(options):
         and not (isinstance(self.init, AST_Array))
         and (
             self.object.args.length < 3 or (
-                isinstance(self.object.args.slice(-1)[0], AST_Number)
-                or isinstance(self.object.args.slice(-1)[0], AST_Unary)
-                    and self.object.args.slice(-1)[0].operator == "-"
-                    and isinstance(self.object.args.slice(-1)[0].expression, AST_Number)
+                isinstance(self.object.args[-1][0], AST_Number)
+                or isinstance(self.object.args[-1][0], AST_Unary)
+                    and self.object.args[-1][0].operator == "-"
+                    and isinstance(self.object.args[-1][0].expression, AST_Number)
             )
         ):
             return True
@@ -1026,7 +1026,7 @@ def OutputStream(options):
                 # if we're using multiple iterators, unpack them
                 output.indent()
                 if isinstance(self.init, AST_Array):
-                    output.assign("ՐՏ_Unpack")
+                    output.assign("var ՐՏ_Unpack")
                     output.print("ՐՏ_Iter" + INDEX_COUNTER + "[ՐՏ_Index" + INDEX_COUNTER + "];")
                     output.newline()
                     unpack_tuple(self.init, output)
@@ -2131,7 +2131,7 @@ def OutputStream(options):
             )
             return
         if isinstance(self.left, AST_Array):
-            output.print("ՐՏ_Unpack")
+            output.print("var ՐՏ_Unpack")
         else:
             self.left.print(output)
         output.space()

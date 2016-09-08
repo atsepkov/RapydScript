@@ -64,7 +64,7 @@ f, r = (def():
 		nonlocal count
 		count += 1
 	return fake_increment, real_increment
-).call(this)
+)()
 
 f()
 assert.equal(count, 0)
@@ -120,3 +120,44 @@ baz = 1 ? def():
 assert.equal(foo(), 6)
 assert.equal(bar(), 5)
 assert.equal(baz(), 5)
+
+# scoping
+c = 1
+d = 2
+g = 3
+j = 4
+(def scoped(a, b='foo'):
+    nonlocal g, j
+    c = "bar"
+    g = 5
+    j = 6
+    ff = 7
+    assert.equal(d, 2)      # not shadowed
+    assert.equal(c, "bar")  # shadowed
+    assert.equal(a, "baz")  # argument
+    assert.equal(b, "foo")  # default argument
+    assert.equal(g, 5)      # nonlocal
+    assert.equal(j, 6)      # nonlocal
+    assert.equal(ff, 7)     # local
+    for i in range(1, 2):
+        assert.equal(i, 1)  # local iteration
+)("baz")
+
+# internal vars no longer visible
+assert.throws(
+    def():
+        i
+    ,
+    /i is not defined/
+)
+assert.throws(
+    def():
+        ff
+    ,
+    /ff is not defined/
+)
+# c should revert
+assert.equal(c, 1)
+# g, j should stay overridden
+assert.equal(g, 5)
+assert.equal(j, 6)

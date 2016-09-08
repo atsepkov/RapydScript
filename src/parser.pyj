@@ -104,6 +104,8 @@ NATIVE_CLASSES = {
 }
 COMMON_STATIC = [ "call", "apply", "bind", "toString" ]
 
+CLASS_MAP = {}      # top-level classes will be populated into here
+
 # detect common python stdlib methods - these will be auto-injected into the code when called
 BASELIB = {}
 STDLIB = [
@@ -223,10 +225,12 @@ def parse($TEXT, options):
         token: None,            # current token being scanned
         prev: None,             # previous token
         peeked: None,           # cached version of next token
-        in_directives: True,
+        in_directives: True,    # per-scope directive, i.e. "use strict"
         in_loop: 0,             # number of loops we're currently nested inside of
         in_scope: [ {           # relevant context for given scope
             type: None,         # scope type
+            vars: {},           # variables in this scope
+            nonlocal: {},       # variables shared with outer scope
             classes: {}         # classes visible from this scope
         } ],
         labels: [],
@@ -361,127 +365,6 @@ def parse($TEXT, options):
 
         return ans
 
-    def scan_for_classes(body):
-        ans = {}
-        for name in dir(body):
-            obj = body[name]
-            if isinstance(obj, AST_Class):
-                ans[obj.name.name] = obj
-        return ans
-
-    def scan_for_local_vars(body):
-        """
-        Pick out all variables being assigned to from within this scope, we'll mark them as local
-
-        body        body to be scanned
-        """
-        vars = []
-        if Array.isArray(body):
-            # this is a body of statements
-            for stmt in dir(body):
-                # skip inner scopes
-                if isinstance(body[stmt], AST_Scope):
-                    continue
-
-                # recursive descent into conditional, loop and exception bodies
-                [ "body", "alternative" ].forEach(def(option):
-                    nonlocal vars
-                    opt = body[stmt][option]
-                    if opt:
-                        vars = vars.concat(scan_for_local_vars(opt))
-
-                    if isinstance(opt, AST_Assign) and not (isinstance(opt.right, AST_Scope)):
-                        vars = vars.concat(scan_for_local_vars(opt.right))
-                )
-
-                # pick up iterators from loops
-                if isinstance(body[stmt], AST_ForIn):
-                    if isinstance(body[stmt].init, AST_Array):
-                        # iteration via implicit tuple
-                        vars.push("ՐՏ_Unpack")
-                        body[stmt].init.elements.forEach(def(elem):
-                            if elem.name not in vars:
-                                vars.push(elem.name)
-                        )
-                    elif body[stmt].init.name not in vars:
-                        # iteration via a single variable
-                        vars.push(body[stmt].init.name)
-                elif isinstance(body[stmt], AST_DWLoop):
-                    vars = vars.concat(scan_for_local_vars(body[stmt]))
-                elif isinstance(body[stmt], AST_If) \
-                        and is_nested_comparison(body[stmt].condition):
-                    # if statement condition with complex comparison
-                    vars.push("ՐՏ_Temp")
-                elif isinstance(body[stmt], AST_Exit) and is_nested_comparison(body[stmt].value):
-                    # returning a nested conditional
-                    vars.push("ՐՏ_Temp")
-
-        elif body.body:
-            # recursive descent into wrapper statements that contain body blocks
-            vars = vars.concat(scan_for_local_vars(body.body))
-            if body.alternative:
-                vars = vars.concat(scan_for_local_vars(body.alternative))
-
-        elif isinstance(body, AST_Assign):
-            # this is a single assignment operator
-            if isinstance(body.left, AST_Array):
-                # assignment to an implicit tuple
-                vars.push("ՐՏ_Unpack")
-                body.left.elements.forEach(def(elem):
-                    if not (isinstance(elem, AST_PropAccess)) and elem.name not in vars:
-                        vars.push(elem.name)
-                )
-            elif body.left.name and body.left.name not in vars:
-                # assignment to a single variable
-                vars.push(body.left.name)
-
-            if is_nested_comparison(body.right):
-                # assignment of nested conditional result to a variable
-                vars.push("ՐՏ_Temp")
-            elif isinstance(body.right, AST_Conditional) and is_nested_comparison(body.right.condition):
-                # assignment of a ternary condition result that uses nested conditional
-                vars.push("ՐՏ_Temp")
-
-        elif isinstance(body, AST_Conditional) and is_nested_comparison(body.condition):
-            # ternary condition that uses nested conditional and triggers other logic
-            # this is basically a really ugly way to write an if/else
-            vars.push("ՐՏ_Temp")
-
-        elif is_nested_comparison(body):
-            # statement itself is a stand-alone nested conditional - programmatically this would probably
-            # be a useless statement
-            vars.push("ՐՏ_Temp")
-
-        return vars
-
-    def scan_for_nonlocal_defs(body):
-        vars = []
-        if Array.isArray(body):
-            for stmt in dir(body):
-                if isinstance(body[stmt], AST_Scope):
-                    continue
-
-                # don't invade nested scopes
-                if isinstance(body[stmt], AST_Definitions):
-                    body[stmt].definitions.forEach(def(vardef):
-                        vars.push(vardef.name.name)
-                    )
-
-                [ "body", "alternative" ].forEach(def(option):
-                    nonlocal vars
-                    opt = body[stmt][option]
-                    if opt:
-                        vars = vars.concat(scan_for_nonlocal_defs(opt))
-
-                )
-
-        elif body.body:
-            vars = vars.concat(scan_for_nonlocal_defs(body.body))
-            if body.alternative:
-                vars = vars.concat(scan_for_nonlocal_defs(body.alternative))
-
-
-        return vars
 
     statement = embed_tokens(def():
         if is_("operator", "/") or is_("operator", "/="):
@@ -727,10 +610,17 @@ def parse($TEXT, options):
         unexpected()
 
     def for_in(init, list_comp):
-        lhs = (isinstance(init, AST_Var) ? init.definitions[0].name : None)
+        lhs = isinstance(init, AST_Var) ? init.definitions[0].name : None
         obj = expression(True)
+
+        # mark iterator variable as local
+        if isinstance(init, AST_Array):
+            for element in init.elements:
+                mark_local_assignment(element)
+        else:
+            mark_local_assignment(init)
+
         BASELIB["iterable"] = True
-        #        expect(")");
         if list_comp:
             return {
                 init: init,
@@ -955,6 +845,8 @@ def parse($TEXT, options):
                 S.in_scope.push({
                     type: "class",
                     name: name.name,
+                    nonlocal: {},
+                    vars: {},
                     classes: {}
                 })
                 S.in_directives = True
@@ -1007,6 +899,9 @@ def parse($TEXT, options):
                 stmt.walk(visitor)
                 definition.statements.push(stmt)
 
+        if S.in_scope.length == 1:  # we're in top level
+            CLASS_MAP[definition.name.name] = definition
+
         return definition
 
     function_ = def(in_class, ctor):
@@ -1016,13 +911,16 @@ def parse($TEXT, options):
             unexpected()
 
         generator = False
+        localvars = None
         staticmethod = False
+        # special decorators are decorators that have special meaning to the compiler
         has_special_decorator = def(name):
             index = S.decorators.indexOf(name)
             if index != -1:
                 S.decorators.splice(index, 1)
                 return True
             return False
+
         if in_class:
             if has_special_decorator("staticmethod"):
                 S.in_scope[-2].classes[in_class].static.push(name.name)
@@ -1035,7 +933,7 @@ def parse($TEXT, options):
         if not ctor:
             ctor = in_class ? AST_Method : AST_Function
 
-        definition = new ctor({
+        return new ctor({
             name: name,
             argnames: (def(a):
                 defaults = {}
@@ -1092,7 +990,6 @@ def parse($TEXT, options):
                 a.defaults = defaults
                 return a
             )([]),
-            localvars: [],
             decorators: (def():
                 d = []
                 S.decorators.forEach(def(decorator):
@@ -1104,12 +1001,14 @@ def parse($TEXT, options):
                 return d
             )(),
             body: (def(loop, labels):
-                nonlocal generator
                 # parse function content
 
                 # state "push"
                 S.in_scope.push({
                     type: "function",
+                    nonlocal: {},
+                    vars: { "ՐՏ_Temp": ["?"] }, # a temporary workaround to avoid strict mode from going berserk, we'll assume there is a temp var in each scope
+                    args: {},
                     classes: {}
                 })
                 S.in_directives = True
@@ -1117,7 +1016,16 @@ def parse($TEXT, options):
                 S.labels = []
 
                 a = block_()
+
+                # these transform variables that are used by other keys, hence the somewhat ugly use of nonlocal
+                nonlocal generator, localvars
                 generator = S.in_scope[-1].generator
+                localvars = Object.keys(S.in_scope[-1].vars).filter(def(variable):
+                    if variable in S.in_scope[-1].nonlocal: return False
+                    return True
+                ).map(def(variable):
+                    return new_symbol(AST_SymbolVar, variable)
+                )
 
                 # state "pop"
                 S.in_scope.pop()
@@ -1126,29 +1034,10 @@ def parse($TEXT, options):
 
                 return a
             )(S.in_loop, S.labels),
-            generator: generator
+            generator: generator,
+            localvars: localvars,
+            static: in_class and staticmethod
         })
-        if isinstance(definition, AST_Method):
-            definition.static = staticmethod
-
-        # detect local variables, strip function arguments
-        assignments = scan_for_local_vars(definition.body, False).filter(def(element, index, arr):
-            return arr.lastIndexOf(element) is index
-        )
-        for i in range(assignments.length):
-            for j in range(definition.argnames.length+1):
-                if j == definition.argnames.length:
-                    definition.localvars.push(new_symbol(AST_SymbolVar, assignments[i]))
-                elif j < definition.argnames.length and assignments[i] == definition.argnames[j].name:
-                    break
-
-        nonlocals = scan_for_nonlocal_defs(definition.body)
-        nonlocals.forEach(def(variable):
-            for i in dir(definition.localvars).reverse():
-                if definition.localvars[i].name == variable:
-                    definition.localvars.splice(i, 1)
-        )
-        return definition
 
     def if_():
         cond = expression(True)
@@ -1283,15 +1172,16 @@ def parse($TEXT, options):
             bfinally: bfinally
         })
 
-    def vardefs(no_in, in_const):
+    def vardefs(no_in, type):
         a = []
         while True:
             a.push(new AST_VarDef({
                 start: S.token,
-                name: as_symbol(in_const ? AST_SymbolConst : AST_SymbolVar),
+                name: as_symbol(type == "const" ? AST_SymbolConst : AST_SymbolVar),
                 value: (is_("operator", "=") ? (next(), expression(False, no_in)) : None),
                 end: prev()
             }))
+            if type == "nonlocal": S.in_scope[-1].nonlocal[a[-1].name.name] = True
             if not is_("punc", ","):
                 break
             next()
@@ -1301,14 +1191,14 @@ def parse($TEXT, options):
     nonlocal_ = def(no_in):
         return new AST_Var({
             start: prev(),
-            definitions: vardefs(no_in, False),
+            definitions: vardefs(no_in, "nonlocal"),
             end: prev()
         })
 
     const_ = def():
         return new AST_Const({
             start: prev(),
-            definitions: vardefs(False, True),
+            definitions: vardefs(False, "const"),
             end: prev()
         })
 
@@ -1681,6 +1571,17 @@ def parse($TEXT, options):
         else:
             return False
 
+    def mark_local_assignment(element):
+        name = typeof element is "string" ? element : element.name
+        if name:
+            # not enough information to infer type yet
+            # so all types are ? for now, in the future this function will infer type from context
+            # that may need some refactoring of car/cdr logic
+            if name in S.in_scope[-1].vars:
+                S.in_scope[-1].vars[name].push("?")
+            else:
+                S.in_scope[-1].vars[name] = ["?"]
+
     subscripts = def(expr, allow_calls):
         start = expr.start
         if is_("punc", "."):
@@ -1975,6 +1876,12 @@ def parse($TEXT, options):
         val = S.token.value
         if is_("operator") and ASSIGNMENT(val):
             if is_assignable(left):
+                # regular assignment will be picked up here
+                mark_local_assignment(left)
+                # if left.name:   # this is a bit of a hack to check that the object is variable-like
+                #     # if val != "=" and left.name not in S.in_scope[-1].vars and left.name not in S.in_scope[-1].nonlocal:
+                #     #     croak("Attempting to increment/modify uninitialized variable '" + left.name + "', this can also occur if you're trying to shadow without initializing the variable in local scope.")
+                #     S.in_scope[-1].vars[left.name] = ["?"]  # TODO: for now we don't care about the type, eventually we'll check it
                 next()
                 return new AST_Assign({
                     start: start,
@@ -2003,13 +1910,21 @@ def parse($TEXT, options):
                     left[-1] = left[-1].left
                     if left.length == 1:
                         if isinstance(left[0], AST_Seq):
+                            # convert sequence to array and add every variable to local scope
                             leftAst = seq_to_array(left[0])
+                            for element in leftAst:
+                                mark_local_assignment(element)
                         else:
+                            # not sure if we'd ever end up here, except maybe if user left a stray comma
                             leftAst = left[0]
+                            mark_local_assignment(leftAst)
                     else:
+                        # explicit array
                         leftAst = new AST_Array({
                             elements: left
                         })
+                        for element in left:
+                            mark_local_assignment(element)
 
                     return new AST_Assign({
                         start: start,
@@ -2031,7 +1946,9 @@ def parse($TEXT, options):
 
             # if last one was an assignment, fix it
             if left.length > 1 and isinstance(left[-1], AST_Assign):
-                left[left.length - 1] = left[-1].left
+                left[-1] = left[-1].left
+                for element in left:
+                    mark_local_assignment(element)
                 return new AST_Assign({
                     start: start,
                     left: new AST_Array({
@@ -2063,7 +1980,7 @@ def parse($TEXT, options):
         S.in_loop -= 1
         return ret
 
-    return def():
+    return (def():
         start = S.token
         body = []
         first_token = True
@@ -2084,12 +2001,12 @@ def parse($TEXT, options):
             toplevel = new AST_Toplevel({
                 start: start,
                 body: body,
-                strict: def():
+                strict: (def():
                     for stmt in body:
                         if isinstance(stmt, AST_Directive) and stmt.value == 'use strict':
                             return True
                     return False
-                .call(this),
+                )(),
                 shebang: shebang,
                 end: end
             })
@@ -2097,17 +2014,17 @@ def parse($TEXT, options):
         def uniq(element, index, arr):
             return arr.lastIndexOf(element) == index
 
-        toplevel.nonlocalvars = scan_for_nonlocal_defs(toplevel.body)
-        assignments = scan_for_local_vars(toplevel.body).filter(uniq)
+        toplevel.nonlocalvars = Object.keys(S.in_scope[-1].nonlocal)
+        assignments = Object.keys(S.in_scope[-1].vars)
         callables = scan_for_top_level_callables(toplevel.body).filter(uniq)
         toplevel.localvars = []
         assignments.forEach(def(item):
-            if (toplevel.nonlocalvars.indexOf(item) < 0):
+            if item not in toplevel.nonlocalvars:
                 toplevel.localvars.push(new_symbol(AST_SymbolVar, item))
         )
         toplevel.exports = toplevel.localvars.concat(callables).filter(uniq)
         toplevel.submodules = []
-        toplevel.classes = scan_for_classes(toplevel.body)
+        toplevel.classes = CLASS_MAP
         toplevel.import_order = Object.keys(IMPORTED).length
         toplevel.module_id = module_id
         IMPORTED[module_id] = toplevel
@@ -2115,5 +2032,5 @@ def parse($TEXT, options):
         toplevel.baselib = BASELIB
         IMPORTING[module_id] = False
         return toplevel
-    .call(this)
+    )()
 
