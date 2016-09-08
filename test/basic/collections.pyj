@@ -71,6 +71,15 @@ d1 = {
 	fun2: def(c):
 		return c+1
 }
+# pound keys in comments and strings
+d2 = {
+    'aaa': 'bbb',   # with comments
+    'ccc': '#fff'
+}
+# arbitrary indentation inside object literals
+#{1:
+# 1
+#   }
 
 # access
 assert.ok('foo' in d1)
@@ -78,6 +87,7 @@ assert.equal(d0.a, d0['a'])
 assert.equal(d1['fun1'](), 5)
 assert.equal(d1.fun2(3), 4)
 assert.equal(len(d0), 3)
+assert.deepEqual(d2, {'aaa': 'bbb', 'ccc': '#fff'})
 
 # assignment
 d1["bar"] += "!"

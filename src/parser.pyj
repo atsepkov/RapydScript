@@ -1503,7 +1503,9 @@ def parse($TEXT, options):
             elements: expr.concat(expr_list("]", not options.strict, True))
         })
     )
-    object_ = embed_tokens(def():
+
+    @embed_tokens
+    def object_():
         maybe_dict_comprehension = False
         expect("{")
         first = True
@@ -1523,7 +1525,11 @@ def parse($TEXT, options):
                 key = expression(False)
                 name = None
             else:
+                ctx = S.input.context()
+                orig = ctx.expect_object_literal_key
+                ctx.expect_object_literal_key = True
                 key = as_property_name()
+                ctx.expect_object_literal_key = orig
                 name = key.value
                 quoted = key.type == "string"
 
@@ -1570,7 +1576,6 @@ def parse($TEXT, options):
         return new AST_Object({
             properties: a
         })
-    )
 
     def as_property_name():
         tmp = S.token

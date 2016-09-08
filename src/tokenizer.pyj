@@ -245,7 +245,8 @@ def tokenizer($TEXT, filename):  # {{{
         indentation_matters: [ True ],
         cached_whitespace: "",
         prev: undefined,
-        index_or_slice: [ False ]
+        index_or_slice: [ False ],
+        expect_object_literal_key: False
     }
     def peek():
         return S.text.charAt(S.pos)
@@ -316,8 +317,8 @@ def tokenizer($TEXT, filename):  # {{{
             S.newline_before = False
 
         if type == "punc":
-            #            if (value == ":" && peek() == "\n") {
             if value == ":" and not S.index_or_slice[-1]
+            and not S.expect_object_literal_key
             and (not S.text.substring(S.pos + 1, find("\n")).trim() or not S.text.substring(S.pos + 1, find("#")).trim()):
                 S.newblock = True
                 S.indentation_matters.push(True)
