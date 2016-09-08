@@ -1020,12 +1020,7 @@ def parse($TEXT, options):
                 # these transform variables that are used by other keys, hence the somewhat ugly use of nonlocal
                 nonlocal generator, localvars
                 generator = S.in_scope[-1].generator
-                localvars = Object.keys(S.in_scope[-1].vars).filter(def(variable):
-                    if variable in S.in_scope[-1].nonlocal: return False
-                    return True
-                ).map(def(variable):
-                    return new_symbol(AST_SymbolVar, variable)
-                )
+                localvars = [new_symbol(AST_SymbolVar, variable) for variable in Object.keys(S.in_scope[-1].vars) if variable not in S.in_scope[-1].nonlocal]
 
                 # state "pop"
                 S.in_scope.pop()
