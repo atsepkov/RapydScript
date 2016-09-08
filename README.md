@@ -3,6 +3,7 @@ RapydScript
 ===========
 
 [![Build Status](https://secure.travis-ci.org/atsepkov/RapydScript.png)](http://travis-ci.org/atsepkov/RapydScript)
+[![npm](https://img.shields.io/npm/dt/rapydscript.svg)](https://www.npmjs.com/package/rapydscript)
 
 What is RapydScript?
 --------------------
