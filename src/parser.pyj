@@ -910,10 +910,11 @@ def parse($TEXT, options):
         if in_class and not name:
             unexpected()
 
-        generator = False
-        localvars = None
-        staticmethod = False
-        return_annotation = None
+        generator = False           # whether this function is a generator
+        localvars = None            # hash of local vars assigned to within the function
+        staticmethod = False        # whether this function declares itseld as a static method
+        function_args = {}          # hash of arguments this function sees
+        return_annotation = None    # return annotation for the function, if any
 
         # special decorators are decorators that have special meaning to the compiler
         has_special_decorator = def(name):
@@ -973,6 +974,7 @@ def parse($TEXT, options):
                             'end': S.token,
                             'annotation': annotation
                         })
+                        function_args[sym.name] = sym.annotation and sym.annotation.name in NATIVE_CLASSES ? sym.annotation.name : "?"
                         return sym
                     else:
                         if not is_("name"):
@@ -991,6 +993,7 @@ def parse($TEXT, options):
                             'annotation': None
                         })
                         next()
+                        function_args[sym.name] = sym.annotation and sym.annotation.name in NATIVE_CLASSES ? sym.annotation.name : "?"
                         return sym
 
                 while not is_("punc", ")"):
@@ -1057,9 +1060,11 @@ def parse($TEXT, options):
                 # state "push"
                 S.in_scope.push({
                     type: "function",
+                    name: name ? name.name : None,
                     nonlocal: {},
-                    vars: { "ՐՏ_Temp": ["?"] }, # a temporary workaround to avoid strict mode from going berserk, we'll assume there is a temp var in each scope
                     args: {},
+                    vars: { "ՐՏ_Temp": ["?"] }, # a temporary workaround to avoid strict mode from going berserk, we'll assume there is a temp var in each scope
+                    args: function_args,
                     classes: {}
                 })
                 S.in_directives = True
