@@ -94,6 +94,7 @@ Table of Contents
 - [Leveraging other APIs](#leveraging-other-apis)
 - [Anonymous Functions](#anonymous-functions)
 - [Decorators](#decorators)
+- [Function Annotations](#function-annotations)
 - [Self-Executing Functions](#self-executing-functions)
 - [Chaining Blocks](#chaining-blocks)
 - [Function calling with optional arguments](#function-calling-with-optional-arguments)
@@ -394,6 +395,26 @@ Like Python, RapydScript supports function decorators. While decorator arguments
 		return "hello world"
 
 	hello() # returns "<b><i>hello world</i></b>"
+
+
+Function Annotations
+--------------------
+Like Python 3 and TypeScript, RapydScript allows function annotations. They look like this:
+
+```python
+def foo(a: Number, b: String) -> String:
+	return b + str(a)
+
+def bar(x: "x coordinate of the point", y: "y coordinate of the point") -> "distance from 0, 0":
+	return Math.sqrt(x**2 + y**2)
+```
+
+Python is more flexible about them since they're treated as a fancy comment. 
+In TypeScript they are actually significant and used to enforce static typing. In current version of RapydScript they are not significant yet,
+but will eventually work similar to TypeScript when used properly. The idea is to allow the developer a hybrid approach of static and dynamic
+typing. Dynamic typing gives more flexibility to the user and the code can more easily be reused in other places. Static typing gives the compiler
+more information about the context, allowing for better linting and optimization. It may be possible in the future to leverage this information to
+provide compile-time optimizations for the code.
 
 
 Self-Executing Functions
