@@ -46,7 +46,6 @@
 **********************************************************************
 """
 
-"use strict"
 
 NATIVE_CLASSES = {
     # javascript
@@ -2001,12 +2000,7 @@ def parse($TEXT, options):
             toplevel = new AST_Toplevel({
                 start: start,
                 body: body,
-                strict: (def():
-                    for stmt in body:
-                        if isinstance(stmt, AST_Directive) and stmt.value == 'use strict':
-                            return True
-                    return False
-                )(),
+                strict: True,
                 shebang: shebang,
                 end: end
             })

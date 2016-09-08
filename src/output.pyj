@@ -45,7 +45,7 @@
 
  **********************************************************************
 """
-"use strict"
+
 
 def OutputStream(options):
     options = defaults(options, {

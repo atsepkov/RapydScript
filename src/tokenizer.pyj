@@ -46,7 +46,6 @@
 **********************************************************************
 """
 
-"use strict"
 
 ES6_KEYWORDS = "async await yield"
 KEYWORDS = "as break case class const continue debugger default def del do elif else except " +
