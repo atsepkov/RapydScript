@@ -88,7 +88,6 @@ Table of Contents
 
 
 - [Installation](#installation)
-- [Quick Start Guide](#quick-start-guide)
 - [Community](#community)
 - [Compilation](#compilation)
 - [Getting Started](#getting-started)
@@ -148,47 +147,6 @@ From Git:
 
 If you're using OSX, you can probably use the same commands (let me know if that's not the case). If you're using Windows, you should be able to follow similar commands after installing node.js and git on your system.
 
-
-Quick Start Guide
------------------
-First lets create a very minimal example in which we will have a simple html page that can be loaded in any modern browser and will display a button that will activate our RapydScript JavaScript to alter the page.
-First the HTML code for test.html:
-```html
-    <html> 
-        <head> 
-            <meta charset="utf-8"/>
-            <script type="text/JavaScript" src="rapid-test.js" charset="UTF-8"> </script> 
-        </head> 
-        <body> 
-            <h3>Try This</h3> 
-            <div id="demo"><h2>Push the button to change this text.</h2></div>
-            <button type="button" onclick="javascript:RapydScript.change_text();">Change Content</button>
-        </body> 
-    </html> 
-```
-This simple HTML code builds a page that will load our generated JavaScript and executes the code when the button is clicked using the onclick method.
-Next we will write some RapydScript using the familiar Python syntax that will find the element that has an id of "demo" and then alter it's inner HTML just like the normal JavaScript DOM.
-The code for the test.py:
-```python
-    class Bunch:
-        pass
-
-    window.RapydScript = Bunch()        
-
-    def change_text():
-        document.getElementById('demo').innerHTML = '<p>RapydScript JavaScript has replaced this text.</p>'
-
-    window.RapydScript.change_text = change_text
-```  
-The Bunch class is just a convenience class that we can register and add all of our other classes and functions to in order to provide a unique namespace and prevent conflicting with other JavaScript or DOM objects. We then access the DOM using window element and create a NameSpace of "window.RapydScript" because the default behavior of RapydScript is to apply scope protection to your functions and classes; another words this makes your functions and classes reachable via the window.RapydScript namespace. Next we define our function which uses some JavaScript to find the element by id and then access the innerHTML property and change it. Finally we register our function to the namespace we created earlier window.RapydScript.
-
-Next we need to compile the RapydScript code into JavaScript to do this we simply execute the following command (which assumes that you have already installed RapydScript):
-
-     rapydscript test.py --output test.js
-     
-Put `test.js` and `test.html` in the same directory and open the "test.html" file in your browser and press the button to see the text change.
-> Warning: You can not perform AJAX requests without having a running web server due to cross site requests protections in most browsers.
-> Note: You could remove the default scope protection and avoid the namespace by executing the command using the -b or --bare option.
 
 Community
 ---------
@@ -254,42 +212,54 @@ As you read the following sections, I suggest you start a RapydScript shell (by 
 
 Like JavaScript, RapydScript can be used to create anything from a quick function to a complex web-app. RapydScript can access anything regular JavaScript can, in the same manner. Let's say we want to write a function that greets us with a "Hello World" pop-up. The following code will do it:
 
-	def greet():
-		alert("Hello World!")
+```python
+def greet():
+	alert("Hello World!")
+```
 
 Once compiled, the above code will turn into the following JavaScript:
 
-	function greet() {
-		alert("Hello World!");
-	}
+```javascript
+function greet() {
+	alert("Hello World!");
+}
+```
 
 Now you can reference this function from other JavaScript or the page itself (using "onclick", for example). For our next example, let's say you want a function that computes factorial of a number:
 
-	def factorial(n):
-		if n == 0:
-			return 1
-		return n * factorial(n-1)
+```python
+def factorial(n):
+	if n == 0:
+		return 1
+	return n * factorial(n-1)
+```
 
 Now all we need is to tie it into our page so that it's interactive. Let's add an input field to the page body and a cell for displaying the factorial of the number in the input once the input loses focus.
 
-	<input id="user-input" onblur="computeFactorial()"></input>
-	<div id="result"></div>
+```html
+<input id="user-input" onblur="computeFactorial()"></input>
+<div id="result"></div>
+```
 
 **NOTE:** To complement RapydScript, I have also written RapydML (<http://bitbucket.org/pyjeon/rapydml>), which is a pre-compiler for HTML (just like RapydScript is a pre-compiler for JavaScript). 
 
 Now let's implement computeFactorial() function in RapydScript:
 
-	def computeFactorial():
-		n = document.getElementById("user-input").value
-		document.getElementById("result").innerHTML = factorial(n)
+```python
+def computeFactorial():
+	n = document.getElementById("user-input").value
+	document.getElementById("result").innerHTML = factorial(n)
+```
 
 Again, notice that we have access to everything JavaScript has access to, including direct DOM manipulation. Once compiled, this function will look like this:
 
-	function computeFactorial() {
-		var n;
-		n = document.getElementById("user-input").value;
-		document.getElementById("result").innerHTML = factorial(n);
-	}
+```javascript
+function computeFactorial() {
+	var n;
+	n = document.getElementById("user-input").value;
+	document.getElementById("result").innerHTML = factorial(n);
+}
+```
 
 Notice that RapydScript automatically declares variables in local scope when you try to assign to them. This not only makes your code shorter, but saves you from making common JavaScript mistake of overwriting a global. For more information on controlling variable scope, see `Scope Control` section.
 
@@ -298,17 +268,21 @@ Leveraging other APIs
 ---------------------
 Aside from Python-like stdlib, RapydScript does not have any of its own APIs. Nor does it need to, there are already good options available that we can leverage instead. If we wanted, for example, to rewrite the above factorial logic using jQuery, we could easily do so:
 
-	def computeFactorial():
-		n = $("#user-input").val()
-		$("#result").text(factorial(n))
+```python
+def computeFactorial():
+	n = $("#user-input").val()
+	$("#result").text(factorial(n))
+```
 
 Many of these external APIs, however, take object literals as input. Like with JavaScript, you can easily create those with RapydScript, the same way you would create one in JavaScript, or a dictionary in Python:
 
-	styles = {
-		'background-color':	'#ffe',
-		'border-left':		'5px solid #ccc',
-		'width':			50,
-	}
+```python
+styles = {
+	'background-color':	'#ffe',
+	'border-left':		'5px solid #ccc',
+	'width':			50,
+}
+```
 
 Now you can pass it to jQuery:
 
@@ -316,31 +290,37 @@ Now you can pass it to jQuery:
 
 Another feature of RapydScript is ability to have functions as part of your object literal. JavaScript APIs often take callback/handler functions as part of their input parameters, and RapydScript lets you create such object literal without any quirks/hacks:
 
-	params = {
-		width:	50,
-		height:	30,
-		onclick:	def(event):
-			alert("you clicked me"),
-		onmouseover:	def(event):
-			$(this).css('background', 'red')
-		,
-		onmouseout:	def(event):
-			# reset the background
-			$(this).css('background', '')
-	}
+```python
+params = {
+	width:	50,
+	height:	30,
+	onclick:	def(event):
+		alert("you clicked me"),
+	onmouseover:	def(event):
+		$(this).css('background', 'red')
+	,
+	onmouseout:	def(event):
+		# reset the background
+		$(this).css('background', '')
+}
+```
 
 Note the comma on a new line following a function declaration, it needs to be there to let the compiler know there are more attributes in this object literal, yet it can't go on the same line as the function since it would get parsed as part of the function block. Like Python, however, RapydScript supports new-line shorthand using a `;`, which you could use to place the comma on the same line:
 
-	hash = {
-		'foo':	def():
-			print('foo');,
-		'bar':	def():
-			print('bar')
-	}
+```python
+hash = {
+	'foo':	def():
+		print('foo');,
+	'bar':	def():
+		print('bar')
+}
+```
 
 It is because of easy integration with JavaScript's native libraries that RapydScript keeps its own libraries to a minimum. For example, it does not implement string interpolation, like native Python. However, by using `sprintf.js` library (<https://github.com/alexei/sprintf.js>) you can reproduce the same behavior in RapydScript:
 
-	string = vsprintf('%d bottles of %s on the wall', (99, 'beer'))
+```python
+string = vsprintf('%d bottles of %s on the wall', (99, 'beer'))
+```
 
 Take a look at the `examples` directory to see RapydScript integration with `jQuery`, `jQuery-UI`, `D3`, and `Google Charts`.
 
@@ -349,27 +329,32 @@ Anonymous Functions
 -------------------
 Like JavaScript, RapydScript allows the use of anonymous functions. In fact, you've already seen the use of anonymous functions in previous section when creating an object literal ('onmouseover' and 'onmouseout' assignments). This is similar to Python's lambda function, except that the syntax isn't awkward like lambda, and the function isn't limited to one line. The following two function declarations are equivalent:
 
-	def factorial(n):
-		if n == 0:
-			return 1
-		return n * factorial(n-1)
-	
-	factorial = def(n):
-		if n == 0:
-			return 1
-		return n * factorial(n-1)
-	
+
+```python
+def factorial(n):
+	if n == 0:
+		return 1
+	return n * factorial(n-1)
+
+factorial = def(n):
+	if n == 0:
+		return 1
+	return n * factorial(n-1)
+```
+
 This might not seem like much at first, but if you're familiar with JavaScript, you know that this can be extermely useful to the programmer, especially when dealing with nested functions, which are a bit syntactically awkward in Python (it's not immediatelly obvious that those can be copied and assigned to other objects). To illustrate the usefulness, let's create a method that creates and returns an element that changes color while the user keeps the mouse pressed on it.
 
-	def makeDivThatTurnsGreen():
-		div = $('<div></div>')
-		turnGreen = def(event):
-			div.css('background', 'green')
-		div.mousedown(turnGreen)
-		resetColor = def(event):
-			div.css('background', '')
-		div.mouseup(resetColor)
-		return div
+```python
+def makeDivThatTurnsGreen():
+	div = $('<div></div>')
+	turnGreen = def(event):
+		div.css('background', 'green')
+	div.mousedown(turnGreen)
+	resetColor = def(event):
+		div.css('background', '')
+	div.mouseup(resetColor)
+	return div
+```
 
 At first glance, anonymous functions might not seem that useful. We could have easily created nested functions and assigned them instead. By using anonymous functions, however, we can quickly identify that these functions will be bound to a different object. They belong to the div, not the main function that created them, nor the logic that invoked it. The best use case for these is creating an element inside another function/object without getting confused which object the function belongs to.
 
