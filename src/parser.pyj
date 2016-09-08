@@ -47,6 +47,7 @@
 """
 
 
+RAPYD_PREFIX = "ՐՏ"     # previously _$rapyd$_
 NATIVE_CLASSES = {
     # javascript
     'Image': {},
@@ -410,7 +411,7 @@ def parse($TEXT, options):
             tmp_ = S.token.value
 
             if ES6_KEYWORDS(tmp_) and not options.es6:
-                token_error(prev(), "«" + tmp_ + "» keyword not supported with ES5-compatible output, use --ecmascript6 compilation flag")
+                token_error(prev(), "«" + tmp_ + "» keyword not supported with ES5 output, use --ecmascript6 compilation flag")
 
             next()
             if tmp_ == "break":

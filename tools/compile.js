@@ -32,6 +32,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
         beautify: argv.beautify,
         private_scope: !argv.bare,
         auto_bind: argv.auto_bind,
+        es6: argv.ecmascript6,
         omit_baselib: argv.omit_baselib
     };
     var files = argv.files.slice();

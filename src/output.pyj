@@ -58,6 +58,7 @@ def OutputStream(options):
         width: 80,
         max_line_len: 32000,
         ie_proof: True,
+        es6: False,
         beautify: False,
         source_map: None,
         bracketize: False,
@@ -408,6 +409,7 @@ def OutputStream(options):
         stack: def():
             return stack
         ,
+        tmp_index: 0,
         parent: def(n):
             return stack[stack.length - 2 - (n or 0)]
 
@@ -427,7 +429,14 @@ def OutputStream(options):
         print: "ՐՏ_print",
         eslice: "ՐՏ_eslice",
     }
-    INDEX_COUNTER = 0
+
+    tmp_index = 0 # TODO: replace with a generator when ES6 becomes mainstream
+    def tempVar(subtype=""):
+        # convenience method for generating unused temporary variable
+        nonlocal tmp_index
+        tmp_index += 1
+        return RAPYD_PREFIX + subtype + tmp_index
+
     def DEFPRINT(nodetype, generator):
         nodetype.DEFMETHOD("_codegen", generator)
 
@@ -808,7 +817,7 @@ def OutputStream(options):
         tuple.elements.forEach(def(elem, i):
             output.indent()
             output.assign(elem)
-            output.print("ՐՏ_Unpack")
+            output.print("ՐՏ_Unpack" + output.tmp_index)
             output.with_square(def():
                 output.print(i)
             )
@@ -1021,21 +1030,36 @@ def OutputStream(options):
     AST_ForIn.DEFMETHOD("_do_print_body", def(output):
         self = this
         output.with_block(def():
-            nonlocal INDEX_COUNTER
             if not (is_simple_for(self) or is_simple_for_in(self)):
                 # if we're using multiple iterators, unpack them
                 output.indent()
+                iterator = "ՐՏ_Iter" + output.tmp_index
+                index = "ՐՏ_Index" + output.tmp_index
                 if isinstance(self.init, AST_Array):
-                    output.assign("var ՐՏ_Unpack")
-                    output.print("ՐՏ_Iter" + INDEX_COUNTER + "[ՐՏ_Index" + INDEX_COUNTER + "];")
-                    output.newline()
-                    unpack_tuple(self.init, output)
+                    if output.option('es6'):
+                        output.with_square(def():
+                            self.init.elements.forEach(def(element, index):
+                                if (index) output.comma()
+                                element.print(output)
+                            )
+                        )
+                        output.space()
+                        output.print('=')
+                        output.space()
+                        output.print(iterator + "[" + index + "];")
+                        output.newline()
+                    else:
+                        unpack = "ՐՏ_Unpack" + output.tmp_index
+                        output.assign("var " + unpack)
+                        output.print(iterator + "[" + index + "];")
+                        output.newline()
+                        unpack_tuple(self.init, output)
                 else:
                     output.assign(self.init)
-                    output.print("ՐՏ_Iter" + INDEX_COUNTER + "[ՐՏ_Index" + INDEX_COUNTER + "];")
+                    output.print(iterator + "[" + index + "];")
                     output.newline()
 
-                INDEX_COUNTER += 1
+                output.tmp_index += 1
 
             self.body.body.forEach(def(stmt, i):
                 output.indent()
@@ -1103,7 +1127,7 @@ def OutputStream(options):
             )
         else:
             # regular loop
-            output.assign("var ՐՏ_Iter" + INDEX_COUNTER)
+            output.assign("var ՐՏ_Iter" + output.tmp_index)
             output.print("ՐՏ_Iterable")
             output.with_parens(def():
                 self.object.print(output)
@@ -1116,18 +1140,18 @@ def OutputStream(options):
             output.with_parens(def():
                 output.print("var")
                 output.space()
-                output.assign("ՐՏ_Index" + INDEX_COUNTER)
+                output.assign("ՐՏ_Index" + output.tmp_index)
                 output.print("0")
                 output.semicolon()
                 output.space()
-                output.print("ՐՏ_Index" + INDEX_COUNTER)
+                output.print("ՐՏ_Index" + output.tmp_index)
                 output.space()
                 output.print("<")
                 output.space()
-                output.print("ՐՏ_Iter" + INDEX_COUNTER + ".length")
+                output.print("ՐՏ_Iter" + output.tmp_index + ".length")
                 output.semicolon()
                 output.space()
-                output.print("ՐՏ_Index" + INDEX_COUNTER + "++")
+                output.print("ՐՏ_Index" + output.tmp_index + "++")
             )
 
         output.space()
@@ -1235,10 +1259,23 @@ def OutputStream(options):
                 output.with_block(def():
                     output.indent()
                     if isinstance(self.init, AST_Array):
-                        output.assign("var ՐՏ_Unpack")
+                        if output.option('es6'):
+                            output.with_square(def():
+                                self.left.elements.forEach(def(element, index):
+                                    if (index) output.comma()
+                                    element.print(output)
+                                )
+                            )
+                            output.comma()
+                            output.print('=')
+                            output.comma()
+                        else:
+                            output.assign("var ՐՏ_Unpack" + output.tmp_index)
                         output.print("ՐՏ_Iter[ՐՏ_Index];")
                         output.newline()
-                        unpack_tuple(self.init, output)
+                        if not output.option('es6'):
+                            unpack_tuple(self.init, output)
+                        output.tmp_index += 1
                     else:
                         output.assign(self.init)
                         output.print("ՐՏ_Iter[ՐՏ_Index];")
@@ -2131,7 +2168,15 @@ def OutputStream(options):
             )
             return
         if isinstance(self.left, AST_Array):
-            output.print("var ՐՏ_Unpack")
+            if output.option('es6'):
+                output.with_square(def():
+                    self.left.elements.forEach(def(element, index):
+                        if (index) output.comma()
+                        element.print(output)
+                    )
+                )
+            else:
+                output.print("var ՐՏ_Unpack" + output.tmp_index)
         else:
             self.left.print(output)
         output.space()
@@ -2142,9 +2187,11 @@ def OutputStream(options):
             CREATION.push(self.left)
         self.right.print(output)
         if isinstance(self.left, AST_Array):
-            output.semicolon()
-            output.newline()
-            unpack_tuple(self.left, output, True)
+            if not output.option('es6'):
+                output.semicolon()
+                output.newline()
+                unpack_tuple(self.left, output, True)
+            output.tmp_index += 1
     )
     DEFPRINT(AST_Conditional, def(self, output):
         self.condition.print(output)
