@@ -121,7 +121,8 @@ assert.equal(foo(), 6)
 assert.equal(bar(), 5)
 assert.equal(baz(), 5)
 
-# scoping
+
+# SCOPING
 c = 1
 d = 2
 g = 3
@@ -161,3 +162,24 @@ assert.equal(c, 1)
 # g, j should stay overridden
 assert.equal(g, 5)
 assert.equal(j, 6)
+
+
+# ANNOTATIONS
+# the only thing we can test at this time is that they're harmless
+def concat(a: String, b: String):
+    return a + b
+
+def add(a: Number, b: Number) -> Number:
+    return a + b
+
+def boz(foo: "foo is often used in programming", bar: "so is bar") -> "boz, because baz was already taken":
+    return bar + foo
+
+class Qux:
+    def quux(self: Qux, timeline: [Date]) -> [Date]:
+        timeline.push(Date.now())
+        return timeline
+
+assert.equal(concat('air', 'plane'), 'airplane')
+assert.equal(add(5, 2), 7)
+assert.equal(boz(2, 11), 13)

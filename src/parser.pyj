@@ -913,6 +913,8 @@ def parse($TEXT, options):
         generator = False
         localvars = None
         staticmethod = False
+        return_annotation = None
+
         # special decorators are decorators that have special meaning to the compiler
         has_special_decorator = def(name):
             index = S.decorators.indexOf(name)
@@ -939,6 +941,7 @@ def parse($TEXT, options):
                 defaults = {}
                 first = True
                 seen_names = {}
+                def_line = S.input.context().tokline
 
                 def get_arg():
                     if Object.prototype.hasOwnProperty.call(seen_names, S.token.value):
@@ -946,7 +949,49 @@ def parse($TEXT, options):
                     if S.token.value == 'arguments':
                         token_error(prev(), "Can't use the name arguments as a parameter name, it is reserved by JavaScript")
                     seen_names[S.token.value] = True
-                    return as_symbol(AST_SymbolFunarg)
+                    # save these in order to move back if we have an annotation
+                    name_token = S.token
+                    name_ctx = S.input.context()
+                    # check if we have an argument annotation
+                    ntok = peek()
+                    if ntok.type is 'punc' and ntok.value is ':':
+                        next()
+                        expect(':')
+                        annotation = maybe_conditional()
+
+                        # and now, do as_symbol without the next() at the end
+                        # since we are already at the next comma (or end bracket)
+                        if not is_token(name_token, "name"):
+                            # assuming the previous context in case
+                            # the annotation was over the line
+                            croak("Name expected", name_ctx.tokline)
+                            return None
+
+                        sym = new AST_SymbolFunarg({
+                            'name': name_token.value,
+                            'start': S.token,
+                            'end': S.token,
+                            'annotation': annotation
+                        })
+                        return sym
+                    else:
+                        if not is_("name"):
+                            # there is no name, which is an error we should report on the
+                            # same line as the definition, so move to that is we're not already there.
+                            if S.input.context().tokline != def_line:
+                                croak("Name expected", def_line)
+                            else:
+                                croak("Name expected")
+                            return None
+
+                        sym = new AST_SymbolFunarg({
+                            'name': S.token.value,
+                            'start': S.token,
+                            'end': S.token,
+                            'annotation': None
+                        })
+                        next()
+                        return sym
 
                 while not is_("punc", ")"):
                     if first:
@@ -987,6 +1032,11 @@ def parse($TEXT, options):
                                 token_error(prev(), "Can't define required formal parameters after optional formal parameters")
 
                 next()
+                # check if we have a return type annotation
+                if is_("punc", "->"):
+                    next()
+                    nonlocal return_annotation
+                    return_annotation = maybe_conditional()
                 a.defaults = defaults
                 return a
             )([]),
@@ -1000,6 +1050,7 @@ def parse($TEXT, options):
                 S.decorators = []
                 return d
             )(),
+            return_annotation: return_annotation,
             body: (def(loop, labels):
                 # parse function content
 

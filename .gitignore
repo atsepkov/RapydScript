@@ -1,6 +1,7 @@
 # use glob syntax
 *~
 *.swp
+*.swo
 *.tmp
 *.orig
 node_modules

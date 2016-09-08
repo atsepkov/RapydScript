@@ -502,7 +502,7 @@ AST_Decorator = DEFNODE("Decorator", "name", {
     }
 })
 
-AST_Lambda = DEFNODE("Lambda", "name argnames kwargs uses_arguments decorators generator", {
+AST_Lambda = DEFNODE("Lambda", "name argnames kwargs uses_arguments decorators generator return_annotation", {
     $documentation: "Base class for functions",
     $propdoc: {
         name: "[AST_SymbolDeclaration?] the name of this function",
@@ -510,7 +510,8 @@ AST_Lambda = DEFNODE("Lambda", "name argnames kwargs uses_arguments decorators g
         kwargs: "[AST_SymbolFunarg?] kwargs symbol, if any",
         uses_arguments: "[boolean/S] tells whether this function accesses the arguments array",
         decorators: "[AST_Decorator*] function decorators, if any",
-        generator: "[boolean] true if this is a generator function (false by default)"
+        generator: "[boolean] true if this is a generator function (false by default)",
+        return_annotation: "[AST_Node?] the return type annotation provided (if any)"
     },
     _walk: def(visitor):
         node = this
@@ -1080,8 +1081,11 @@ AST_SymbolConst = DEFNODE("SymbolConst", None, {
     $documentation: "A constant declaration"
 }, AST_SymbolDeclaration)
 
-AST_SymbolFunarg = DEFNODE("SymbolFunarg", None, {
-    $documentation: "Symbol naming a function argument"
+AST_SymbolFunarg = DEFNODE("SymbolFunarg", 'annotation', {
+    $documentation: "Symbol naming a function argument",
+    $propdoc: {
+        annotation: "[AST_Node?] annotation provided for this argument, if any"
+    }
 }, AST_SymbolVar)
 
 AST_SymbolDefun = DEFNODE("SymbolDefun", None, {

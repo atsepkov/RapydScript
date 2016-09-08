@@ -126,7 +126,8 @@ OPERATORS = makePredicate([
     "or",
     "til",
     "to",
-    "@"
+    "@",
+    "->"
 ])
 
 OP_MAP = {
@@ -655,6 +656,10 @@ def tokenizer($TEXT, filename):  # {{{
         op = grow(prefix or next())
         if op in ["++", "--", "===", "!=="]:
             parse_error("Invalid operator «" + op + "»")
+        elif op is '->':
+            # pretend that this is an operator as the tokenizer only allows
+            # one character punctuation.
+            return token('punc', op)
         return token("operator", op)
 
     def handle_slash():
