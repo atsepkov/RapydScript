@@ -71,15 +71,15 @@ d1 = {
 	fun2: def(c):
 		return c+1
 }
-# pound keys in comments and strings
+# arbitrary indentation inside
+{a:1, 1:
+ 1
+   }
+# pound sign in comments and strings
 d2 = {
     'aaa': 'bbb',   # with comments
     'ccc': '#fff'
 }
-# arbitrary indentation inside object literals
-#{1:
-# 1
-#   }
 
 # access
 assert.ok('foo' in d1)

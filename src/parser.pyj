@@ -366,7 +366,8 @@ def parse($TEXT, options):
         return ans
 
 
-    statement = embed_tokens(def():
+    @embed_tokens
+    def statement():
         if is_("operator", "/") or is_("operator", "/="):
             S.peeked = None
             S.token = S.input(S.token.value.substr(1))
@@ -529,7 +530,6 @@ def parse($TEXT, options):
                 })
             else:
                 unexpected()
-    )
 
     def labeled_statement():
         label = as_symbol(AST_Label)
@@ -1451,7 +1451,8 @@ def parse($TEXT, options):
         expect(terminator)
         return object
 
-    array_ = embed_tokens(def():
+    @embed_tokens
+    def array_():
         expect("[")
         expr = []
         if not is_("punc", "]"):
@@ -1502,7 +1503,6 @@ def parse($TEXT, options):
         return new AST_Array({
             elements: expr.concat(expr_list("]", not options.strict, True))
         })
-    )
 
     @embed_tokens
     def object_():
