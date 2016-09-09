@@ -150,6 +150,19 @@ STDLIB = [
 ]
 
 
+def has_simple_decorator(decorators, name):
+    remove = []
+    for JS('var i = 0; i < decorators.length; i++'):
+        s = decorators[i]
+        if isinstance(s, AST_SymbolRef) and not s.parens and s.name == name:
+            remove.push(i)
+    if remove.length:
+        remove.reverse()
+        for JS('var i = 0; i < remove.length; i++'):
+            decorators.splice(remove[i], 1)
+        return True
+    return False
+
 # -----[ Parser (constants) ]-----
 UNARY_PREFIX = makePredicate([
     "typeof",
@@ -235,6 +248,7 @@ def parse($TEXT, options):
         } ],
         labels: [],
         decorators: [],         # decorators we've most-recently seen, these get reset as soon as we see function body
+        parsing_decorator: False    # whether we're currently parsing a decorator
     }
 
     if options.classes:
@@ -795,9 +809,7 @@ def parse($TEXT, options):
             unexpected()
 
         # detect external classes
-        externaldecorator = S.decorators.indexOf("external")
-        if externaldecorator != -1:
-            S.decorators.splice(externaldecorator, 1)
+        externaldecorator = has_simple_decorator(S.decorators, 'external')
 
         class_details = {
             "static": [],
@@ -823,7 +835,7 @@ def parse($TEXT, options):
             )(),
             localvars: [],
             static: class_details.static,
-            external: externaldecorator != -1,
+            external: externaldecorator,
             bound: class_details.bound,
             statements: [],
             decorators: (def():
@@ -832,7 +844,7 @@ def parse($TEXT, options):
                     if decorator == 'kwargs':
                         BASELIB['kwargs'] = True
                     d.push(new AST_Decorator({
-                        name: decorator
+                        expression: decorator
                     }))
                 )
                 S.decorators = []
@@ -918,12 +930,7 @@ def parse($TEXT, options):
         return_annotation = None    # return annotation for the function, if any
 
         # special decorators are decorators that have special meaning to the compiler
-        has_special_decorator = def(name):
-            index = S.decorators.indexOf(name)
-            if index != -1:
-                S.decorators.splice(index, 1)
-                return True
-            return False
+        has_special_decorator = def(name): return has_simple_decorator(S.decorators, name)
 
         if in_class:
             if has_special_decorator("staticmethod"):
@@ -1048,7 +1055,7 @@ def parse($TEXT, options):
                 d = []
                 S.decorators.forEach(def(decorator):
                     d.push(new AST_Decorator({
-                        name: decorator
+                        expression: decorator
                     }))
                 )
                 S.decorators = []
@@ -1825,15 +1832,23 @@ def parse($TEXT, options):
 
     def maybe_unary(allow_calls):
         start = S.token
+
+        if is_('operator', '@'):
+            if S.parsing_decorator:
+                croak('Nested decorators are not allowed')
+            next()
+            S.parsing_decorator = True
+            expr = expression()
+            S.parsing_decorator = False
+            S.decorators.push(expr)
+            return new AST_EmptyStatement({
+                stype: '@',
+                start: prev(),
+                end: prev()
+            })
+
         if is_("operator") and UNARY_PREFIX(start.value):
             next()
-            if start.value == "@":
-                if is_("name") and (peek().value == "@" or peek().value == "def" or peek().value == "class"):
-                    S.decorators.push(S.token.value)
-                    next()
-                    return new AST_EmptyStatement()
-                else:
-                    unexpected()
 
             ex = make_unary(AST_UnaryPrefix, start.value, maybe_unary(allow_calls))
             ex.start = start

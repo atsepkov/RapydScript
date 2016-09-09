@@ -1320,16 +1320,19 @@ def OutputStream(options):
 
 
     # -----[ functions ]-----
-    def decorate(node, output, internalsub):
-        wrap = def(d):
-            if d.length:
-                output.print(d.slice(0)[0].name)
+    def decorate(decorators, output, internalsub):
+        pos = 0
+        wrap = def():
+            nonlocal pos
+            if pos < decorators.length:
+                decorators[pos].expression.print(output)
+                pos += 1
                 output.with_parens(def():
-                    wrap(d.slice(1))
+                    wrap()
                 )
             else:
                 internalsub()
-        wrap(node.decorators)
+        wrap()
 
 
     AST_Lambda.DEFMETHOD("_do_print", def(output, nokeyword):
@@ -1367,7 +1370,7 @@ def OutputStream(options):
             output.print("var")
             output.space()
             output.assign(self.name.name)
-            decorate(self, output, internalsub)
+            decorate(self.decorators, output, internalsub)
             output.semicolon()
         else:
             internalsub()
@@ -1421,7 +1424,7 @@ def OutputStream(options):
 
             # decorate the method
             if stmt.decorators and stmt.decorators.length:
-                decorate(stmt, output, internalsub)
+                decorate(stmt.decorators, output, internalsub)
             else:
                 internalsub()
             output.semicolon()
@@ -1464,7 +1467,7 @@ def OutputStream(options):
         if self.decorators and self.decorators.length:
             output.print('var ')
             output.assign(self.name)
-            decorate(self, output, internalsub)
+            decorate(self.decorators, output, internalsub)
             output.semicolon()
         else:
             internalsub()
