@@ -1969,19 +1969,18 @@ def parse($TEXT, options):
                         if isinstance(left[0], AST_Seq):
                             # convert sequence to array and add every variable to local scope
                             leftAst = seq_to_array(left[0])
-                            for element in leftAst:
-                                mark_local_assignment(element)
                         else:
-                            # not sure if we'd ever end up here, except maybe if user left a stray comma
+                            # left[0] is already an array
                             leftAst = left[0]
-                            mark_local_assignment(leftAst)
                     else:
-                        # explicit array
+                        # left itself is an array
                         leftAst = new AST_Array({
                             elements: left
                         })
-                        for element in left:
-                            mark_local_assignment(element)
+
+                    # this is assignment of type [a, b] = ... and (a, b) = ..., scan for local vars
+                    for element in leftAst.elements:
+                        mark_local_assignment(element)
 
                     return new AST_Assign({
                         start: start,
