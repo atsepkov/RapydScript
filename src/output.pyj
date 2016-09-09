@@ -733,22 +733,26 @@ def OutputStream(options):
                     output.newline()
 
                 # initialize default function arguments, if any
-                for arg in dir(node.argnames.defaults):
-                    output.indent()
-                    output.print("if")
-                    output.space()
-                    output.with_parens(def():
-                        output.print("typeof " + arg)
+                if not output.option('es6'):    # in es 6 the logic is now declared in the header, not the body
+                    for arg in dir(node.argnames.defaults):
+                        # typeof no longer needed with strict mode
+                        # it also seems that it's no longer popular to assume that some troll overrode your undefined variable :)
+                        output.indent()
+                        output.assign(arg)
+                        output.print(arg)
                         output.space()
                         output.print("===")
                         output.space()
-                        output.print('"undefined"')
-                    )
-                    output.space()
-                    output.assign(arg)
-                    force_statement(node.argnames.defaults[arg], output)
-                    output.semicolon()
-                    output.newline()
+                        output.print('undefined')
+                        output.space()
+                        output.print('?')
+                        output.space()
+                        force_statement(node.argnames.defaults[arg], output)
+                        output.space()
+                        output.colon()
+                        output.print(arg)
+                        output.semicolon()
+                        output.newline()
 
             # rebind parent's methods and bind own methods
             # for now we'll make a naive assumption that a function
@@ -1343,10 +1347,11 @@ def OutputStream(options):
 
             output.with_parens(def():
                 self.argnames.forEach(def(arg, i):
-                    if i:
-                        output.comma()
-
+                    if i: output.comma()
                     arg.print(output)
+                    if output.option('es6') and self.argnames.defaults[arg.name]:
+                        output.print('=')
+                        self.argnames.defaults[arg.name].print(output)
                 )
 
                 # handle kwargs hook, if there is a kwargs decorator
@@ -2298,7 +2303,9 @@ def OutputStream(options):
         if isinstance(p, AST_Binary) and /^in/.test(p.operator) and p.left is self:
             output.print(" ")
     )
+
     def force_statement(stat, output):
+        # print a statement even if there is nothing to print, forcing an appropriate "empty" indicator
         if output.option("bracketize"):
             if not stat or isinstance(stat, AST_EmptyStatement):
                 output.print("{}")
