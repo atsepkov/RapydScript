@@ -41,3 +41,9 @@ bench.add('Object.keys', def():
 bench.add('for in', def():
     JS('for (var i in hash) {}')
 )
+bench.add('slice(-1)', def():
+    JS('arr.slice(-1)')
+)
+bench.add('[array.length-1]', def():
+    JS('arr[arr.length-1]')
+)
