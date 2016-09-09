@@ -48,8 +48,8 @@ bench.add('[array.length-1]', def():
     JS('arr[arr.length-1]')
 )
 bench.add('typeof a === "undefined"', def():
-    JS('typeof a === "undefined"')
+    JS('typeof arr === "undefined"')
 )
 bench.add('a === undefined', def():
-    JS('a === undefined')
+    JS('arr === undefined')
 )

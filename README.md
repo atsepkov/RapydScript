@@ -159,6 +159,10 @@ If you have questions, bug reports, or feature requests, feel free to post them 
 
 I bundled a few demos with RapydScript itself, but several members of the community put together much better demos. If you would like to take a look at them to see what's possible with RapydScript, here are some examples:
 
+<http://www.glowscript.org/>  
+GlowScript is a WebGL-based environment and a physics engine, originally written in Python for the desktop, the author ported it to the browser using
+RapydScript compiler.
+
 <http://salvatore.pythonanywhere.com/RapydScript>  
 This includes the demos from RapydScript's `examples` directory, as well as a few others.
 
