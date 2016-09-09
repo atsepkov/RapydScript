@@ -167,13 +167,13 @@ UNARY_PREFIX = makePredicate([
 
 ASSIGNMENT = makePredicate([ "=", "+=", "-=", "/=", "//=", "*=", "%=", ">>=", "<<=", ">>>=", "|=", "^=", "&=" ])
 
-PRECEDENCE = def(a, ret):
+PRECEDENCE = (def(a, ret):
     for i in range(a.length):
         b = a[i]
         for j in range(b.length):
             ret[b[j]] = i+1
     return ret
-.call(this, [
+)([
     # lowest precedence
     [ "||" ],
     [ "&&" ],
@@ -246,6 +246,7 @@ def parse($TEXT, options):
             }
 
     S.token = next()
+
     def is_(type, value):
         return is_token(S.token, type, value)
 
@@ -723,7 +724,7 @@ def parse($TEXT, options):
             IMPORTED[package_module_id].submodules.push(key)
 
 
-    import_ = def(from_import):
+    def import_(from_import):
         ans = new AST_Imports({'imports':[]})
         while True:
             tmp = name = expression(False)
@@ -788,7 +789,7 @@ def parse($TEXT, options):
         return ans
 
 
-    class_ = def():
+    def class_():
         name = as_symbol(AST_SymbolDefun)
         if not name:
             unexpected()
@@ -904,7 +905,7 @@ def parse($TEXT, options):
 
         return definition
 
-    function_ = def(in_class, ctor):
+    def function_(in_class, ctor):
         is_accessor = ctor is AST_Accessor
         name = (is_("name") ? as_symbol((in_class ? AST_SymbolDefun : (is_accessor ? AST_SymbolAccessor : AST_SymbolLambda))) : (is_accessor and (is_("string") or is_("num")) ? as_atom_node() : None))
         if in_class and not name:
@@ -1239,21 +1240,21 @@ def parse($TEXT, options):
 
         return a
 
-    nonlocal_ = def(no_in):
+    def nonlocal_(no_in):
         return new AST_Var({
             start: prev(),
             definitions: vardefs(no_in, "nonlocal"),
             end: prev()
         })
 
-    const_ = def():
+    def const_():
         return new AST_Const({
             start: prev(),
             definitions: vardefs(False, "const"),
             end: prev()
         })
 
-    new_ = def():
+    def new_():
         start = S.token
         expect_token("operator", "new")
         newexp = expr_atom(False)
@@ -1317,7 +1318,7 @@ def parse($TEXT, options):
             next()
         return ret
 
-    expr_atom = def(allow_calls):
+    def expr_atom(allow_calls):
         if is_("operator", "new"):
             return new_()
 
@@ -1638,7 +1639,7 @@ def parse($TEXT, options):
             else:
                 S.in_scope[-1].vars[name] = ["?"]
 
-    subscripts = def(expr, allow_calls):
+    def subscripts(expr, allow_calls):
         start = expr.start
         if is_("punc", "."):
             next()
@@ -1822,7 +1823,7 @@ def parse($TEXT, options):
 
         return expr
 
-    maybe_unary = def(allow_calls):
+    def maybe_unary(allow_calls):
         start = S.token
         if is_("operator") and UNARY_PREFIX(start.value):
             next()
@@ -1853,7 +1854,7 @@ def parse($TEXT, options):
             expression: expr
         })
 
-    expr_op = def(left, min_prec, no_in):
+    def expr_op(left, min_prec, no_in):
         op = (is_("operator") ? S.token.value : None)
         not_in = False
         if op == "!" and peek().type == "operator" and peek().value == "in":
@@ -1900,7 +1901,7 @@ def parse($TEXT, options):
     def expr_ops(no_in):
         return expr_op(maybe_unary(True), 0, no_in)
 
-    maybe_conditional = def(no_in):
+    def maybe_conditional(no_in):
         start = S.token
         expr = expr_ops(no_in)
         if is_("operator", "?"):
@@ -1926,7 +1927,7 @@ def parse($TEXT, options):
         elif tmp_ == "name":
             return expr[1] != "this"
 
-    maybe_assign = def(no_in):
+    def maybe_assign(no_in):
         start = S.token
         left = maybe_conditional(no_in)
         val = S.token.value
@@ -1949,7 +1950,7 @@ def parse($TEXT, options):
             croak("Invalid assignment")
         return left
 
-    expression = def(commas, no_in):
+    def expression(commas, no_in):
         # if there is an assignment, we want the sequences to pivot
         # around it to allow for tuple packing/unpacking
         start = S.token

@@ -699,7 +699,6 @@ def OutputStream(options):
             output.print('var __name__ = "__main__"')
             output.semicolon()
             output.newline()
-            output.newline()
 
     def display_complex_body(node, is_toplevel, output):
         offset = 0 # argument offset, applies if this is a method of a class
