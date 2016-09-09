@@ -378,25 +378,40 @@ I'm sure you will agree that the above code is cleaner than declaring 5 temporar
 
 Decorators
 ----------
-Like Python, RapydScript supports function decorators. While decorator arguments are not supported, the basic decorators work exactly the same way as in Python:
+Like Python, RapydScript supports function decorators.
 
-	def makebold(fn):
-		def wrapped():
-			return "<b>" + fn() + "</b>"
-		return wrapped
+```python
+def makebold(fn):
+	def wrapped():
+		return "<b>" + fn() + "</b>"
+	return wrapped
 
-	def makeitalic(fn):
-		def wrapped():
-			return "<i>" + fn() + "</i>"
-		return wrapped
+def makeitalic(fn):
+	def wrapped():
+		return "<i>" + fn() + "</i>"
+	return wrapped
 
-	@makebold
-	@makeitalic
-	def hello():
-		return "hello world"
+@makebold
+@makeitalic
+def hello():
+	return "hello world"
 
-	hello() # returns "<b><i>hello world</i></b>"
+hello() # returns "<b><i>hello world</i></b>"
 
+def multiple_args(front, back, repeat):
+    return def(f):
+        return def():
+            string = front + f() + back
+            container = []
+            for i in range(repeat):
+                container.push(string)
+            return container.join(',')
+
+@multiple_args('{{', '}}', 3)
+def foo(): return 'foo'
+
+foo() # returns '{{foo}},{{foo}},{{foo}}'
+```
 
 Function Annotations
 --------------------
