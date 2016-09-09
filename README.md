@@ -28,7 +28,7 @@ function _$rapyd$_in(val, arr) {
     if (arr instanceof Array || typeof arr === "string") {
         return arr.indexOf(val) != -1;
     }
-    return arr.hasOwnProperty(val) ? true : false;
+    return arr.hasOwnProperty(val);
 }
 function memoize(f) {
     var memo = {};
