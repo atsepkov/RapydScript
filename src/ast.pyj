@@ -143,7 +143,7 @@ AST_Node = DEFNODE("Node", "start end", {
                     if not compact: out(' ' + colored_key + '[]')
             elif value:
                 if value.TYPE:
-                    if value.TYPE == 'Token':
+                    if value.TYPE is 'Token':
                         # tokens identify the lexical trigger for this node
                         if compact:
                             out(' ' + colored_key + colored(
@@ -161,11 +161,11 @@ AST_Node = DEFNODE("Node", "start end", {
                         out(' ' + colored_key + colored(value.TYPE, 'yellow'))
                         if depth > 1:
                             value._dump(depth-1, omit, offset+1, False, compact)
-                elif type(value) == "string":
+                elif type(value) is "string":
                     out(' ' + colored_key + colored('"' + value + '"', 'green'))
-                elif type(value) == "number":
+                elif type(value) is "number":
                     out(' ' + colored_key + colored(value, 'green'))
-                elif type(value) == "boolean":
+                elif type(value) is "boolean":
                     out(' ' + colored_key + colored(value, 'green'))
                 else:
                     # unexpected object
@@ -402,7 +402,7 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang impor
         wrapped_tl = "(function(" + parameters.join(",") + "){ '$ORIG'; })(" + args.join(",") + ")"
         wrapped_tl = parse(wrapped_tl)
         wrapped_tl = wrapped_tl.transform(new TreeTransformer(def before(node):
-            if isinstance(node, AST_Directive) and node.value == "$ORIG":
+            if isinstance(node, AST_Directive) and node.value is "$ORIG":
                 return MAP.splice(self.body)
         ))
         return wrapped_tl
@@ -415,7 +415,7 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang impor
             self.walk(new TreeWalker(def(node):
                 if isinstance(node, AST_SymbolDeclaration) and node.definition().global:
                     if not find_if(def(n):
-                        return n.name == node.name
+                        return n.name is node.name
                     , to_export):
                         to_export.push(node)
             ))
@@ -426,9 +426,9 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang impor
                 node = node.body
                 if isinstance(node, AST_String):
                     tmp_ = node.getValue()
-                    if tmp_ == "$ORIG":
+                    if tmp_ is "$ORIG":
                         return MAP.splice(self.body)
-                    elif tmp_ == "$EXPORTS":
+                    elif tmp_ is "$EXPORTS":
                         body = []
                         to_export.forEach(def(sym):
                             body.push(new AST_SimpleStatement({
@@ -827,10 +827,10 @@ AST_Seq = DEFNODE("Seq", "car cdr", {
         return seq
     ,
     $from_array: def(array):
-        if array.length == 0:
+        if array.length is 0:
             return None
 
-        if array.length == 1:
+        if array.length is 1:
             return array[0].clone()
 
         list = None
@@ -1256,9 +1256,9 @@ TreeWalker.prototype = {
             if isinstance(p, AST_If) and p.condition is self
             or isinstance(p, AST_Conditional) and p.condition is self
             or isinstance(p, AST_DWLoop) and p.condition is self
-            or isinstance(p, AST_UnaryPrefix) and p.operator == "!" and p.expression is self:
+            or isinstance(p, AST_UnaryPrefix) and p.operator is "!" and p.expression is self:
                 return True
-            if not (isinstance(p, AST_Binary) and (p.operator == "&&" or p.operator == "||")):
+            if not (isinstance(p, AST_Binary) and (p.operator is "&&" or p.operator is "||")):
                 return False
             self = p
     ,
@@ -1267,7 +1267,7 @@ TreeWalker.prototype = {
         if label:
             for i in range(stack.length-1, -1, -1):
                 x = stack[i]
-                if isinstance(x, AST_LabeledStatement) and x.label.name == label.name:
+                if isinstance(x, AST_LabeledStatement) and x.label.name is label.name:
                     return x.body
         else:
             for i in range(stack.length-1, -1, -1):

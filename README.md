@@ -66,6 +66,8 @@ Here are just a few examples of cleaner RapydScript syntax:
 
 RapydScript allows to write your JavaScript app in a language much closer to Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with CoffeeScript, RapydScript is like CoffeeScript, but inspired by Python's readability rather than Ruby's cleverness. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
 
+- real deep equality with no performance overhead
+- much cleaner code than native JavaScript
 - classes that work and feel very similar to Python
 - pythonic import system (you can also use `require()`)
 - optional function arguments that work just like Python (`func(third='foo')`)
@@ -619,8 +621,8 @@ The basic operators like `+, +=, -, -=, /, /=, *, *=` work the same way in both 
 
 	RapydScript		JavaScript
 	
-	==				===
-	!=				!==
+	==				deep equality (JS has no equivalent)
+	!=				deep inequality (JS has no equivalent)
 	and				&&
 	or				||
 	not				!
@@ -633,11 +635,22 @@ The basic operators like `+, +=, -, -=, /, /=, *, *=` work the same way in both 
 	
 Admittedly, `is` is not exactly the same thing in Python as `===` in JavaScript, but JavaScript is quirky when it comes to comparing objects anyway.
 
-You may also be interested in `eq` function, which is part of RapydScript. It performs deep equality test on two objects, and works on any types, including hashes and arrays:
+One important feature of RapydScript is its deep equality operators (`==`, `!=`). They have been carefully crafted through a few compilation tricks to
+experience no overhead over JavaScript's traditional operators yet return correct result when comparing copies of objects.
 
-	eq([1,2,3], [1,[2,3]])		# False
-	eq([[1,2],3], [1,[2,3]])	# False
-	eq([1,[2,3]], [1,[2,3]])	# True
+```python
+[1,2,3] == [1,[2,3]]		# False
+[[1,2],3] == [1,[2,3]]	# False
+[1,[2,3]] == [1,[2,3]]	# True
+
+class Stuff:
+	def __init__(self, data):
+		self.data = data
+
+Stuff(1) == Stuff(1)		# True
+Stuff(1) == Stuff(2)		# False
+Stuff(1) == {data: 1}		# False
+```
 
 In rare cases RapydScript might not allow you to do what you need to, and you need access to pure JavaScript. When that's the case, you can wrap your JavaScript in a string, passing it to JS() method. Code inside JS() method is not a sandbox, you can still interact with it from normal RapydScript:
 

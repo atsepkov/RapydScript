@@ -136,9 +136,7 @@ OP_MAP = {
     'not': "!",
     'del': "delete",
     'None': "null",
-    'is': "===",
-    '==': "==",
-    '!=': "!="
+    'is': "==="
 }
 
 WHITESPACE_CHARS = makePredicate(characters(" \u00a0\n\r\t\f\u000b\u200b\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000"));
@@ -187,11 +185,11 @@ def is_identifier(name):
     return not RESERVED_WORDS(name) and IDENTIFIER_PAT.test(name)
 
 def is_identifier_start(code):
-    return code == 36 or code == 95 or is_letter(code)
+    return code is 36 or code is 95 or is_letter(code)
 
 def is_identifier_char(ch):
     code = ch.charCodeAt(0)
-    return is_identifier_start(code) or is_digit(code) or code == 8204 or code == 8205 or is_unicode_combining_mark(ch) or is_unicode_connector_punctuation(ch)
+    return is_identifier_start(code) or is_digit(code) or code is 8204 or code is 8205 or is_unicode_combining_mark(ch) or is_unicode_connector_punctuation(ch)
 
 def parse_js_number(num):
     if RE_HEX_NUMBER.test(num):
@@ -222,7 +220,7 @@ def js_error(message, filename, line, col, pos, is_eof):
     raise new JS_Parse_Error(message, line, col, pos, is_eof)
 
 def is_token(token, type, val):
-    return token.type == type and (val == None or val == undefined or token.value == val)
+    return token.type is type and (val is None or val is undefined or token.value is val)
 
 EX_EOF = {}
 
@@ -260,7 +258,7 @@ def tokenizer($TEXT, filename):  # {{{
         if signal_eof and not ch:
             raise EX_EOF
 
-        if ch == "\n":
+        if ch is "\n":
             S.newline_before = S.newline_before or not in_string
             S.line += 1
             S.col = 0
@@ -270,7 +268,7 @@ def tokenizer($TEXT, filename):  # {{{
 
     def find(what, signal_eof):
         pos = S.text.indexOf(what, S.pos)
-        if signal_eof and pos == -1:
+        if signal_eof and pos is -1:
             raise EX_EOF
         return pos
 
@@ -284,15 +282,15 @@ def tokenizer($TEXT, filename):  # {{{
         type = full_type[0]
         subtype = full_type[1]
 
-        S.regex_allowed = type == "operator" and not UNARY_POSTFIX[value] \
-            or type == "keyword" and KEYWORDS_BEFORE_EXPRESSION(value) \
-            or type == "punc" and PUNC_BEFORE_EXPRESSION(value)
+        S.regex_allowed = type is "operator" and not UNARY_POSTFIX[value] \
+            or type is "keyword" and KEYWORDS_BEFORE_EXPRESSION(value) \
+            or type is "punc" and PUNC_BEFORE_EXPRESSION(value)
 
-        if type == "operator" and value == "is" and S.text.substr(S.pos).trimLeft().substr(0, 4).trimRight() == "not":
+        if type is "operator" and value is "is" and S.text.substr(S.pos).trimLeft().substr(0, 4).trimRight() is "not":
             next_token()
             value = "!=="
 
-        if type == "operator" and OP_MAP[value]:
+        if type is "operator" and OP_MAP[value]:
             value = OP_MAP[value]
 
         ret = {
@@ -316,25 +314,25 @@ def tokenizer($TEXT, filename):  # {{{
         if not keep_newline:
             S.newline_before = False
 
-        if type == "punc":
-            if value == ":" and not S.index_or_slice[-1]
+        if type is "punc":
+            if value is ":" and not S.index_or_slice[-1]
             and not S.expect_object_literal_key
             and (not S.text.substring(S.pos + 1, find("\n")).trim() or not S.text.substring(S.pos + 1, find("#")).trim()):
                 S.newblock = True
                 S.indentation_matters.push(True)
 
-            if value == "[":
-                if S.prev and S.prev.type == "name":
+            if value is "[":
+                if S.prev and S.prev.type is "name":
                     S.index_or_slice.push(True)
                 else:
                     S.index_or_slice.push(False)
                 S.indentation_matters.push(False)
-            elif value == "{" or value == "(":
+            elif value is "{" or value is "(":
                 S.indentation_matters.push(False)
-            elif value == "]":
+            elif value is "]":
                 S.index_or_slice.pop()
                 S.indentation_matters.pop()
-            elif value == "}" or value == ")":
+            elif value is "}" or value is ")":
                 S.indentation_matters.pop()
         S.prev = new AST_Token(ret)
         return S.prev
@@ -347,11 +345,11 @@ def tokenizer($TEXT, filename):  # {{{
         while WHITESPACE_CHARS(peek()):
             whitespace_exists = True
             ch = next()
-            if ch == "\n":
+            if ch is "\n":
                 leading_whitespace = ""
             else:
                 leading_whitespace += ch
-        if peek() != "#":
+        if peek() is not "#":
             if not whitespace_exists:
                 leading_whitespace = S.cached_whitespace
             else:
@@ -362,13 +360,13 @@ def tokenizer($TEXT, filename):  # {{{
     def test_indent_token(leading_whitespace):
         most_recent = S.whitespace_before[S.whitespace_before.length - 1] or ""
         S.endblock = False
-        if S.indentation_matters[-1] and leading_whitespace != most_recent:
-            if S.newblock and leading_whitespace and leading_whitespace.indexOf(most_recent) == 0:
+        if S.indentation_matters[-1] and leading_whitespace is not most_recent:
+            if S.newblock and leading_whitespace and leading_whitespace.indexOf(most_recent) is 0:
                 # positive indent, new block
                 S.newblock = False
                 S.whitespace_before.push(leading_whitespace)
                 return 1
-            elif most_recent and most_recent.indexOf(leading_whitespace) == 0:
+            elif most_recent and most_recent.indexOf(leading_whitespace) is 0:
                 # negative indent, block is ending
                 S.endblock = True
                 S.whitespace_before.pop()
@@ -394,24 +392,24 @@ def tokenizer($TEXT, filename):  # {{{
         has_e = False
         after_e = False
         has_x = False
-        has_dot = prefix == "."
+        has_dot = prefix is "."
         num = read_while(def(ch, i):
             nonlocal after_e
             code = ch.charCodeAt(0)
             tmp_ = code
-            if tmp_ == 120 or tmp_ == 88:
+            if tmp_ is 120 or tmp_ is 88:
                 # xX
                 return has_x ? False : has_x = True
-            elif tmp_ == 101 or tmp_ == 69:
+            elif tmp_ is 101 or tmp_ is 69:
                 # eE
                 return has_x ? True : (has_e ? False : has_e = after_e = True)
-            elif tmp_ == 45:
+            elif tmp_ is 45:
                 # -
-                return after_e or i == 0 and not prefix
-            elif tmp_ == 43:
+                return after_e or i is 0 and not prefix
+            elif tmp_ is 43:
                 # +
                 return after_e
-            elif tmp_ == 46:
+            elif tmp_ is 46:
                 # .
                 after_e = False
                 return not has_dot and not has_x and not has_e ? has_dot = True : False
@@ -433,25 +431,25 @@ def tokenizer($TEXT, filename):  # {{{
 
         ch = digester(in_string)
         tmp_ = ch.charCodeAt(0)
-        if tmp_ == 110:
+        if tmp_ is 110:
             return "\n"
-        elif tmp_ == 114:
+        elif tmp_ is 114:
             return "\r"
-        elif tmp_ == 116:
+        elif tmp_ is 116:
             return "	"
-        elif tmp_ == 98:
+        elif tmp_ is 98:
             return "\b"
-        elif tmp_ == 118:
+        elif tmp_ is 118:
             return "\u000b" # \v
-        elif tmp_ == 102:
+        elif tmp_ is 102:
             return "\f"
-        elif tmp_ == 48:
+        elif tmp_ is 48:
             return "\0"
-        elif tmp_ == 120:
+        elif tmp_ is 120:
             return String.fromCharCode(hex_bytes(2, digester))  # \x
-        elif tmp_ == 117:
+        elif tmp_ is 117:
             return String.fromCharCode(hex_bytes(4, digester))  # \u
-        elif tmp_ == 10:
+        elif tmp_ is 10:
             return ""   # newline
         else:
             return ch
@@ -472,19 +470,19 @@ def tokenizer($TEXT, filename):  # {{{
 
         quote = next()
         ret = ""
-        if peek() == quote:
+        if peek() is quote:
             # two quotes in a row
             next(True)
-            if peek() == quote:
+            if peek() is quote:
                 # multiline string (3 quotes in a row)
                 next(True)
                 i = find(quote + quote + quote, True) # location of string terminator
-                if i != -1:
+                if i is not -1:
                     tmp = S.text.substring(S.pos, i)
                     S.pos = i + 3
                     while tmp.length:
                         # parse escaped characters
-                        if tmp[0] == "\\":
+                        if tmp[0] is "\\":
                             tmp = tmp.substr(1)
                             ret += read_escaped_char(True, def():
                                 nonlocal tmp
@@ -506,17 +504,17 @@ def tokenizer($TEXT, filename):  # {{{
 
         while True:
             ch = next(True)
-            if ch == "\n":
+            if ch is "\n":
                 parse_error("End of line while scanning string literal.")
 
-            if ch == "\\":
-                if peek() == "\n":
+            if ch is "\\":
+                if peek() is "\n":
                     # skip newlines if escaped by backslash
                     next(True)
                     continue
                 else:
                     ch = read_escaped_char(True)
-            elif ch == quote:
+            elif ch is quote:
                 break
             ret += ch
         return token(token_type, ret)
@@ -527,7 +525,7 @@ def tokenizer($TEXT, filename):  # {{{
             next()
         i = find("\n")
 
-        if i == -1:
+        if i is -1:
             ret = S.text.substr(S.pos)
             S.pos = S.text.length
         else:
@@ -559,10 +557,10 @@ def tokenizer($TEXT, filename):  # {{{
         name = ""
         escaped = False
 
-        while (ch = peek()) != None:
+        while (ch = peek()) is not None:
             if not backslash:
-                if ch == "\\":
-                    if S.text.charAt(S.pos + 1) == "\n":
+                if ch is "\\":
+                    if S.text.charAt(S.pos + 1) is "\n":
                         # stitching lines together
                         S.pos += 2
                         continue
@@ -575,7 +573,7 @@ def tokenizer($TEXT, filename):  # {{{
                 else:
                     break
             else:
-                if ch != "u":
+                if ch is not "u":
                     parse_error("Expecting UnicodeEscapeSequence -- uXXXX")
                 ch = read_escaped_char()
                 if not is_identifier_char(ch):
@@ -595,9 +593,9 @@ def tokenizer($TEXT, filename):  # {{{
         verbose_regexp = False
         in_comment = False
 
-        if peek() == '/':
+        if peek() is '/':
             next(True)
-            if peek() == '/':
+            if peek() is '/':
                 verbose_regexp = True
                 next(True)
             else: # empty regexp (//)
@@ -606,35 +604,35 @@ def tokenizer($TEXT, filename):  # {{{
 
         while ch = next(True):
             if in_comment:
-                if ch == '\n':
+                if ch is '\n':
                     in_comment = False
                 continue
 
             if prev_backslash:
                 regexp += "\\" + ch
                 prev_backslash = False
-            elif ch == "[":
+            elif ch is "[":
                 in_class = True
                 regexp += ch
-            elif ch == "]" and in_class:
+            elif ch is "]" and in_class:
                 in_class = False
                 regexp += ch
-            elif ch == "/" and not in_class:
+            elif ch is "/" and not in_class:
                 if verbose_regexp:
-                    if peek() != '/':
+                    if peek() is not '/':
                         regexp += '\\/'
                         continue
                     next(True)
-                    if peek() != '/':
+                    if peek() is not '/':
                         regexp += '\\/\\/'
                         continue
                     next(True)
                 break
-            elif ch == "\\":
+            elif ch is "\\":
                 prev_backslash = True
             elif verbose_regexp and not in_class and ch in ' \n\r\t':
                 pass
-            elif verbose_regexp and not in_class and ch == '#':
+            elif verbose_regexp and not in_class and ch is '#':
                 in_comment = True
             else:
                 regexp += ch
@@ -673,7 +671,7 @@ def tokenizer($TEXT, filename):  # {{{
 
     def read_word():
         word = read_name()
-        return (KEYWORDS_ATOM(word) ? token("atom", word) : (not KEYWORDS(word) ? token("name", word) : (OPERATORS(word) and prevChar() != "." ? token("operator", word) : token("keyword", word))))
+        return (KEYWORDS_ATOM(word) ? token("atom", word) : (not KEYWORDS(word) ? token("name", word) : (OPERATORS(word) and prevChar() is not "." ? token("operator", word) : token("keyword", word))))
 
     def with_eof_error(eof_error, cont):
         return def(x):
@@ -692,7 +690,7 @@ def tokenizer($TEXT, filename):  # {{{
         indent = parse_whitespace()
         #        if (indent == 1)
         #            return token("punc", "{");
-        if indent == -1:
+        if indent is -1:
             return token("punc", "}", False, True)
 
         start_token()
@@ -702,19 +700,19 @@ def tokenizer($TEXT, filename):  # {{{
 
         code = ch.charCodeAt(0)
         tmp_ = code
-        if tmp_ == 34 or tmp_ == 39:    # double-quote (") or single quote (')
+        if tmp_ is 34 or tmp_ is 39:    # double-quote (") or single quote (')
             return read_string()
-        elif tmp_ == 35:                # pound-sign (#)
-            if S.pos == 0 and S.text.charAt(1) == '!':
+        elif tmp_ is 35:                # pound-sign (#)
+            if S.pos is 0 and S.text.charAt(1) is '!':
                 #shebang
                 return read_line_comment(True)
             regex_allowed = S.regex_allowed
             S.comments_before.push(read_line_comment())
             S.regex_allowed = regex_allowed
             return next_token()
-        elif tmp_ == 46:                # dot (.)
+        elif tmp_ is 46:                # dot (.)
             return handle_dot()
-        elif tmp_ == 47:                # slash (/)
+        elif tmp_ is 47:                # slash (/)
             return handle_slash()
 
         if is_digit(code):
@@ -726,7 +724,7 @@ def tokenizer($TEXT, filename):  # {{{
         if OPERATOR_CHARS(ch):
             return read_operator()
 
-        if code == 92 and S.text.charAt(S.pos + 1) == "\n":
+        if code is 92 and S.text.charAt(S.pos + 1) is "\n":
             # backslash will consume the newline character that follows
             next()
             # backslash
@@ -735,7 +733,7 @@ def tokenizer($TEXT, filename):  # {{{
             S.newline_before = False
             return next_token()
 
-        if code == 92 or is_identifier_start(code):
+        if code is 92 or is_identifier_start(code):
             tok = read_word()
             if peek() in '\'"' and is_string_modifier(tok.value):
                 mods = tok.value.toLowerCase()

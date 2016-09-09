@@ -98,29 +98,29 @@ def OutputStream(options):
         sq = 0
         str_ = str_.replace(/[\\\b\f\n\r\t\x22\x27\u2028\u2029\0]/g, def(s):
             tmp_ = s
-            if tmp_ == "\\":
+            if tmp_ is "\\":
                 return "\\\\"
-            elif tmp_ == "\b":
+            elif tmp_ is "\b":
                 return "\\b"
-            elif tmp_ == "\f":
+            elif tmp_ is "\f":
                 return "\\f"
-            elif tmp_ == "\n":
+            elif tmp_ is "\n":
                 return "\\n"
-            elif tmp_ == "	":
+            elif tmp_ is "	":
                 return "\\t"
-            elif tmp_ == "\r":
+            elif tmp_ is "\r":
                 return "\\r"
-            elif tmp_ == "\u2028":
+            elif tmp_ is "\u2028":
                 return "\\u2028"
-            elif tmp_ == "\u2029":
+            elif tmp_ is "\u2029":
                 return "\\u2029"
-            elif tmp_ == '"':
+            elif tmp_ is '"':
                 dq += 1
                 return '"'
-            elif tmp_ == "'":
+            elif tmp_ is "'":
                 sq += 1
                 return "'"
-            elif tmp_ == "\0":
+            elif tmp_ is "\0":
                 return "\\0"
             return s
         )
@@ -197,8 +197,8 @@ def OutputStream(options):
 
         if might_need_space:
             prev = last_char()
-            if is_identifier_char(prev) and (is_identifier_char(ch) or ch == "\\")
-            or /^[\+\-\/]$/.test(ch) and ch == prev:
+            if is_identifier_char(prev) and (is_identifier_char(ch) or ch is "\\")
+            or /^[\+\-\/]$/.test(ch) and ch is prev:
                 OUTPUT += " "
                 current_col += 1
                 current_pos += 1
@@ -208,7 +208,7 @@ def OutputStream(options):
         a = str_.split(/\r?\n/)
         n = a.length - 1
         current_line += n
-        if n == 0:
+        if n is 0:
             current_col += a[n].length
         else:
             current_col = a[n].length
@@ -308,7 +308,7 @@ def OutputStream(options):
     add_mapping = (options.source_map ? def(token, name):
         try:
             if token:
-                options.source_map.add(token.file or "?", current_line, current_col, token.line, token.col, (not name and token.type == "name" ? token.value : name))
+                options.source_map.add(token.file or "?", current_line, current_col, token.line, token.col, (not name and token.type is "name" ? token.value : name))
         except as ex:
             AST_Node.warn("Couldn't figure out mapping for {file}:{line},{col} → {cline},{ccol} [{name}]", {
                 file: token.file,
@@ -386,7 +386,7 @@ def OutputStream(options):
             return False
         ,
         is_main: def():
-            return OUTPUT.length == 0
+            return OUTPUT.length is 0
         ,
         option: def(opt):
             return options[opt]
@@ -482,16 +482,16 @@ def OutputStream(options):
                     comments = comments.filter(def(comment):
                         return c.test(comment.value)
                     )
-                elif typeof c == "function":
+                elif typeof c is "function":
                     comments = comments.filter(def(comment):
                         return c(self, comment)
                     )
 
                 comments.forEach(def(c):
-                    if c.type == "comment:line":
+                    if c.type is "comment:line":
                         output.print("//" + c.value + "\n")
                         output.indent()
-                    elif c.type == "comment:multiline":
+                    elif c.type is "comment:multiline":
                         output.print("/*" + c.value + "*/")
                         if start.nlb:
                             output.print("\n")
@@ -549,7 +549,7 @@ def OutputStream(options):
             pp = PRECEDENCE[po]
             so = this.operator
             sp = PRECEDENCE[so]
-            if pp > sp or pp == sp and this is p.right and not (so == po and (so == "*" or so == "&&" or so == "||")):
+            if pp > sp or pp is sp and this is p.right and not (so is po and (so is "*" or so is "&&" or so is "||")):
                 return True
     )
     PARENS(AST_PropAccess, def(output):
@@ -632,7 +632,7 @@ def OutputStream(options):
             if not (isinstance(stmt, AST_EmptyStatement)) and not (isinstance(stmt, AST_Definitions)):
                 output.indent()
                 stmt.print(output)
-                if not (i == last and is_toplevel):
+                if not (i is last and is_toplevel):
                     output.newline()
         )
 
@@ -679,7 +679,7 @@ def OutputStream(options):
 
         # Create the module objects
         for module_ in imports:
-            if module_.module_id != '__main__':
+            if module_.module_id is not '__main__':
                 output.indent()
                 output.print('ՐՏ_modules["')
                 output.print(module_.module_id)
@@ -689,7 +689,7 @@ def OutputStream(options):
 
         # Output module code
         for module_ in imports:
-            if module_.module_id != '__main__':
+            if module_.module_id is not '__main__':
                 print_module(module_, output)
 
     def write_main_name(output):
@@ -756,7 +756,7 @@ def OutputStream(options):
             # rebind parent's methods and bind own methods
             # for now we'll make a naive assumption that a function
             # named __init__ will only occur inside a class
-            if output.option("auto_bind") and node.name and node.name.name == "__init__":
+            if output.option("auto_bind") and node.name and node.name.name is "__init__":
                 output.indent()
                 output.print("ՐՏ_rebindAll")
                 output.with_parens(def():
@@ -1009,7 +1009,7 @@ def OutputStream(options):
         # return true if this loop can be simplified into a basic for (i in j) loop
         if isinstance(self.object, AST_BaseCall)
         and isinstance(self.object.expression, AST_SymbolRef)
-        and self.object.expression.name == "dir" and self.object.args.length == 1:
+        and self.object.expression.name is "dir" and self.object.args.length is 1:
             return True
         return False
 
@@ -1017,13 +1017,13 @@ def OutputStream(options):
         # returns true if this loop can be simplified into a basic for(i=n;i<h;i++) loop
         if isinstance(self.object, AST_BaseCall)
         and isinstance(self.object.expression, AST_SymbolRef)
-        and self.object.expression.name == "range"
+        and self.object.expression.name is "range"
         and not (isinstance(self.init, AST_Array))
         and (
             self.object.args.length < 3 or (
                 isinstance(self.object.args[-1][0], AST_Number)
                 or isinstance(self.object.args[-1][0], AST_Unary)
-                    and self.object.args[-1][0].operator == "-"
+                    and self.object.args[-1][0].operator is "-"
                     and isinstance(self.object.args[-1][0].expression, AST_Number)
             )
         ):
@@ -1078,13 +1078,13 @@ def OutputStream(options):
             increment = None
             args = self.object.args
             tmp_ = args.length
-            if tmp_ == 1:
+            if tmp_ is 1:
                 start = 0
                 end = args[0]
-            elif tmp_ == 2:
+            elif tmp_ is 2:
                 start = args[0]
                 end = args[1]
-            elif tmp_ == 3:
+            elif tmp_ is 3:
                 start = args[0]
                 end = args[1]
                 increment = args[2]
@@ -1104,7 +1104,7 @@ def OutputStream(options):
                 output.semicolon()
                 output.space()
                 self.init.print(output)
-                if increment and (not (isinstance(increment, AST_Unary)) or increment.expression.value != "1"):
+                if increment and (not (isinstance(increment, AST_Unary)) or increment.expression.value is not "1"):
                     if isinstance(increment, AST_Unary):
                         output.print("-=")
                         increment.expression.print(output)
@@ -1750,7 +1750,7 @@ def OutputStream(options):
                 # need to take some precautions here:
                 #    https://github.com/mishoo/RapydScript2/issues/60
                 node.walk(new TreeWalker(def(node):
-                    if isinstance(node, AST_Binary) and node.operator == "in":
+                    if isinstance(node, AST_Binary) and node.operator is "in":
                         raise output
                 ))
                 node.print(output)
@@ -1981,7 +1981,7 @@ def OutputStream(options):
         self.expression.print(output)
         output.print("[")
         # parse negative constants into len-constant
-        if isinstance(self.property, AST_Unary) and self.property.operator == "-"
+        if isinstance(self.property, AST_Unary) and self.property.operator is "-"
         and isinstance(self.property.expression, AST_Number):
             # TODO: this might parse incorrectly if expression is a
             # function call that might not return the same result
@@ -2043,15 +2043,15 @@ def OutputStream(options):
 
         # handle strict equality gracefully
         normalize = def(op):
-            if op == '==': return '==='
-            elif op == '!=': return '!=='
+            if op is '==': return '==='
+            elif op is '!=': return '!=='
             return op
 
         if self.operator in function_ops:
             output.print(function_ops[self.operator])
             output.with_parens(def():
                 self.left.print(output)
-                if self.operator == "//":
+                if self.operator is "//":
                     output.space()
                     output.print('/')
                     output.space()
@@ -2101,69 +2101,71 @@ def OutputStream(options):
         # a fast implementation of deep equality
         # TODO: this does not handle comparators logic yet
 
-        if self.operator == '==':
-            # positive case, eliminate truthy immutable comparisons
-            self.left.print(output)
-            output.space()
-            output.print('===')
-            output.space()
-            self.right.print(output)
-            output.space()
-
-            # negative case, eliminate falsy immutable comparisons
-            output.print('||')
-            output.space()
-            output.print('typeof ')
-            self.left.print(output)
-            output.space()
-            output.print('===')
-            output.space()
-            output.print('"object"')
-            output.space()
-
-            # deep case
-            output.print('&&')
-            output.space()
-            output.print('eq')
-            output.with_parens(def():
+        output.with_parens(def():
+            if self.operator is '==':
+                # positive case, eliminate truthy immutable comparisons
                 self.left.print(output)
-                output.comma()
+                output.space()
+                output.print('===')
+                output.space()
                 self.right.print(output)
-            )
-        else:
-            # positive case, eliminate truthy immutable comparisons
-            self.left.print(output)
-            output.space()
-            output.print('!==')
-            output.space()
-            self.right.print(output)
-            output.space()
+                output.space()
 
-            # negative case, eliminate falsy immutable comparisons
-            output.print('&&')
-            output.space()
-            output.with_parens(def():
+                # negative case, eliminate falsy immutable comparisons
+                output.print('||')
+                output.space()
                 output.print('typeof ')
                 self.left.print(output)
                 output.space()
-                output.print('!==')
+                output.print('===')
                 output.space()
                 output.print('"object"')
                 output.space()
 
                 # deep case
-                output.print('||')
+                output.print('&&')
                 output.space()
-                output.print('!eq')
+                output.print('ՐՏ_eq')
                 output.with_parens(def():
                     self.left.print(output)
                     output.comma()
                     self.right.print(output)
                 )
-            )
+            else:
+                # negative case, eliminate truthy immutable comparisons
+                self.left.print(output)
+                output.space()
+                output.print('!==')
+                output.space()
+                self.right.print(output)
+                output.space()
+
+                # negative case, eliminate falsy immutable comparisons
+                output.print('&&')
+                output.space()
+                output.with_parens(def():
+                    output.print('typeof ')
+                    self.left.print(output)
+                    output.space()
+                    output.print('!==')
+                    output.space()
+                    output.print('"object"')
+                    output.space()
+
+                    # deep case
+                    output.print('||')
+                    output.space()
+                    output.print('!ՐՏ_eq')
+                    output.with_parens(def():
+                        self.left.print(output)
+                        output.comma()
+                        self.right.print(output)
+                    )
+                )
+        )
     )
     DEFPRINT(AST_Assign, def(self, output):
-        if self.operator == '//=':
+        if self.operator is '//=':
             output.assign(self.left)
             output.print('Math.floor')
             output.with_parens(def():
@@ -2247,7 +2249,7 @@ def OutputStream(options):
         #        if (output.option("quote_keys")) {
         if self.quoted:
             output.print_string(key + "")
-        elif (typeof key == "number" or not output.option("beautify") and +key + "" == key) and parseFloat(key) >= 0:
+        elif (typeof key is "number" or not output.option("beautify") and +key + "" is key) and parseFloat(key) >= 0:
             output.print(make_num(key))
         elif not is_identifier(key):
             output.print_string(key)
@@ -2350,7 +2352,7 @@ def OutputStream(options):
 
     # self should be AST_New, decide if we want to show parens or not.
     def no_constructor_parens(self, output):
-        return self.args.length == 0 and not output.option("beautify")
+        return self.args.length is 0 and not output.option("beautify")
 
     def best_of(a):
         best = a[0]

@@ -61,7 +61,7 @@ def characters(str_):
 
 def member(name, array):
     for i in range(array.length-1, -1, -1):
-        if array[i] == name:
+        if array[i] is name:
             return True
     return False
 
@@ -73,7 +73,7 @@ def find_if(func, array):
 def repeat_string(str_, i):
     if i <= 0:
         return ""
-    if i == 1:
+    if i is 1:
         return str_
     d = repeat_string(str_, i >> 1)
     d += d
@@ -242,7 +242,7 @@ def makePredicate(words):
     for i in range(len(words)):
         skip = False
         for j in range(len(cats)):
-            if cats[j][0].length == words[i].length:
+            if cats[j][0].length is words[i].length:
                 cats[j].push(words[i])
                 skip = True
                 break
@@ -251,7 +251,7 @@ def makePredicate(words):
 
     def compareTo(arr):
         nonlocal f
-        if arr.length == 1:
+        if arr.length is 1:
             return f += "return str === " + JSON.stringify(arr[0]) + ";"
 
         f += "switch(str){"

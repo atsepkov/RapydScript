@@ -1,4 +1,3 @@
-from danger_zone import equality
 
 # basic equality
 assert.ok(True == True)
@@ -30,6 +29,7 @@ a["two"] = [3, 4, 5]
 assert.ok(a == h)
 assert.ok([] == [])
 assert.ok({} == {})
+assert.ok(f == f[:])    # copy one level deep
 
 
 # basic inequality
@@ -58,3 +58,14 @@ assert.ok(a != g)
 assert.ok(a != h)
 a["two"] = [3, 4, 5]
 assert.notOk(a != h)
+
+
+# CLASSES
+class Copy:
+    def __init__(self, data):
+        self.data = data
+
+assert.ok(Copy(1) == Copy(1))
+assert.ok(Copy(2) != Copy(1))
+assert.ok(Copy(1) != {'data':1})
+assert.ok({'data':1} != Copy(1))
