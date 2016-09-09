@@ -195,13 +195,14 @@ The available options are:
 	-b, --bare         Omit scope-protection wrapper around generated code
 	-p, --prettify     Beautify output/specify output options.
 	-V, --version      Print version number and exit.
-	-t, --test         Run unit tests, making sure the compiler produces usable code
+	-t, --test         Run unit tests, making sure the compiler produces usable code, you can specify a file or test everything
+			--bench        Run performance tests, you can specify a file or test everything (note that these tests take a while to run)
 	-6, --es6          Build code for ES6, cleaner output with support for more features (EXPERIMENTAL)
 	-m, --omit-baselib Omit base library from generated code, make sure you're including baselib.js if you use this
 	-i, --auto-bind    Automatically bind methods to the class they belong to (more Pythonic, but could interfere with other JS libs)
 	-h, --help         Print usage and more information on each of these options
-		--self         Compile the compiler itself
-		--stats        Show compilation metrics in STDERR (time to parse, generate code, etc.)
+			--self         Compile the compiler itself
+			--stats        Show compilation metrics in STDERR (time to parse, generate code, etc.)
 	-l, --lint         Check file for errors and compilation problems
 
 The rest of the option remain from UglifyJS and have not been tested, some may work, but most will not, since the AST is different between RapydScript and UglifyJS. These option  will eventually be removed or modified to be relevant to RapydScript.
@@ -1216,6 +1217,15 @@ RapydScript will pick up any classes you declare yourself as well as native Java
 - `@external` decorator makes classes declared externally obvious to anyone looking at your code
 - class declaration that uses `@external` decorator can be exported into a reusable module
 - developers are much more likely to forget a single instance of `new` operator when declaring an object than to forget an import, the errors due to omitted `new` keyword are also likely to be more subtle and devious to debug
+
+#### Performance
+Performance emphasis is at the core of RapydScript. I don't want to feel like I'm a second-class citizen compared to native JavaScript developers and neither
+should other RapydScript users. For that reasons RapydScript rejected many Pythonic features that I myself would like to see in favor of performance. Some
+of these include operator overloading and better error catching. However, when performance hit is negligible and allows additional productivity to the
+developer, that's the kind of win-win RapydScript attempts to capture. For that reason, the compiler comes bundled with a mini benchmark suite. You can
+invoke it by using `--bench` command. Since it takes a while to run performance tests, I recommend you select a particular file (in `test/perf/`) to bench. 
+A few of these runs will give you a pretty good idea what kind of performance sacrifices you're making with different functions/operators. Feel free to
+throw your own tests into the same directory.
 
 
 Quirks
