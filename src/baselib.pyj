@@ -123,6 +123,7 @@
 ,
 "extends": def ՐՏ_extends(child, parent):
     child.prototype = Object.create(parent.prototype)
+    child.prototype.__base__ = parent     # since we don't support multiple inheritance, __base__ seemed more appropriate than __bases__ array of 1
     child.prototype.constructor = child
 ,
 "filter": def filter(oper, arr):

@@ -169,7 +169,7 @@ assert.equal(j, 6)
 def concat(a: String, b: String):
     return a + b
 
-def add(a: Number, b: Number) -> Number:
+def add(a: Number, b: Number = 13) -> Number:
     return a + b
 
 def boz(foo: "foo is often used in programming", bar: "so is bar") -> "boz, because baz was already taken":

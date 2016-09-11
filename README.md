@@ -56,7 +56,7 @@ Here are just a few examples of cleaner RapydScript syntax:
 | RapydScript              | JavaScript                                                                     |
 | ------------------------ | ------------------------------------------------------------------------------ |
 | `foo = 1`                | `var foo = 1;`                                                                 |
-| `thing in stuff`         | `stuff.indexOf(element) != -1`                                                 |
+| `thing in stuff`         | `stuff.indexOf(thing) != -1`                                                   |
 | `a < b < c`              | `a < b && b < c`                                                               |
 | `def(a, b='foo'):`       | `function(a, b) { if (typeof b === 'undefined') b = 'foo'; }`                  |
 | `array[-1]`              | `array[array.length-1]`                                                        |
@@ -203,13 +203,13 @@ The available options are:
 	-p, --prettify     Beautify output/specify output options.
 	-V, --version      Print version number and exit.
 	-t, --test         Run unit tests, making sure the compiler produces usable code, you can specify a file or test everything
-			--bench        Run performance tests, you can specify a file or test everything (note that these tests take a while to run)
+		--bench        Run performance tests, you can specify a file or test everything (note that these tests take a while to run)
 	-6, --es6          Build code for ES6, cleaner output with support for more features (EXPERIMENTAL)
 	-m, --omit-baselib Omit base library from generated code, make sure you're including baselib.js if you use this
 	-i, --auto-bind    Automatically bind methods to the class they belong to (more Pythonic, but could interfere with other JS libs)
 	-h, --help         Print usage and more information on each of these options
-			--self         Compile the compiler itself
-			--stats        Show compilation metrics in STDERR (time to parse, generate code, etc.)
+		--self         Compile the compiler itself
+		--stats        Show compilation metrics in STDERR (time to parse, generate code, etc.)
 	-l, --lint         Check file for errors and compilation problems
 
 The rest of the option remain from UglifyJS and have not been tested, some may work, but most will not, since the AST is different between RapydScript and UglifyJS. These option  will eventually be removed or modified to be relevant to RapydScript.
