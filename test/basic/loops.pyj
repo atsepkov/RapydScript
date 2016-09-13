@@ -40,6 +40,21 @@ precise_inclusive = [1 to 3.01]     # this will stop short of 3.01 because we on
 precise_exclusive = [1 til 3.01]    # this will include 3 because 3 is less than 3.01
 assert.deepEqual(precise_inclusive, precise_exclusive)
 
+# reverse direction
+backwards_inclusive = [10 to 3]
+backwards_exclusive = [10 til 2]
+assert.deepEqual(backwards_inclusive, backwards_exclusive)
+
+# long variants that don't get optimized
+long_inclusive = [3 to 80]
+long_exclusive = [3 til 81]
+assert.deepEqual(long_inclusive, long_exclusive)
+assert.deepEqual(long_inclusive, range(3, 81))
+long_backwards_inclusive = [100 to 3]
+long_backwards_exclusive = [100 til 2]
+assert.deepEqual(long_backwards_inclusive, long_backwards_exclusive)
+
+
 # for-in
 hash = {
     "foo": 1,

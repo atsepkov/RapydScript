@@ -174,6 +174,7 @@ UNARY_PREFIX = makePredicate([
     "~",
     "-",
     "+",
+    "*",    # eventually I'll rename this to ...
     "@"
 ])
 
@@ -244,11 +245,13 @@ def parse($TEXT, options):
             type: None,         # scope type
             vars: {},           # variables in this scope
             nonlocal: {},       # variables shared with outer scope
+            functions: {},      # list of functions declared in this scope and their signatures
             classes: {}         # classes visible from this scope
         } ],
         labels: [],
         decorators: [],         # decorators we've most-recently seen, these get reset as soon as we see function body
-        parsing_decorator: False    # whether we're currently parsing a decorator
+        in_seq: False,          # whether we're currently parsing a sequence
+        in_decorator: False     # whether we're currently parsing a decorator
     }
 
     if options.classes:
@@ -630,10 +633,19 @@ def parse($TEXT, options):
 
         # mark iterator variable as local
         if isinstance(init, AST_Array):
-            for element in init.elements:
-                mark_local_assignment(element)
+            for i, element in enumerate(init.elements):
+                value = None
+                if isinstance(obj, AST_Call) and isinstance(obj.expression, AST_SymbolRef) and obj.expression.name is 'enumerate':
+                    # a naive assumption that user won't overwrite inbuilt functions
+                    if i == 0: value = "Number"
+                mark_local_assignment(element, value)
         else:
-            mark_local_assignment(init)
+            # infer object type for the iteration sequence
+            value = None
+            if isinstance(obj, AST_Call) and isinstance(obj.expression, AST_SymbolRef) and obj.expression.name is 'range':
+                # a naive assumption that user won't overwrite inbuilt functions
+                value = "Number"
+            mark_local_assignment(init, value)
 
         BASELIB["iterable"] = True
         if list_comp:
@@ -856,6 +868,7 @@ def parse($TEXT, options):
                     type: "class",
                     name: name.name,
                     nonlocal: {},
+                    functions: {},
                     vars: {},
                     classes: {}
                 })
@@ -941,7 +954,7 @@ def parse($TEXT, options):
         if not ctor:
             ctor = in_class ? AST_Method : AST_Function
 
-        return new ctor({
+        definition = new ctor({
             name: name,
             argnames: (def(a):
                 defaults = {}
@@ -1044,7 +1057,8 @@ def parse($TEXT, options):
                 if is_("punc", "->"):
                     next()
                     nonlocal return_annotation
-                    return_annotation = maybe_conditional()
+                    # return_annotation = expression(True)
+                    return_annotation = expression(True)
                 a.defaults = defaults
                 return a
             )([]),
@@ -1066,10 +1080,11 @@ def parse($TEXT, options):
                 S.in_scope.push({
                     type: "function",
                     name: name ? name.name : None,
+                    return: return_annotation,
                     nonlocal: {},
-                    args: {},
                     vars: { "ՐՏ_Temp": ["?"] }, # a temporary workaround to avoid strict mode from going berserk, we'll assume there is a temp var in each scope
                     args: function_args,
+                    functions: {},
                     classes: {}
                 })
                 S.in_directives = True
@@ -1081,6 +1096,11 @@ def parse($TEXT, options):
                 # these transform variables that are used by other keys, hence the somewhat ugly use of nonlocal
                 nonlocal generator, localvars
                 generator = S.in_scope[-1].generator
+
+                # FIXME: debug logic
+                if generator:
+                    print(S.in_scope[-1])
+
                 localvars = [new_symbol(AST_SymbolVar, variable) for variable in Object.keys(S.in_scope[-1].vars) if variable not in S.in_scope[-1].nonlocal]
 
                 # state "pop"
@@ -1094,6 +1114,9 @@ def parse($TEXT, options):
             localvars: localvars,
             static: in_class and staticmethod
         })
+        if name:
+            S.in_scope[-1].functions[name.name] = definition.resolveType(S.in_scope)
+        return definition
 
     def if_():
         cond = expression(True)
@@ -1320,6 +1343,8 @@ def parse($TEXT, options):
 
         if not token:
             next()
+
+        ret.resolveType(S.in_scope) # provides more context for output later
         return ret
 
     def expr_atom(allow_calls):
@@ -1471,35 +1496,50 @@ def parse($TEXT, options):
                 BASELIB['range'] = True
                 next()
                 expr.push(expression(False))
-                ret = subscripts(new AST_Call({
+#                ret = subscripts(new AST_Call({
+#                    start: S.token,
+#                    expression: new AST_SymbolRef({
+#                        name: "range"
+#                    }),
+#                    args: expr,
+#                    end: prev()
+#                }), True)
+                ret = new AST_Range({
                     start: S.token,
-                    expression: new AST_SymbolRef({
-                        name: "range"
-                    }),
-                    args: expr,
+                    left: expr[0],
+                    operator: "til",
+                    right: expr[1],
                     end: prev()
-                }), True)
+                })
                 expect("]")
                 return ret
             elif is_("operator", "to"):
                 # now add a tiny number to make sure we include the upper limit
                 BASELIB['range'] = True
                 next()
-                expr.push(new AST_Binary({
-                    left: expression(False),
-                    operator: "+",
-                    right: new AST_Number({
-                        value: 0.000001
-                    })
-                }))
-                ret = subscripts(new AST_Call({
+                expr.push(expression(False))
+#                expr.push(new AST_Binary({
+#                    left: expression(False),
+#                    operator: "+",
+#                    right: new AST_Number({
+#                        value: 0.000001
+#                    })
+#                }))
+#                ret = subscripts(new AST_Call({
+#                    start: S.token,
+#                    expression: new AST_SymbolRef({
+#                        name: "range"
+#                    }),
+#                    args: expr,
+#                    end: prev()
+#                }), True)
+                ret = new AST_Range({
                     start: S.token,
-                    expression: new AST_SymbolRef({
-                        name: "range"
-                    }),
-                    args: expr,
+                    left: expr[0],
+                    operator: "to",
+                    right: expr[1],
                     end: prev()
-                }), True)
+                })
                 expect("]")
                 return ret
             elif not is_("punc", "]"):
@@ -1524,7 +1564,17 @@ def parse($TEXT, options):
 
             start = S.token
             type = start.type
-            if first and peek().value is not ':':
+            computed = False
+            saw_starargs = False
+            if is_("operator", "*"):
+                # spread operator
+                saw_starargs = True
+                if not options.es6:
+                    croak("Spread operator in object literals is only allowed in ES6 mode")
+                value = maybe_unary(True)
+                value.dump()
+                a.push(value)
+            elif first and peek().value is not ':':
                 # possibly dict comprehension
                 maybe_dict_comprehension = True
                 key = expression(False)
@@ -1533,47 +1583,79 @@ def parse($TEXT, options):
                 ctx = S.input.context()
                 orig = ctx.expect_object_literal_key
                 ctx.expect_object_literal_key = True
-                key = as_property_name()
+                if is_("punc", "("):
+                    # computed key
+                    if not options.es6:
+                        croak("Computed properties are only allowed in ES6 mode")
+                    expect('(')
+                    key = expression(False)
+                    expect(')')
+                    computed = True
+                else:
+                    # regular key
+                    key_ = as_property_name()
+                    name = key_.value
+                    if key_.type is "num":
+                        key = new AST_Number({
+                            start: start,
+                            value: name,
+                            end: prev()
+                        })
+                    elif key_.type is "name" or key_.type is "keyword":
+                        if name in ["True", "False"]:
+                            key = new AST_Boolean({
+                                start: start,
+                                value: name,
+                                end: prev()
+                            })
+                        else:
+                            key = new AST_Identifier({
+                                start: start,
+                                value: name,
+                                end: prev()
+                            })
+                    else:
+                        key = new AST_String({
+                            start: start,
+                            value: name,
+                            end: prev()
+                        })
                 ctx.expect_object_literal_key = orig
-                name = key.value
-                quoted = key.type is "string"
 
-            if type is "name" and not is_("punc", ":"):
-                if name is "get":
-                    a.push(new AST_ObjectGetter({
-                        start: start,
-                        key: name,
-                        quoted: quoted,
-                        value: function_(False, AST_Accessor),
-                        end: prev()
-                    }))
-                    continue
+                if type is "name" and not is_("punc", ":"):
+                    if name is "get":
+                        a.push(new AST_ObjectGetter({
+                            start: start,
+                            key: key,
+                            value: function_(False, AST_Accessor),
+                            end: prev()
+                        }))
+                        continue
 
-                if name is "set":
-                    a.push(new AST_ObjectSetter({
-                        start: start,
-                        key: name,
-                        quoted: quoted,
-                        value: function_(False, AST_Accessor),
-                        end: prev()
-                    }))
-                    continue
+                    if name is "set":
+                        a.push(new AST_ObjectSetter({
+                            start: start,
+                            key: key,
+                            value: function_(False, AST_Accessor),
+                            end: prev()
+                        }))
+                        continue
 
-            expect(":")
+            if not saw_starargs:
+                expect(":")
 
-            a.push(new AST_ObjectKeyVal({
-                start: start,
-                key: name,
-                quoted: quoted,
-                value: expression(False),
-                end: prev()
-            }))
-
-            if a.length is 1 and is_('keyword', 'for'):
-                return read_comprehension(new AST_DictComprehension({
-                    statement: maybe_dict_comprehension ? key : as_atom_node(a[0].start),
-                    value_statement: a[0].value
+                a.push(new AST_ObjectKeyVal({
+                    start: start,
+                    key: key,
+                    value: expression(False),
+                    end: prev()
                 }))
+
+                if a.length is 1 and is_('keyword', 'for'):
+                    return read_comprehension(new AST_DictComprehension({
+                        statement: maybe_dict_comprehension ? key : as_atom_node(a[0].start),
+                        value_statement: a[0].value
+                    }))
 
             first = False
 
@@ -1619,7 +1701,7 @@ def parse($TEXT, options):
 
     # for generating/inserting a new symbol
     def new_symbol(type, name):
-        sym = new ((name is "this" ? AST_This : type))({
+        sym = new (name is "this" ? AST_This : type)({
             name: (String)(name),
             start: None,
             end: None
@@ -1632,16 +1714,21 @@ def parse($TEXT, options):
         else:
             return False
 
-    def mark_local_assignment(element):
+    def mark_local_assignment(element, value):
+        if value:
+            computedType = type(value) is "string" ? value : value.resolveType(S.in_scope)
+        else:
+            computedType = "?"
+
         name = typeof element is "string" ? element : element.name
         if name:
             # not enough information to infer type yet
             # so all types are ? for now, in the future this function will infer type from context
             # that may need some refactoring of car/cdr logic
             if name in S.in_scope[-1].vars:
-                S.in_scope[-1].vars[name].push("?")
+                S.in_scope[-1].vars[name].push(computedType)
             else:
-                S.in_scope[-1].vars[name] = ["?"]
+                S.in_scope[-1].vars[name] = [computedType]
 
     def subscripts(expr, allow_calls):
         start = expr.start
@@ -1831,12 +1918,12 @@ def parse($TEXT, options):
         start = S.token
 
         if is_('operator', '@'):
-            if S.parsing_decorator:
+            if S.in_decorator:
                 croak('Nested decorators are not allowed')
             next()
-            S.parsing_decorator = True
+            S.in_decorator = True
             expr = expression()
-            S.parsing_decorator = False
+            S.in_decorator = False
             S.decorators.push(expr)
             return new AST_EmptyStatement({
                 stype: '@',
@@ -1950,18 +2037,24 @@ def parse($TEXT, options):
         val = S.token.value
         if is_("operator") and ASSIGNMENT(val):
             if is_assignable(left):
-                # regular assignment will be picked up here
-                mark_local_assignment(left)
-                # if left.name:   # this is a bit of a hack to check that the object is variable-like
-                #     # if val is not "=" and left.name not in S.in_scope[-1].vars and left.name not in S.in_scope[-1].nonlocal:
-                #     #     croak("Attempting to increment/modify uninitialized variable '" + left.name + "', this can also occur if you're trying to shadow without initializing the variable in local scope.")
-                #     S.in_scope[-1].vars[left.name] = ["?"]  # TODO: for now we don't care about the type, eventually we'll check it
+                if isinstance(left, AST_SymbolRef)
+                and val is not "="
+                and left.name not in S.in_scope[-1].vars
+                and (not S.in_scope[-1].args or left.name not in S.in_scope[-1].args)
+                and left.name not in S.in_scope[-1].nonlocal:
+                     croak("Attempting to increment/modify uninitialized variable '" +
+                         left.name + "', this can also occur if you're trying to shadow without initializing the variable in local scope.")
                 next()
+                right = maybe_assign(no_in)
+                if not S.in_seq:
+                    # regular assignment of type a = ... will be picked up here
+                    # other assignments such as a, b = ..., [a, b] = ... will be picked up in sequence formation logic
+                    mark_local_assignment(left, right)
                 return new AST_Assign({
                     start: start,
                     left: left,
                     operator: val,
-                    right: maybe_assign(no_in),
+                    right: right,
                     end: prev()
                 })
             croak("Invalid assignment")
@@ -1974,8 +2067,8 @@ def parse($TEXT, options):
         expr = maybe_assign(no_in)
         if commas:
             left = [ expr ]
-            right = []
             while is_("punc", ",") and not peek().nlb:
+                S.in_seq = True
                 next()
                 if isinstance(expr, AST_Assign):
                     # AST_Seq representation is ugly to decode for
@@ -1996,22 +2089,24 @@ def parse($TEXT, options):
                         })
 
                     # this is assignment of type [a, b] = ... and (a, b) = ..., scan for local vars
-                    for element in leftAst.elements:
-                        mark_local_assignment(element)
+                    right = seq_to_array(new AST_Seq({
+                        car: expr.right,
+                        cdr: expression(True, no_in)
+                    }))
+                    for index, element in enumerate(leftAst.elements):
+                        mark_local_assignment(element, right.elements[index])
 
                     return new AST_Assign({
                         start: start,
                         left: leftAst,
                         operator: expr.operator,
-                        right: new AST_Seq({
-                            car: expr.right,
-                            cdr: expression(True, no_in)
-                        }),
+                        right: right,
                         end: peek()
                     })
 
                 expr = maybe_assign(no_in)
                 left.push(expr)
+            S.in_seq = False
 
             # transform assignments to (a, b, ...) into [a, b, ...]
             if isinstance(expr, AST_Assign) and isinstance(expr.left, AST_Seq):
@@ -2020,8 +2115,10 @@ def parse($TEXT, options):
             # if last one was an assignment, fix it
             if left.length > 1 and isinstance(left[-1], AST_Assign):
                 left[-1] = left[-1].left
-                for element in left:
-                    mark_local_assignment(element)
+
+                for index, element in enumerate(left):
+                    mark_local_assignment(element, isinstance(expr.right, AST_Array) ? expr.right.elements[index] : None)
+
                 return new AST_Assign({
                     start: start,
                     left: new AST_Array({
@@ -2033,17 +2130,28 @@ def parse($TEXT, options):
                 })
 
             #recursive sequence formation
-            return (def build_seq(a):
-                if a.length is 1:
-                    return a[0]
+            seq = (def build_seq(a):
+                first = a.shift()
+
+                # this will pick up array to array assignment
+                if isinstance(first, AST_Assign):
+                    if isinstance(first.left, AST_Array):
+                        for index, element in enumerate(first.left.elements):
+                            mark_local_assignment(element, isinstance(first.right, AST_Array) ? first.right.elements[index] : None)
+
+                if not a.length:
+                    return first
 
                 return new AST_Seq({
                     start: start,
-                    car: a.shift(),
+                    car: first,
                     cdr: build_seq(a),
                     end: peek()
                 })
             )(left)
+            # seq.dump(3)
+            # print('')
+            return seq
 
         return expr
 

@@ -1,0 +1,38 @@
+# Performance tests for various native functions. Unlike other modules in
+# this directory these tests are not representative of RapydScript itself,
+# but they're useful to understand when writing new modules or baselib
+# functionality for RapydScript. When possible, replace the slower logic
+# with more performant equivalents. Keep in mind that performance may vary
+# somewhat depending on platform-specific implementation, I would ignore any
+# differences smaller than 20% for that reason.
+# Author: Alexander Tsepkov
+
+obj = None
+
+bench.add('obj = {}', def():
+    JS('obj = {}')
+)
+bench.add('obj = new Object', def():
+    JS('obj = new Object')
+)
+bench.add('obj = Object.create(Object.prototype)', def():
+    JS('obj = Object.create(Object.prototype)')
+)
+bench.add('obj = []', def():
+    JS('obj = []')
+)
+bench.add('obj = new Array', def():
+    JS('obj = new Array')
+)
+bench.add('obj = 1', def():
+    JS('obj = 1')
+)
+bench.add('obj = new Number(1)', def():
+    JS('obj = new Number(1)')
+)
+bench.add('obj = "string"', def():
+    JS('obj = "string"')
+)
+bench.add('obj = new String("string")', def():
+    JS('obj = new String("string")')
+)

@@ -53,3 +53,6 @@ bench.add('typeof a === "undefined"', def():
 bench.add('a === undefined', def():
     JS('arr === undefined')
 )
+bench.add('a === void 0', def():
+    JS('arr === void 0')
+)

@@ -84,10 +84,19 @@ def DEFNODE(type, props, methods, base):
     if type:
         ctor.prototype.TYPE = ctor.TYPE = type
 
+    def memoized(f):
+        return def(x):
+            if not this.computedType:
+                this.computedType = f.call(this, x)
+            return this.computedType
+
     if methods:
         for i in dir(methods):
             if methods.hasOwnProperty(i):
-                if /^\$/.test(i):
+                if i is 'resolveType':
+                    # poor man's decorator until I get rid of this entire function
+                    ctor.prototype[i] = memoized(methods[i])
+                elif /^\$/.test(i):
                     ctor[i.substr(1)] = methods[i]
                 else:
                     ctor.prototype[i] = methods[i]
@@ -115,6 +124,15 @@ AST_Node = DEFNODE("Node", "start end", {
         return this._walk(visitor)
     ,
     _dump: def(depth, omit, offset, include_name, compact):
+        """
+        Dump node structure, used for debugging:
+
+            depth: how many nodes below to dump
+            omit: properties to omit
+            offset: padding offset to use
+            include_name: whether to output the name of the node
+            compact: use compact representation of the node
+        """
 
         out = def(string):
             pad = Array(offset + 1).join('  ')
@@ -141,7 +159,7 @@ AST_Node = DEFNODE("Node", "start end", {
                     out(' ]')
                 else:
                     if not compact: out(' ' + colored_key + '[]')
-            elif value:
+            elif value not in [undefined, None]:
                 if value.TYPE:
                     if value.TYPE is 'Token':
                         # tokens identify the lexical trigger for this node
@@ -176,8 +194,17 @@ AST_Node = DEFNODE("Node", "start end", {
 
     ,
     # a more user-friendly way to dump the AST tree than console.log
-    dump: def(depth=2, omit=[], compact=False):
+    dump: def(depth=2, omit=['start', 'end'], compact=True):
         return this._dump(depth, omit, 0, True, compact)
+    ,
+    computedType: None,
+    resolveType: def(heap):
+        """
+        Function to resolve the final object type of the statement, if possible, override this on
+        per-node basis
+        """
+        return "?"
+
 }, None)
 AST_Node.warn_function = None
 AST_Node.warn = def(txt, props):
@@ -186,7 +213,7 @@ AST_Node.warn = def(txt, props):
 
 # -----[ statements ]-----
 AST_Statement = DEFNODE("Statement", None, {
-    $documentation: "Base class of all statements"
+    $documentation: "Base class of all statements",
 })
 
 AST_Debugger = DEFNODE("Debugger", None, {
@@ -537,7 +564,89 @@ AST_Accessor = DEFNODE("Accessor", None, {
 }, AST_Lambda)
 
 AST_Function = DEFNODE("Function", None, {
-    $documentation: "A function expression"
+    $documentation: "A function expression",
+    resolveType: def(heap):
+
+        # helper method for detecting if this is a type annotation, and returning appropriate type
+        parse = def(variable):
+            wrap = {
+                "array": def(value): return "[" + value + "]";,
+                "dict": def(value): return "{String:" + value + "}";,
+                "base": def(value): return value
+            }
+            wrapper = "base"
+            if isinstance(variable, AST_Array):
+                # format: [Item]
+                if variable.elements.length is not 1:
+                    # multiple items mentioned in array, not a case we can handle yet
+                    return
+                wrapper = "array"
+                element = variable.elements[0]
+            elif isinstance(variable, AST_Call) and isinstance(variable.expression, AST_SymbolRef) and variable.expression.name is 'Array':
+                # format: Array(Item)
+                # alias for [Item]
+                if variable.args.length is not 1:
+                    # multiple items mentioned in array, not a case we can handle yet
+                    return
+                wrapper = "array"
+                element = variable.args[0]
+            elif isinstance(variable, AST_Object):
+                # format: {Item1:Item2}
+                if variable.properties.length is not 1:
+                    # multiple items mentioned in hash, not a case we can handle yet
+                    return
+                wrapper = "dict"
+                # key is always a string, ignore it
+                element = variable.properties[0].value
+            elif isinstance(variable, AST_Call) and isinstance(variable.expression, AST_SymbolRef) and variable.expression.name in ['Object', 'Dictionary']:
+                # format: Dictionary(Item2) or Dictionary(String,Item2), in place of Dictionary you can also use Object keyword
+                # both formats are accepted as a convenience feature for developers
+                # alias for {Item1:Item2}
+                if 1 <= variable.args.length <= 2:
+                    element = variable.args[-1]
+                    wrapper = "dict"
+                else:
+                    return
+            else:
+                # format: Item
+                element = variable
+
+            if isinstance(element, AST_SymbolRef) and element.name in NATIVE_CLASSES:
+                # wrap element in dict/array if needed
+                return wrap[wrapper](element.name)
+            elif isinstance(element, AST_Array) or isinstance(element, AST_Object) or isinstance(element, AST_Call):
+                # potentially nested array/dict (i.e. array of dicts, array of arrays, dict of arrays, etc.)
+                result = parse(element)
+                if result: return wrap[wrapper](result)
+
+        annotated = True
+        args = []
+        for arg in this.argnames:
+            if arg.annotation:
+                computedType = parse(arg.annotation)
+                if computedType:
+                    args.push(computedType)
+                else:
+                    annotated = False
+                    break
+            else:
+                annotated = False
+                break
+
+        if this.return_annotation:
+            result = parse(this.return_annotation)
+            if not result:
+                # it's ok not to have a return annotation, but not ok to have one that doesn't parse
+                annotated = False
+
+        signature = "Function"
+
+        # we naively assume that argument annotations on function mean that the function is fully annotated, even if return is missing
+        if annotated:
+            signature += "(" + args.join(',') + ")"
+            if result: signature += " -> " + result
+
+        return signature
 }, AST_Lambda)
 
 AST_Class = DEFNODE("Class", "init name parent static external bound decorators module_id statements", {
@@ -789,7 +898,67 @@ AST_Call = DEFNODE("Call", "expression", {
                 arg._walk(visitor)
             )
         )
-
+    ,
+    resolveType: def(heap):
+        if isinstance(this.expression, AST_SymbolRef):
+            # this is where we get a bit devious, we use scope to infer the return type, if possible
+            for scope in reversed(heap):
+                if this.expression.name in scope.vars and '->' in scope.vars[this.expression.name][-1]:
+                    # local var declarations
+                    return scope.vars[this.expression.name][-1].split('->')[1].trim()
+                elif this.expression.name in scope.functions and '->' in scope.functions[this.expression.name]:
+                    # local function declarations
+                    return scope.functions[this.expression.name].split('->')[1].trim()
+                elif scope.type is "function" and this.expression.name is scope.name and scope.return:
+                    # recursion, need to check return_annotation
+                    # TODO: refactor this to minimize duplication
+                    # helper method for detecting if this is a type annotation, and returning appropriate type
+                    parse = def(variable):
+                        wrap = {
+                            "array": def(value): return "[" + value + "]";,
+                            "dict": def(value): return "{String:" + value + "}";,
+                            "base": def(value): return value
+                        }
+                        wrapper = "base"
+                        if isinstance(variable, AST_Array):
+                            # format: [Item]
+                            if variable.elements.length is not 1:
+                                # multiple items mentioned in array, not a case we can handle yet
+                                return
+                            wrapper = "array"
+                            element = variable.elements[0]
+                        elif isinstance(variable, AST_Call) and isinstance(variable.expression, AST_SymbolRef) and variable.expression.name is 'Array':
+                            # format: Array(Item)
+                            # alias for [Item]
+                            if variable.args.length is not 1:
+                                # multiple items mentioned in array, not a case we can handle yet
+                                return
+                            wrapper = "array"
+                            element = variable.args[0]
+                        elif isinstance(variable, AST_Object):
+                            # format: {Item1:Item2}
+                            if variable.properties.length is not 1:
+                                # multiple items mentioned in hash, not a case we can handle yet
+                                return
+                            wrapper = "dict"
+                            # key is always a string, ignore it
+                            element = variable.properties[0].value
+                        elif isinstance(variable, AST_Call) and isinstance(variable.expression, AST_SymbolRef) and variable.expression.name in ['Object', 'Dictionary']:
+                            # format: Dictionary(Item2) or Dictionary(String,Item2), in place of Dictionary you can also use Object keyword
+                            # both formats are accepted as a convenience feature for developers
+                            # alias for {Item1:Item2}
+                            if 1 <= variable.args.length <= 2:
+                                element = variable.args[-1]
+                                wrapper = "dict"
+                            else:
+                                return
+                        else:
+                            # format: Item
+                            element = variable
+                    result = parse(scope.return)
+                    if result: return result
+                # TODO: there is still a large set of functions we'll miss, address this later
+        return "?"
 }, AST_BaseCall)
 
 AST_ClassCall = DEFNODE("ClassCall", "class method static", {
@@ -807,7 +976,6 @@ AST_ClassCall = DEFNODE("ClassCall", "class method static", {
                 arg._walk(visitor)
             )
         )
-
 }, AST_BaseCall)
 
 AST_New = DEFNODE("New", None, {
@@ -877,7 +1045,7 @@ AST_PropAccess = DEFNODE("PropAccess", "expression property", {
     $documentation: 'Base class for property access expressions, i.e. `a.foo` or `a["foo"]`',
     $propdoc: {
         expression: "[AST_Node] the “container” expression",
-        property: "[AST_Node|string] the property to access.  For AST_Dot this is always a plain string, while for AST_Sub it's an arbitrary AST_Node"
+        property: "[AST_Node|string] the property to access. For AST_Dot this is always a plain string, while for AST_Sub it's an arbitrary AST_Node"
     }
 })
 
@@ -926,6 +1094,11 @@ AST_Unary = DEFNODE("Unary", "operator expression", {
         return visitor._visit(node, def():
             node.expression._walk(visitor)
         )
+    ,
+    resolveType: def(heap):
+        if this.operator is "!": return "Boolean"
+        if this.operator in ["-", "+"] and this.expression.resolveType(heap) is "Number": return "Number"
+        return "?"
 })
 
 AST_UnaryPrefix = DEFNODE("UnaryPrefix", None, {
@@ -949,10 +1122,29 @@ AST_Binary = DEFNODE("Binary", "left operator right", {
             node.left._walk(visitor)
             node.right._walk(visitor)
         )
+    ,
+    resolveType: def(heap):
+        if not (this.left and this.right):
+            # this.dump()
+            return "?"
+        left = this.left.resolveType(heap)
+        right = this.left.resolveType(heap)
+        if left is "Number" and right == "Number": return "Number"
+        if left is "Boolean" and right == "Boolean" or this.operator in ['===', '!==', '>', '>=', '<', '<=']: return "Boolean" # technically real binary ops produce numbers here
+        if left is "String" and this.operator is "+":
+            # FIXME: for now allow this operation, in the future we will complain if types don't match
+            return "String"
+        return "?"
 })
 
+AST_Range = DEFNODE("Range", None, {
+    $documentation: "Range node (to/til)",
+    resolveType: def(heap): return "[Number]"
+}, AST_Binary)
+
 AST_DeepEquality = DEFNODE("DeepEquality", None, {
-    $documentation: "Pythonic deep equality operator"
+    $documentation: "Pythonic deep equality operator",
+    resolveType: def(heap): return "Boolean"
 }, AST_Binary)
 
 AST_Conditional = DEFNODE("Conditional", "condition consequent alternative", {
@@ -969,10 +1161,20 @@ AST_Conditional = DEFNODE("Conditional", "condition consequent alternative", {
             node.consequent._walk(visitor)
             node.alternative._walk(visitor)
         )
+    ,
+    resolveType: def(heap):
+        computedType = this.consequent.resolveType(heap)
+        return computedType is this.alternative.resolveType(heap) ? computedType : "?"
 })
 
 AST_Assign = DEFNODE("Assign", None, {
     $documentation: "An assignment expression — `a = b + 5`"
+    ,
+    resolveType: def(heap):
+        # for chained assignments
+        if this.operator is "=":
+            return this.right.resolveType(heap)
+        return "?"
 }, AST_Binary)
 
 # -----[ LITERALS ]-----
@@ -988,6 +1190,17 @@ AST_Array = DEFNODE("Array", "elements", {
                 el._walk(visitor)
             )
         )
+    ,
+    resolveType: def(heap):
+        # attempt to extract a consistent type within array
+        if not this.elements.length: return "[?]"
+        expected = this.elements[0].resolveType(heap)
+        for element in this.elements[1:]:
+            current = element.resolveType(heap)
+            if current is not expected:
+                if expected.indexOf("Function") is 0 and current.indexOf("Function") is 0: return "[Function]" # only the signatures don't match
+                return "[?]"
+        return "[" + expected + "]"
 })
 
 AST_TupleUnpack = DEFNODE("TupleUnpack", "elements right", {
@@ -1018,18 +1231,47 @@ AST_Object = DEFNODE("Object", "properties", {
                 prop._walk(visitor)
             )
         )
+    ,
+    resolveType: def(heap):
+        # attempt to extract a consistent type within hashmap
+        # for now we'll assume the key is always a string, because it can't yet be anything else
+        if not this.properties.length: return "{String:?}"
+        start = 0
+        spread = None
+        while isinstance(this.properties[start], AST_UnaryPrefix):
+            spread = this.properties[start].expression.resolveType(heap)
+            if "?" in spread: return "{String:?}"
+            start += 1
+
+        expected = this.properties[start].value.resolveType(heap)
+        for element in this.properties[start+1:]:
+            if isinstance(element, AST_UnaryPrefix):
+                if spread:
+                    if spread is not element.expression.resolveType(heap): return "{String:?}"
+                else:
+                    spread = element.expression.resolveType(heap)
+            else:
+                current = element.value.resolveType(heap)
+                if current is not expected:
+                    if expected.indexOf("Function") is 0 and current.indexOf("Function") is 0: return "{String:Function}" # only the signatures don't match
+                    return "{String:?}"
+        result = "{String:" + expected + "}"
+        if spread:
+            if spread is result: return result
+            else: return "{String:?}"
+        return result
 })
 
-AST_ObjectProperty = DEFNODE("ObjectProperty", "key value quoted", {
+AST_ObjectProperty = DEFNODE("ObjectProperty", "key value", {
     $documentation: "Base class for literal object properties",
     $propdoc: {
-        key: "[string] the property name; it's always a plain string in our AST, no matter if it was a string, number or identifier in original code",
-        value: "[AST_Node] property value.  For setters and getters this is an AST_Function.",
-        quoted: "[true/false] keeps track whether the property was quoted in original code."
+        key: "[AST_Node] the property name or expression for computed key ",
+        value: "[AST_Node] property value. For setters and getters this is an AST_Function.",
     },
     _walk: def(visitor):
         node = this
         return visitor._visit(node, def():
+            node.key._walk(visitor)
             node.value._walk(visitor)
         )
 })
@@ -1115,7 +1357,15 @@ AST_SymbolRef = DEFNODE("SymbolRef", "parens", {
     $documentation: "Reference to some symbol (not definition/declaration)",
     $propdoc: {
         parens: "[boolean/S] if true, this variable is wrapped in parentheses"
-    }
+    },
+    resolveType: def(heap):
+        # this is where we get a bit devious, we use scope to infer the symbol, if possible
+        for scope in reversed(heap):
+            if this.name in scope.vars:
+                return scope.vars[this.name][-1]    # last-assigned type
+            if scope.args and this.name in scope.args:
+                return scope.args[this.name]
+        return "?"
 }, AST_Symbol)
 
 AST_SymbolClassRef = DEFNODE("SymbolClassRef", "class", {
@@ -1144,7 +1394,8 @@ AST_String = DEFNODE("String", "value modifier", {
     $propdoc: {
         value: "[string] the contents of this string",
         modifier: "[string] string type modifier"
-    }
+    },
+    resolveType: def(): return "String"
 }, AST_Constant)
 
 AST_Verbatim = DEFNODE("Verbatim", "value", {
@@ -1158,7 +1409,16 @@ AST_Number = DEFNODE("Number", "value", {
     $documentation: "A number literal",
     $propdoc: {
         value: "[number] the numeric value"
-    }
+    },
+    resolveType: def(): return "Number"
+}, AST_Constant)
+
+AST_Identifier = DEFNODE("Identifier", "value", {
+    $documentation: "An identifier literal, used for unquoted property key",
+    $propdoc: {
+        value: "[string] the name of this key"
+    },
+    resolveType: def(): return "String"
 }, AST_Constant)
 
 AST_RegExp = DEFNODE("RegExp", "value", {
@@ -1174,7 +1434,8 @@ AST_Atom = DEFNODE("Atom", None, {
 
 AST_Null = DEFNODE("Null", None, {
     $documentation: "The `null` atom",
-    value: None
+    value: None,
+    resolveType: def(): return None
 }, AST_Atom)
 
 AST_NaN = DEFNODE("NaN", None, {
@@ -1184,23 +1445,23 @@ AST_NaN = DEFNODE("NaN", None, {
 
 AST_Undefined = DEFNODE("Undefined", None, {
     $documentation: "The `undefined` value",
-    value: def(): pass
-    .call(this)
+    value: void 0
 }, AST_Atom)
 
 AST_Hole = DEFNODE("Hole", None, {
     $documentation: "A hole in an array",
-    value: def(): pass
-    .call(this)
+    value: void 0
 }, AST_Atom)
 
 AST_Infinity = DEFNODE("Infinity", None, {
     $documentation: "The `Infinity` value",
-    value: 1 / 0
+    value: 1 / 0,
+    resolveType: def(): return "Number"
 }, AST_Atom)
 
 AST_Boolean = DEFNODE("Boolean", None, {
-    $documentation: "Base class for booleans"
+    $documentation: "Base class for booleans",
+    resolveType: def(): return "Boolean"
 }, AST_Atom)
 
 AST_False = DEFNODE("False", None, {

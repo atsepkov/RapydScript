@@ -114,6 +114,7 @@ Table of Contents
 - [Scope Control](#scope-control)
 - [Importing](#importing)
 - [Regular Expressions](#regular-expressions)
+- [ES6 Features](#es6-features)
 - [Available Libraries](#available-libraries)
 - [Advanced Usage Topics](#advanced-usage-topics)
   - [System Scripts](#system-scripts)
@@ -184,6 +185,8 @@ My solutions to Project Euler challenges in RapydScript. For those unfamiliar wi
 
 Compilation
 -----------
+**NOTE: ES6 mode is getting stable enough where I feel comfortable making it the default soon, after which ES5 mode will be deprecated in favor of lighter codebase. To this needing support for older platforms in the future, I recommend sending RapydScript in conjunction with Babel.js.**
+
 Once you have installed RapydScript, compiling your application is as simple as running the following command:
 
 	rapydscript <location of main file> [options]
@@ -522,7 +525,7 @@ In my opinion, this is something even Python could benefit from. Like with funct
 
 Function calling with optional arguments
 -------------------------------------------
-RapydScript supports the same function calling format as Python. You can have named optional arguments, create functions with variable numbers of arguments and variable numbers of named arguments. Some examples will illustrate this best:
+RapydScript supports the same function calling format as Python. You can have named optional arguments, create functions with variable numbers of arguments and variable number of named arguments. Some examples will illustrate this best:
 
 	def foo(a, b=2):
 		return [a, b]
@@ -1159,6 +1162,21 @@ As in JavaScript, you can also use the `RegExp` class:
 	regex = RegExp(/ab+c/, 'i')
 
 
+ES6 Features
+------------
+Most of the features in the compiler work fine with any version of JavaScript. Some features, however, are only available when you compile with `-es6` flag. Implementing them in older versions of JavaScript is simply not the best use of my time with libraries like Babel.js doing a good job with it. Here are some features that work differently in ES6 mode:
+
+- Function generators (only supported with ES6 flags)
+- Computed dictionary/object literal keys (`(foo**2): val`, only supported with ES6 flag)
+- Spread operators in arrays (`['one', *splat, 'ten']`, only supported with ES6 flag)
+- Spread operators in object literals (`{foo: "bar", *splat, baz: "qux"}`, only supported with ES6 flag)
+
+The remaining features are all supported with regular mode but take advantage of ES6 features when compiled with `-es6` flag:
+
+- Cleaner optional function arguments
+- Cleaner array to variable unpacking
+
+
 Available Libraries
 -------------------
 One of Python's main strengths is the number of libraries available to the developer. This is something very few other `Python-in-a-browser` frameworks understand. In the browser JavaScript is king, and no matter how many libraries the community for the given project will write, the readily-available JavaScript libraries will always outnumber them. This is why RapydScript was designed with JavaScript and DOM integration in mind from the beginning. Indeed, plugging `underscore.js` in place of RapydScript's `stdlib` will work just as well, and some developers may choose to do so, after all, `underscore.js` is very Pythonic and very complete. Likewise, `sprintf.js` (<https://npmjs.org/package/sprintf-js>) can be used with RapydScript to replicate Python's string interpolation.
@@ -1253,7 +1271,7 @@ RapydScript will pick up any classes you declare yourself as well as native Java
 
 #### Performance
 Performance emphasis is at the core of RapydScript. I don't want to feel like I'm a second-class citizen compared to native JavaScript developers and neither
-should other RapydScript users. For that reasons RapydScript rejected many Pythonic features that I myself would like to see in favor of performance. Some
+should other RapydScript users. For that reason RapydScript rejected many Pythonic features that I myself would like to see in favor of performance. Some
 of these include operator overloading and better error catching. However, when performance hit is negligible and allows additional productivity to the
 developer, that's the kind of win-win RapydScript attempts to capture. For that reason, the compiler comes bundled with a mini benchmark suite. You can
 invoke it by using `--bench` command. Since it takes a while to run performance tests, I recommend you select a particular file (in `test/perf/`) to bench. 
@@ -1277,16 +1295,11 @@ In a perfect world, software works flawlessly and doesn't have any special cases
   when you rely on duck-typing to conceal a class constructor in a variable).
   In those cases you should append the `new` keyword yourself. Similarly, the
   compiler will try to convert SomeClass.method() into SomeClass.prototype.method()
-  for you, but will fail in the same cases. Declaring this variable as a class
+  for you, but will fail in some cases. Declaring this variable as a class
   with `@external` decorator should fix this issue.
 
-- JavaScript's equality operator is gimped. It only works as equality operator for
-  primitive types (string, number, boolean). For objects, it's more akin to Python's
-  `is` operator, comparing memory address rather than equality. For that reason,
-  never compare arrays or objects via `==`, instead use inbuilt `eq` function.
-
 - Truthiness in JavaScript is very different from Python. Empty lists and dicts
-  are ``False`` in Python but ``True`` in JavaScript. The compiler could work
+  are `False` in Python but `True` in JavaScript. The compiler could work
   around that, but not without a significant performance cost, so it is best to
   just get used to checking the length instead of the object directly.
 

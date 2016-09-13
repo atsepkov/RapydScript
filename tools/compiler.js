@@ -68,7 +68,7 @@ exports.parse_baselib = function(src_path, beautify) {
     data.forEach(function(item) {
 //        item.dump(1, ['start', 'end'], false);
 //        item.dump(9, ['start', 'end'], true);
-        var key = item.key;
+        var key = item.key.value;
         // if this is named a function, use it as a whole, if it's anonymous assume a scope
         var value = item.value.name ? [item.value] : item.value.body;
         baselibList[key] = splat_baselib(key, value);

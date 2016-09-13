@@ -59,7 +59,9 @@ assert.equal(y, "foo")
 count = 0
 f, r = (def():
 	def fake_increment():
-		count += 1
+		# this pattern no longer allowed, compiler throws an error since you probably forgot nonlocal definition
+		# count += 1
+		pass
 	def real_increment():
 		nonlocal count
 		count += 1

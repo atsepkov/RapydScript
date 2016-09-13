@@ -97,6 +97,7 @@ def OutputStream(options):
         dq = 0
         sq = 0
         str_ = str_.replace(/[\\\b\f\n\r\t\x22\x27\u2028\u2029\0]/g, def(s):
+            nonlocal dq, sq
             tmp_ = s
             if tmp_ is "\\":
                 return "\\\\"
@@ -262,7 +263,10 @@ def OutputStream(options):
         for i, x in enumerate(arguments):
             if i > 0:
                 space()
-            print_(x)
+            if x.print:
+                x.print(this)
+            else:
+                print_(x)
 
     def end_statement():
         semicolon()
@@ -529,6 +533,9 @@ def OutputStream(options):
         p = output.parent()
         return isinstance(p, AST_Unary) or isinstance(p, AST_VarDef) or isinstance(p, AST_Dot) or isinstance(p, AST_ObjectProperty) or isinstance(p, AST_Conditional)
     )
+    PARENS(AST_Range, def(output):
+        return False
+    )
     PARENS(AST_Binary, def(output):
         p = output.parent()
         # (foo && bar)()
@@ -742,7 +749,7 @@ def OutputStream(options):
                         output.space()
                         output.print("===")
                         output.space()
-                        output.print('undefined')
+                        output.print('void 0')  # about 2x as fast as undefined test
                         output.space()
                         output.print('?')
                         output.space()
@@ -2017,6 +2024,7 @@ def OutputStream(options):
     )
     DEFPRINT(AST_UnaryPrefix, def(self, output):
         op = self.operator
+        if op is "*": op = "..."
         output.print(op)
         if /^[a-z]/i.test(op):
             output.space()
@@ -2042,6 +2050,7 @@ def OutputStream(options):
         }
 
         # handle strict equality gracefully
+        # TODO: this may be dead code, look into it later
         normalize = def(op):
             if op is '==': return '==='
             elif op is '!=': return '!=='
@@ -2101,106 +2110,122 @@ def OutputStream(options):
         # a fast implementation of deep equality
         # TODO: this does not handle comparators logic yet
 
-        output.with_parens(def():
-            if self.operator is '==':
-                # positive case, eliminate truthy immutable comparisons
-                self.left.print(output)
-                output.space()
-                output.print('===')
-                output.space()
-                self.right.print(output)
-                output.space()
-
-                # negative case, eliminate falsy immutable comparisons
-                output.print('||')
-                output.space()
-                output.print('typeof ')
-                self.left.print(output)
-                output.space()
-                output.print('===')
-                output.space()
-                output.print('"object"')
-                output.space()
-
-                # deep case
-                output.print('&&')
-                output.space()
-                output.print('ՐՏ_eq')
-                output.with_parens(def():
+        primitives = ['Boolean', 'String', 'Number']
+        if self.left.computedType in primitives or self.right.computedType in primitives:
+            # type-inferred optimization
+            self.left.print(output)
+            output.space()
+            self.operator is '==' ? output.print('===') : output.print('!==')
+            output.space()
+            self.right.print(output)
+        else:
+            output.with_parens(def():
+                if self.operator is '==':
+                    # positive case, eliminate truthy immutable comparisons
                     self.left.print(output)
-                    output.comma()
+                    output.space()
+                    output.print('===')
+                    output.space()
                     self.right.print(output)
-                )
-            else:
-                # negative case, eliminate truthy immutable comparisons
-                self.left.print(output)
-                output.space()
-                output.print('!==')
-                output.space()
-                self.right.print(output)
-                output.space()
+                    output.space()
 
-                # negative case, eliminate falsy immutable comparisons
-                output.print('&&')
-                output.space()
-                output.with_parens(def():
+                    # negative case, eliminate falsy immutable comparisons
+                    output.print('||')
+                    output.space()
                     output.print('typeof ')
                     self.left.print(output)
                     output.space()
-                    output.print('!==')
+                    output.print('===')
                     output.space()
                     output.print('"object"')
                     output.space()
 
                     # deep case
-                    output.print('||')
+                    output.print('&&')
                     output.space()
-                    output.print('!ՐՏ_eq')
+                    output.print('ՐՏ_eq')
                     output.with_parens(def():
                         self.left.print(output)
                         output.comma()
                         self.right.print(output)
                     )
-                )
-        )
+                else:
+                    # negative case, eliminate truthy immutable comparisons
+                    self.left.print(output)
+                    output.space()
+                    output.print('!==')
+                    output.space()
+                    self.right.print(output)
+                    output.space()
+
+                    # negative case, eliminate falsy immutable comparisons
+                    output.print('&&')
+                    output.space()
+                    output.with_parens(def():
+                        output.print('typeof ')
+                        self.left.print(output)
+                        output.space()
+                        output.print('!==')
+                        output.space()
+                        output.print('"object"')
+                        output.space()
+
+                        # deep case
+                        output.print('||')
+                        output.space()
+                        output.print('!ՐՏ_eq')
+                        output.with_parens(def():
+                            self.left.print(output)
+                            output.comma()
+                            self.right.print(output)
+                        )
+                    )
+            )
     )
     DEFPRINT(AST_Assign, def(self, output):
-        if self.operator is '//=':
-            output.assign(self.left)
-            output.print('Math.floor')
-            output.with_parens(def():
-                self.left.print(output)
-                output.space()
-                output.print('/')
-                output.space()
-                self.right.print(output)
-            )
-            return
-        if isinstance(self.left, AST_Array):
-            if output.option('es6'):
-                output.with_square(def():
-                    self.left.elements.forEach(def(element, index):
-                        if (index) output.comma()
-                        element.print(output)
-                    )
-                )
-            else:
-                output.print("var ՐՏ_Unpack" + output.tmp_index)
-        else:
+        if isinstance(self.right, AST_Number) and self.right.value is 1 and self.operator in ["+=", "-="]:
+            # optimization
+            # NOTE: it's important that we use the prefix, not the suffix which returns pre-increment value
+            output.print(self.operator is "+=" ? "++" : "--")
             self.left.print(output)
-        output.space()
-        output.print(self.operator)
-        output.space()
-        if isinstance(self.right, AST_New):
-            # FIXME: a hack, see declaration for full explanation
-            CREATION.push(self.left)
-        self.right.print(output)
-        if isinstance(self.left, AST_Array):
-            if not output.option('es6'):
-                output.semicolon()
-                output.newline()
-                unpack_tuple(self.left, output, True)
-            output.tmp_index += 1
+        else:
+            if self.operator is '//=':
+                output.assign(self.left)
+                output.print('Math.floor')
+                output.with_parens(def():
+                    self.left.print(output)
+                    output.space()
+                    output.print('/')
+                    output.space()
+                    self.right.print(output)
+                )
+                return
+            if isinstance(self.left, AST_Array):
+                if output.option('es6'):
+                    output.with_square(def():
+                        self.left.elements.forEach(def(element, index):
+                            if (index) output.comma()
+                            element.print(output)
+                        )
+                    )
+                else:
+                    output.print("var ՐՏ_Unpack" + output.tmp_index)
+            else:
+                self.left.print(output)
+
+            output.space()
+            output.print(self.operator)
+            output.space()
+            if isinstance(self.right, AST_New):
+                # FIXME: a hack, see declaration for full explanation
+                CREATION.push(self.left)
+            self.right.print(output)
+            if isinstance(self.left, AST_Array):
+                if not output.option('es6'):
+                    output.semicolon()
+                    output.newline()
+                    unpack_tuple(self.left, output, True)
+                output.tmp_index += 1
     )
     DEFPRINT(AST_Conditional, def(self, output):
         self.condition.print(output)
@@ -2229,6 +2254,31 @@ def OutputStream(options):
                 output.space()
         )
     )
+    DEFPRINT(AST_Range, def(self, output):
+        if isinstance(self.left, AST_Number) and isinstance(self.right, AST_Number) and Math.abs(self.right.value - self.left.value) < 50:
+            # optimization
+            start = parseFloat(self.left.value)
+            end = parseFloat(self.right.value)
+            step = start < end ? 1 : -1
+            if self.operator is "to": end += step/1e6
+            output.with_square(def():
+                for i in range(start, end, step):
+                    if (i is not start): output.comma()
+                    output.print(i)
+            )
+        else:
+            output.print('range')
+            output.with_parens(def():
+                self.left.print(output)
+                output.comma()
+                if self.operator is "to":
+                    output.spaced(self.left, '<', self.right, '?', self.right, '+', 1e-6, ':', self.right, '-', 1e-6)
+                else:
+                    self.right.print(output)
+                output.comma()
+                output.spaced(self.left, '<', self.right, '?', '1', ':', '-1')
+            )
+    )
     DEFPRINT(AST_Object, def(self, output):
         if self.properties.length > 0:
             output.with_block(def():
@@ -2245,16 +2295,17 @@ def OutputStream(options):
             output.print("{}")
     )
     DEFPRINT(AST_ObjectKeyVal, def(self, output):
-        key = self.key
-        #        if (output.option("quote_keys")) {
-        if self.quoted:
-            output.print_string(key + "")
-        elif (typeof key is "number" or not output.option("beautify") and +key + "" is key) and parseFloat(key) >= 0:
-            output.print(make_num(key))
-        elif not is_identifier(key):
-            output.print_string(key)
+        if isinstance(self.key, AST_Identifier)
+        or isinstance(self.key, AST_String)
+        or isinstance(self.key, AST_Number)
+        or isinstance(self.key, AST_Boolean):
+            # default key
+            self.key.print(output)
         else:
-            output.print_name(key)
+            # computed key
+            output.with_square(def():
+                self.key.print(output)
+            )
         output.colon()
         self.value.print(output)
     )
