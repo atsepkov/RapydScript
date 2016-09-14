@@ -4,4 +4,6 @@
 *.swo
 *.tmp
 *.orig
+*.log
+*.bak
 node_modules

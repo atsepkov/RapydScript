@@ -10,6 +10,7 @@
 hash = {foo: 1, bar: 2, baz: 3, qux: 4, quux: 5}
 arr = [1 to 10]
 string = 'baz'
+c = 1
 
 bench.add('===', def():
     JS('1 === 1')
@@ -55,4 +56,10 @@ bench.add('a === undefined', def():
 )
 bench.add('a === void 0', def():
     JS('arr === void 0')
+)
+bench.add('c += 1', def():
+    JS('c += 1')
+)
+bench.add('++c', def():
+    JS('++c')
 )

@@ -65,6 +65,7 @@ function parse_file(code, filename) {
         filename: filename,
         basedir: path.dirname(filename),
         libdir: path.dirname(filename),
+        es6: ARGV.ecmascript6,
         for_linting: true,
     });
 }
@@ -479,7 +480,9 @@ function cli_report(r) {
     console.log(parts.join(':') + ': ' + r.message);
 }
 
+var ARGV = {};
 module.exports.cli = function(argv, base_path, src_path, lib_path) {
+    ARGV = argv;
     var files = argv.files.slice();
     var num_of_files = files.length || 1;
 
@@ -504,7 +507,7 @@ module.exports.cli = function(argv, base_path, src_path, lib_path) {
             return;
         } else process.exit((all_ok) ? 0 : 1);
     }
- 
+
     setImmediate(read_whole_file, files[0], lint_single_file);
 
 };

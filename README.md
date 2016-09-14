@@ -185,7 +185,7 @@ My solutions to Project Euler challenges in RapydScript. For those unfamiliar wi
 
 Compilation
 -----------
-**NOTE: ES6 mode is getting stable enough where I feel comfortable making it the default soon, after which ES5 mode will be deprecated in favor of lighter codebase. To this needing support for older platforms in the future, I recommend sending RapydScript in conjunction with Babel.js.**
+**NOTE: ES6 mode is getting stable enough where I feel comfortable making it the default soon, after which ES5 mode will be deprecated in favor of lighter codebase. To those needing support for older platforms in the future, I recommend sending RapydScript in conjunction with Babel.js.**
 
 Once you have installed RapydScript, compiling your application is as simple as running the following command:
 
@@ -215,7 +215,11 @@ The available options are:
 		--stats        Show compilation metrics in STDERR (time to parse, generate code, etc.)
 	-l, --lint         Check file for errors and compilation problems
 
-The rest of the option remain from UglifyJS and have not been tested, some may work, but most will not, since the AST is different between RapydScript and UglifyJS. These option  will eventually be removed or modified to be relevant to RapydScript.
+You can also use RapydScript as your main system's scripting language (similar to how some prefer to write their system scripts in Python). To do so, add the following line to the top of your script files:
+
+	#!/usr/bin/env rapydscript -x
+
+Now simply invoking the file (assuming it has execute permissions on it) should execute it.
 
 
 Getting Started
