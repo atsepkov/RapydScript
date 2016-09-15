@@ -224,8 +224,9 @@ module.exports = function(options) {
     var toplevel;
     var sigint = false;
 
+    var pkg = require('./../package.json');
     options.console.log(options.colored(
-        'Welcome to the RapydScript REPL! Press Ctrl+C twice or use quit() to quit.',
+        'Welcome to the RapydScript v' + pkg.version + ' REPL! Press Ctrl+C twice or use quit() to quit.',
         'green',
         true
     ));
