@@ -13,7 +13,7 @@
     "test": "bin/rapydscript --test",
     "build-self": "bin/rapydscript --self"
   },
-  "version": "0.5.3",
+  "version": "0.5.4",
   "license": "BSD-2-Clause",
   "engines": {
     "node": ">=0.12.0"

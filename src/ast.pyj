@@ -894,6 +894,13 @@ AST_Call = DEFNODE("Call", "expression", {
             node.args.forEach(def(arg):
                 arg._walk(visitor)
             )
+            if (node.args.kwargs) node.args.kwargs.forEach(def(arg):
+                arg[0]._walk(visitor)
+                arg[1]._walk(visitor)
+            )
+            if (node.args.kwarg_items) node.args.kwarg_items.forEach(def(arg):
+                arg._walk(visitor)
+            )
         )
     ,
     resolveType: def(heap):
@@ -968,8 +975,15 @@ AST_ClassCall = DEFNODE("ClassCall", "class method static", {
     _walk: def(visitor):
         node = this
         return visitor._visit(node, def():
-            node.expression._walk(visitor)
+            if node.expression: node.expression._walk(visitor)
             node.args.forEach(def(arg):
+                arg._walk(visitor)
+            )
+            node.args.kwargs.forEach(def(arg):
+                arg[0]._walk(visitor)
+                arg[1]._walk(visitor)
+            )
+            node.args.kwarg_items.forEach(def(arg):
                 arg._walk(visitor)
             )
         )
