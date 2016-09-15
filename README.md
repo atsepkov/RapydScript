@@ -1174,6 +1174,47 @@ The remaining features are all supported with regular mode but take advantage of
 - Cleaner optional function arguments
 - Cleaner array to variable unpacking
 
+Out of the new features mentioned above, function generator syntax is the same as in Python:
+
+```python
+def firstN(n):
+	num = 0
+	while num < n:
+		yield num
+		num += 1
+
+print(sum(firstN(1e6)))
+```
+
+The syntax for computed keys is slightly different from Python, since JavaScript already uses the unquoted key syntax as alias for quoted keys and
+RapydScript has been doing the same for a while. But since the array-like syntax of ES6 is ugly/confusing, RapydScript follows the convention it has itself
+set for a while of using parentheses (this convention is consistent with self-executing function convention and using class as a function convention):
+
+	computed = "qux"
+	key = "Quux"
+	hash = {
+		regularKey: 1
+		'regular-key': "foo",
+		(computed + key): "baz"
+	}
+
+Spread operators are not supported in Python but are part of ES6 syntax. These allow you to splat one array/hash inside another. For now RapydScript uses
+the `*args` convention set by Python for function calls (since this operation is similar in spirit), although the `...args` operator JavaScript uses seems
+more intuitive to me, so there is a good chance it may change (or at least support both). Example use cases:
+
+	a = [5 to 20]
+	b = [100 til 500]
+	c = [1, 2, *a, 27, 28, *b, 999]
+
+	props = {
+		foo: "bar",
+		baz: 2
+	}
+	moreProps = {
+		*props,
+		qux: "quux"
+	}
+
 
 Available Libraries
 -------------------
