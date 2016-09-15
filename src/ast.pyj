@@ -810,21 +810,9 @@ AST_Try = DEFNODE("Try", "bcatch bfinally", {
         )
 }, AST_Block)
 
-# XXX: this is wrong according to ECMA-262 (12.4).  the catch block
-# should introduce another scope, as the argname should be visible
-# only inside the catch block.  However, doing it this way because of
-# IE which simply introduces the name in the surrounding scope.  If
-# we ever want to fix this then AST_Catch should inherit from
-# AST_Scope.
 AST_Catch = DEFNODE("Catch", None, {
     $documentation: "A `catch` node; only makes sense as part of a `try` statement",
-    $propdoc: {},
-    _walk: def(visitor):
-        node = this
-        return visitor._visit(node, def():
-            node.argname._walk(visitor)
-            walk_body(node, visitor)
-        )
+    $propdoc: {}
 }, AST_Block)
 
 AST_Except = DEFNODE("Except", "argname errors", {
@@ -832,7 +820,16 @@ AST_Except = DEFNODE("Except", "argname errors", {
     $propdoc: {
         argname: "[AST_SymbolCatch] symbol for the exception",
         errors: "[AST_SymbolVar*] error classes to catch in this block"
-    }
+    },
+    _walk: def(visitor):
+        node = this
+        return visitor._visit(node, def():
+            if (node.argname):
+                node.argname.walk(visitor)
+            if (node.errors):
+                for e in node.errors: e.walk(visitor)
+            walk_body(node, visitor)
+        )
 }, AST_Block)
 
 AST_Finally = DEFNODE("Finally", None, {
@@ -1314,6 +1311,10 @@ AST_SymbolDeclaration = DEFNODE("SymbolDeclaration", "init", {
 
 AST_SymbolVar = DEFNODE("SymbolVar", None, {
     $documentation: "Symbol defining a variable"
+}, AST_SymbolDeclaration)
+
+AST_SymbolNonlocal = DEFNODE("SymbolNonlocal", None, {
+    $documentation: "A nonlocal declaration"
 }, AST_SymbolDeclaration)
 
 AST_ImportedVar = DEFNODE("ImportedVar", 'alias', {

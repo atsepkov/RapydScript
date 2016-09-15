@@ -89,6 +89,18 @@ class ImportError(Error):
     def __init__(self, message):
         self.message = message
 
+class ParseError(Error):
+    def __init__(self, message, line, col, pos, is_eof):
+        self.message = message
+        self.line = line
+        self.col = col
+        self.pos = pos
+        self.stack = Error().stack
+        self.is_eof = is_eof
+
+    def toString(self):
+        return this.message + " (line: " + this.line + ", col: " + this.col + ", pos: " + this.pos + ")" + "\n\n" + this.stack
+
 def defaults(args, defs, croak):
     if args is True:
         args = {}

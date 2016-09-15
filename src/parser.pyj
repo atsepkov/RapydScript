@@ -597,16 +597,9 @@ def parse($TEXT, options):
 
     def seq_to_array(seq):
         # convert AST_Seq into AST_Array
-        tmp = []
-        iter = seq
-        while iter and iter.car:
-            tmp.push(iter.car)
-            iter = iter.cdr
-        tmp.push(iter)
-
         return new AST_Array({
             start: seq.start,
-            elements: tmp,
+            elements: seq.to_array(),
             end: seq.end
         })
 
@@ -704,9 +697,8 @@ def parse($TEXT, options):
         return False
 
     def do_import(key):
-        if IMPORTED.hasOwnProperty(key):
-            return
-        if IMPORTING.hasOwnProperty(key) and IMPORTING[key]:
+        if key in IMPORTED: return  # we'll reuse the original imported code
+        if IMPORTING[key]:          # cyclical import
             raise ImportError('Detected a recursive import of: ' + key + ' while importing: ' + module_id)
 
         # Ensure that the package containing this module is also imported
@@ -813,6 +805,7 @@ def parse($TEXT, options):
 
 
     def class_():
+        start = prev()
         name = as_symbol(AST_SymbolDefun)
         if not name:
             unexpected()
@@ -827,6 +820,7 @@ def parse($TEXT, options):
 
         # class setup
         definition = new AST_Class({
+            start: start,
             name: name,
             module_id:module_id,
             parent: (def():
@@ -884,7 +878,8 @@ def parse($TEXT, options):
                 S.labels = labels
 
                 return a
-            )(S.in_loop, S.labels)
+            )(S.in_loop, S.labels),
+            end: prev()
         })
 
         # find the constructor
@@ -928,6 +923,7 @@ def parse($TEXT, options):
         return definition
 
     def function_(in_class, ctor):
+        start = prev()
         is_accessor = ctor is AST_Accessor
         name = (is_("name") ? as_symbol((in_class ? AST_SymbolDefun : (is_accessor ? AST_SymbolAccessor : AST_SymbolLambda))) : (is_accessor and (is_("string") or is_("num")) ? as_atom_node() : None))
         if in_class and not name:
@@ -955,6 +951,7 @@ def parse($TEXT, options):
             ctor = in_class ? AST_Method : AST_Function
 
         definition = new ctor({
+            start: start,
             name: name,
             argnames: (def(a):
                 defaults = {}
@@ -1112,10 +1109,16 @@ def parse($TEXT, options):
             )(S.in_loop, S.labels),
             generator: generator,
             localvars: localvars,
+            end: prev(),
             static: in_class and staticmethod
         })
-        if name:
+
+        if name:    # track this function in local scope
             S.in_scope[-1].functions[name.name] = definition.resolveType(S.in_scope)
+
+        if in_class and not staticmethod and definition.argnames.length < 1:
+            croak("Class methods require at least one argument (self)", start.line, start.col, start.pos)
+
         return definition
 
     def if_():
@@ -1254,13 +1257,13 @@ def parse($TEXT, options):
     def vardefs(no_in, type):
         a = []
         while True:
-            a.push(new AST_VarDef({
+            symbol = new AST_VarDef({
                 start: S.token,
-                name: as_symbol(type is "const" ? AST_SymbolConst : AST_SymbolVar),
-                value: (is_("operator", "=") ? (next(), expression(False, no_in)) : None),
+                name: as_symbol(type is "const" ? AST_SymbolConst : type is "nonlocal" ? AST_SymbolNonlocal : AST_SymbolVar),
                 end: prev()
-            }))
-            if type is "nonlocal": S.in_scope[-1].nonlocal[a[-1].name.name] = True
+            })
+            if type is "nonlocal": S.in_scope[-1].nonlocal[symbol.name.name] = True
+            a.push(symbol)
             if not is_("punc", ","):
                 break
             next()
@@ -1571,9 +1574,7 @@ def parse($TEXT, options):
                 saw_starargs = True
                 if not options.es6:
                     croak("Spread operator in object literals is only allowed in ES6 mode")
-                value = maybe_unary(True)
-                value.dump()
-                a.push(value)
+                a.push(maybe_unary(True))
             elif first and peek().value is not ':':
                 # possibly dict comprehension
                 maybe_dict_comprehension = True
@@ -2042,8 +2043,8 @@ def parse($TEXT, options):
                 and left.name not in S.in_scope[-1].vars
                 and (not S.in_scope[-1].args or left.name not in S.in_scope[-1].args)
                 and left.name not in S.in_scope[-1].nonlocal:
-                     croak("Attempting to increment/modify uninitialized variable '" +
-                         left.name + "', this can also occur if you're trying to shadow without initializing the variable in local scope.")
+                    croak("Attempting to increment/modify uninitialized variable '" +
+                        left.name + "', this can also occur if you're trying to shadow without initializing the variable in local scope.")
                 next()
                 right = maybe_assign(no_in)
                 if not S.in_seq:

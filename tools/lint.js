@@ -20,6 +20,10 @@ var MESSAGES = {
     'eol-semicolon': 'Semi-colons at the end of the line are unnecessary',
     'func-in-branch': 'JavaScript in strict mode does not allow the definition of named functions/classes inside a branch such as an if/try/switch',
     'syntax-err': 'A syntax error caused compilation to abort',
+    'import-err': 'An import error caused compilation to abort',
+    'def-after-use': 'The symbol "{name}" is defined (at line {line}) after it is used',
+    'dup-key': 'JavaScript in strict mode does not allow for duplicate keys ("{name}" is duplicated) in object mode',
+    'dup-method': 'The method {name} was defined previously at line: {line}',
 };
 
 //BUILTINS = {'this':true, 'self':true, 'window':true, 'document':true, 'console':true};
@@ -41,12 +45,24 @@ var BUILTINS = {};
     'isFinite',
     'eval',
     'require',
+    'setInterval',
+    'setTimeout',
+    'clearInterval',
+    'clearTimeout',
 
     // Python
     'bool',
     'int',
     'float',
 ].forEach(function (name) { BUILTINS[name] = true; });
+
+// TEMP: temporary polyfill until ES6
+if (!String.prototype.startsWith) {
+  String.prototype.startsWith = function(searchString, position) {
+    position = position || 0;
+    return this.indexOf(searchString, position) === position;
+  };
+}
 
 // Append native JavaScript classes
 Object.keys(RapydScript.NATIVE_CLASSES).forEach(function (name) { BUILTINS[name] = true; });
@@ -110,6 +126,7 @@ function merge(one, two) {
 }
 
 function Scope(is_toplevel, parent_scope, filename) {
+    // TODO: refactor into a common scope object
     this.parent_scope = parent_scope;
     this.is_toplevel = !!is_toplevel;
     this.bindings = {};
@@ -117,6 +134,10 @@ function Scope(is_toplevel, parent_scope, filename) {
     this.shadowed = [];
     this.undefined_references = {};
     this.unused_bindings = {};
+    this.nonlocals = {};
+    this.defined_after_use = {};
+    this.seen_method_names = {};
+    this.methods = {};
 
     this.add_binding = function(name, node, options) {
         var already_bound = this.bindings.hasOwnProperty(name);
@@ -129,6 +150,10 @@ function Scope(is_toplevel, parent_scope, filename) {
         return b;
     };
 
+    this.add_nonlocal = function(name) {
+        this.nonlocals[name] = true;
+    };
+
     this.register_use = function(name, node) {
         if (this.bindings.hasOwnProperty(name)) {
             this.bindings[name].used = true;
@@ -138,6 +163,19 @@ function Scope(is_toplevel, parent_scope, filename) {
     };
 
     this.finalize = function() {
+        // Find defined after use
+        Object.keys(this.undefined_references).forEach(function (name) {
+            if (this.bindings.hasOwnProperty(name) && !this.nonlocals.hasOwnProperty(name)) {
+                var b = this.bindings[name];
+                b.used = true;
+                if (!this.defined_after_use.hasOwnProperty(name)) {
+                    this.defined_after_use[name] = [this.undefined_references[name], b];
+                }
+                delete this.undefined_references[name];
+            }
+            if (this.methods.hasOwnProperty(name)) delete this.undefined_references[name];
+        }, this);
+
         // Find unused bindings
         Object.keys(this.bindings).forEach(function(name) {
             var b = this.bindings[name];
@@ -146,11 +184,16 @@ function Scope(is_toplevel, parent_scope, filename) {
             this.for_descendants(function (scope) {
                 if (scope.undefined_references.hasOwnProperty(name)) {
                     found = true;
-                    // Remove from childs' undefined references 
+                    // Remove from childs' undefined references
                     delete scope.undefined_references[name];
-                }
+                } else if (scope.nonlocals.hasOwnProperty(name) && scope.bindings.hasOwnProperty(name)) found = true;
             });
-            if (!found && !b.used) this.unused_bindings[name] = b;
+            if (!found && !b.used) {
+                // We deliberately ignore unused loop variables so as not to complain for the
+                // common idiom of using a for loop to repeat an action, without referring to the
+                // loop variable
+                this.unused_bindings[name] = b;
+            }
         }, this);
     };
 
@@ -186,6 +229,11 @@ function Scope(is_toplevel, parent_scope, filename) {
             }
         });
 
+        Object.keys(this.defined_after_use).forEach(function (name) {
+            var use = this.defined_after_use[name][0], binding = this.defined_after_use[name][1];
+            ans.push(msg_from_node(filename, 'def-after-use', name, use, ERROR, binding.node.start.line));
+        }, this);
+
         return ans;
     };
 
@@ -213,6 +261,11 @@ function Linter(toplevel, filename, code) {
         return scope.add_binding(name, (binding_node || node), options);
     };
 
+    this.add_nonlocal = function(name) {
+        var scope = this.scopes[this.scopes.length - 1];
+        return scope.add_nonlocal(name);
+    };
+
     this.register_use = function(name) {
         var scope = this.scopes[this.scopes.length - 1];
         var node = this.current_node;
@@ -237,11 +290,18 @@ function Linter(toplevel, filename, code) {
         var node = this.current_node;
         var name = node.name;
 
+        var scope = this.scopes[this.scopes.length - 1];
+        if (this.branches.length && name) {
+            this.messages.push(msg_from_node(filename, 'func-in-branch', node.name, node));
+        }
+
         if (name) {
-            if (this.branches.length) {
-                this.messages.push(msg_from_node(filename, 'func-in-branch', node.name, node));
-            }
-            this.add_binding(name);
+            if (node instanceof RapydScript.AST_Method) {
+                scope.methods[name] = true;
+                if (has_prop(scope.seen_method_names, name)) {
+                    if (!node.is_setter) this.messages.push(msg_from_node(filename, 'dup-method', node.name, node, WARN, scope.seen_method_names[name]));
+                } else scope.seen_method_names[name] = node.start.line;
+            } else this.add_binding(name);
         }
     };
 
@@ -275,7 +335,11 @@ function Linter(toplevel, filename, code) {
     this.handle_vardef = function() {
         var node = this.current_node;
         if (node.value) this.current_node = node.value;
-        this.add_binding(node.name.name, node.name);
+        if (node.name instanceof RapydScript.AST_SymbolNonlocal) {
+            this.add_nonlocal(node.name.name);
+        } else {
+            this.add_binding(node.name.name, node.name);
+        }
         this.current_node = node;
     };
 
@@ -327,11 +391,64 @@ function Linter(toplevel, filename, code) {
         }
     };
 
+    this.handle_for_js = function() {
+        var node = this.current_node;
+        var js = node.condition.value;
+        var statements = js.split(';');
+        var decl = statements[0].trim();
+        var declared = false;
+        if (decl.startsWith('var ')) {
+            declared = true;
+            decl = decl.slice(4);
+        }
+        var self = this;
+        decl.split(',').forEach(function (part) {
+            var name = /^[a-zA-Z0-9_]+/.exec(part.trimLeft())[0];
+            if (declared) self.add_binding(name);
+            self.register_use(name);
+
+        });
+    };
+
+    this.handle_except = function() {
+        var node = this.current_node;
+        if (node.argname) {
+            this.add_binding(node.argname.name, node.argname);
+        }
+    };
+
     this.handle_empty_statement = function() {
         var node = this.current_node;
         if (node.stype == ';') {
             this.messages.push(msg_from_node(filename, 'extra-semicolon', ';', node, WARN));
         }
+    };
+
+    this.handle_class = function() {
+        var node = this.current_node;
+        if (node.name) {
+            node.name.lint_visited = true;
+            this.add_binding(node.name.name, node.name);
+        }
+    };
+
+    this.handle_object_literal = function() {
+        var node = this.current_node;
+        var seen = {};
+        (node.properties || []).forEach(function (prop) {
+            if (prop.key instanceof RapydScript.AST_Constant) {
+                var val = prop.key.getValue();
+                if (seen.hasOwnProperty(val)) {
+                    this.messages.push(msg_from_node(filename, 'dup-key', val, prop));
+                }
+                seen[val] = true;
+            }
+        }, this);
+    };
+
+    this.handle_call = function() {
+        var node = this.current_node;
+        if (node.args.kwargs) node.args.kwargs.forEach(function(kw) { kw[0].lint_visited = true; });
     };
 
     this._visit = function (node, cont) {
@@ -349,6 +466,10 @@ function Linter(toplevel, filename, code) {
             this.handle_import();
         } else if (node instanceof RapydScript.AST_ImportedVar) {
             this.handle_imported_var();
+        } else if (node instanceof RapydScript.AST_Class) {
+            this.handle_class();
+        } else if (node instanceof RapydScript.AST_BaseCall) {
+            this.handle_call();
         } else if (node instanceof RapydScript.AST_Assign) {
             this.handle_assign();
         } else if (node instanceof RapydScript.AST_VarDef) {
@@ -363,8 +484,14 @@ function Linter(toplevel, filename, code) {
             this.handle_comprehension();
         } else if (node instanceof RapydScript.AST_ForIn) {
             this.handle_for_in();
+        } else if (node instanceof RapydScript.AST_ForJS) {
+            this.handle_for_js();
+        } else if (node instanceof RapydScript.AST_Except) {
+            this.handle_except();
         } else if (node instanceof RapydScript.AST_EmptyStatement) {
             this.handle_empty_statement();
+        } else if (node instanceof RapydScript.AST_Object) {
+            this.handle_object_literal();
         }
 
         if (node instanceof RapydScript.AST_Scope) {
@@ -431,13 +558,22 @@ function lint_code(code, options) {
     try {
         toplevel = parse_file(code, filename);
     } catch(e) {
-        if (e instanceof RapydScript.JS_Parse_Error) {
+        if (e instanceof RapydScript.ParseError) {
             messages = [{
                 filename: filename,
                 start_line: e.line,
                 start_col: e.col,
                 level: ERROR,
                 ident: 'syntax-err',
+                message: e.message
+            }];
+        } else if (e instanceof RapydScript.ImportError) {
+            messages = [{
+                filename: filename,
+                start_line: e.line,
+                start_col: e.col,
+                level: ERROR,
+                ident: 'import-err',
                 message: e.message
             }];
         } else {

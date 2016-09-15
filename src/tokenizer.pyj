@@ -199,17 +199,6 @@ def parse_js_number(num):
     elif RE_DEC_NUMBER.test(num):
         return parseFloat(num)
 
-def JS_Parse_Error(message, line, col, pos, is_eof):
-    this.message = message
-    this.line = line
-    this.col = col
-    this.pos = pos
-    this.stack = Error().stack
-    this.is_eof = is_eof
-
-JS_Parse_Error.prototype.toString = def():
-    return this.message + " (line: " + this.line + ", col: " + this.col + ", pos: " + this.pos + ")" + "\n\n" + this.stack
-
 def js_error(message, filename, line, col, pos, is_eof):
     AST_Node.warn("ERROR: {message} [{file}:{line},{col}]", {
         message: message,
@@ -217,7 +206,7 @@ def js_error(message, filename, line, col, pos, is_eof):
         line: line,
         col: col
     })
-    raise new JS_Parse_Error(message, line, col, pos, is_eof)
+    raise new ParseError(message, line, col, pos, is_eof)
 
 def is_token(token, type, val):
     return token.type is type and (val is None or val is undefined or token.value is val)
