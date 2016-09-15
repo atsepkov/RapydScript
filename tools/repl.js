@@ -210,7 +210,8 @@ module.exports = function(options) {
         'omit_baselib': true,
         'write_name': false,
         'private_scope': false,
-        'beautify': true
+        'beautify': true,
+        'es6': options.es6
     };
     options = repl_defaults(options);
     options.completer = completer;
@@ -250,6 +251,24 @@ module.exports = function(options) {
             true
         ));
     }
+
+    if (options.es6) {
+        version = process.versions.v8.split('.');
+        if (parseInt(version[0]) < 4 || parseInt(version[0]) <= 4 && parseInt(version[1]) <= 9) {
+            options.console.log(options.colored(
+                'You invoked REPL with ES6 mode but seem to be using an old version of Node, your compiled commands may fail to run.',
+                'red',
+                true
+            ));
+        } else {
+            options.console.log(options.colored(
+                'Using EcmaScript 6 compilation target.',
+                'blue',
+                true
+            ));
+        }
+    }
+
     options.console.log();
 
     function resetbuffer() { buffer = []; }
@@ -325,6 +344,7 @@ module.exports = function(options) {
                 'readfile': fs.readFileSync,
                 'basedir': process.cwd(),
                 'libdir': options.import_path,
+                'es6': options.es6,
                 'import_dirs': RapydScript.get_import_dirs(),
                 'classes': classes
             });
