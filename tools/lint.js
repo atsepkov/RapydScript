@@ -584,7 +584,7 @@ function lint_code(code, options) {
     if (toplevel) {
         var linter = new Linter(toplevel, filename, code);
         toplevel.walk(linter);
-        var messages = linter.resolve();
+        messages = linter.resolve();
     }
 
     messages.forEach(reportcb);
@@ -609,11 +609,10 @@ function read_whole_file(filename, cb) {
 
 function cli_report(r) {
     var parts = [];
-    function push(x) {
-        parts.push((x === undefined) ? '' : x.toString());
-    }
-    push(r.filename); push((r.level === WARN) ? 'WARN' : 'ERR'); push(r.ident); push(r.start_line); push(r.start_col);
-    console.log(parts.join(':') + ': ' + r.message);
+    parts.push(r.filename);
+    parts.push((r.start_line || 0) + ',' + ((r.start_col === undefined) ? 0 : r.start_col + 1));
+    parts.push((r.level === WARN ? 'WARN' : 'ERR') + '(' + (r.name || '') + ')\t' + r.message + ' [' + r.ident + ']');
+    console.log(parts.join(' '));
 }
 
 var ARGV = {};
@@ -641,7 +640,7 @@ module.exports.cli = function(argv, base_path, src_path, lib_path) {
         if (files.length) {
             setImmediate(read_whole_file, files[0], lint_single_file);
             return;
-        } else process.exit((all_ok) ? 0 : 1);
+        } else process.exit((all_ok) ? 0 : 2);
     }
 
     setImmediate(read_whole_file, files[0], lint_single_file);
