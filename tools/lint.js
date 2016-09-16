@@ -252,7 +252,7 @@ function Linter(toplevel, filename, code) {
         var scope = this.scopes[this.scopes.length - 1];
         var node = this.current_node;
         var options = {
-            is_toplevel: scope.is_toplevel, 
+            is_toplevel: scope.is_toplevel,
             is_import: (node instanceof RapydScript.AST_Import || node instanceof RapydScript.AST_ImportedVar),
             is_function: (node instanceof RapydScript.AST_Lambda),
             is_class: (node instanceof RapydScript.AST_Class),
@@ -288,7 +288,7 @@ function Linter(toplevel, filename, code) {
 
     this.handle_lambda = function() {
         var node = this.current_node;
-        var name = node.name;
+        var name = node.name ? node.name.name : undefined;
 
         var scope = this.scopes[this.scopes.length - 1];
         if (this.branches.length && name) {
@@ -296,9 +296,11 @@ function Linter(toplevel, filename, code) {
         }
 
         if (name) {
+            // FIXME this triggers a false positive in cases when user decides to name a function that's being passed in as an argument
+            // or used as a hash value. A potential way to address that would be to track how the current node gets used by its parent.
             if (node instanceof RapydScript.AST_Method) {
                 scope.methods[name] = true;
-                if (has_prop(scope.seen_method_names, name)) {
+                if (scope.seen_method_names.hasOwnProperty(name)) {
                     if (!node.is_setter) this.messages.push(msg_from_node(filename, 'dup-method', node.name, node, WARN, scope.seen_method_names[name]));
                 } else scope.seen_method_names[name] = node.start.line;
             } else this.add_binding(name);

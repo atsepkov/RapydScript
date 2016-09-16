@@ -67,18 +67,20 @@ Here are just a few examples of cleaner RapydScript syntax:
 
 RapydScript allows to write your JavaScript app in a language much closer to Python without the overhead that other similar frameworks introduce (the performance is the same as with pure JavaScript). To those familiar with CoffeeScript, RapydScript is like CoffeeScript, but inspired by Python's readability rather than Ruby's cleverness. To those familiar with Pyjamas, RapydScript brings many of the same features and support for Python syntax without the same overhead. Don't worry if you've never used either of the above-mentioned compilers, if you've ever had to write your code in pure JavaScript you'll appreciate RapydScript. RapydScript combines the best features of Python as well as JavaScript, bringing you features most other Pythonic JavaScript replacements overlook. Here are a few features of RapydScript:
 
-- real deep equality with no performance overhead
+- `==` compiles to deep equality and uses clever optimizations to avoid performance overhead
+- type inference that allows for hybrid-typing similar to TypeScript
+- intelligent scoping (no need for repetitive `var` or `new` keywords)
+- intelligent code optimizations based on context
 - much cleaner code than native JavaScript
-- classes that work and feel very similar to Python
-- pythonic import system (you can also use `require()`)
 - optional function arguments that work just like Python (`func(third='foo')`)
-- inheritance system that's both, more powerful than Python and cleaner than JavaScript (single inheritance w/ mixins);
-- support for object literals with anonymous functions, like in JavaScript
-- ability to invoke any JavaScript/DOM object/function/method as if it's part of the same framework, without the need for special syntax
-- variable and object scoping that make sense (no need for repetitive `var` or `new` keywords)
+- decorators, list comprehensions, dict comprehensions, verbose regex, starargs, kwargs, you name it
 - ability to use both, Python's methods/functions and JavaScript's alternatives
 - similar to above, ability to use both, Python's and JavaScript's tutorials (as well as widgets)
-- decorators, list comprehensions, dict comprehensions, verbose regex, starargs, kwargs, you name it
+- classes that work and feel very similar to Python
+- inheritance system that's both, more powerful than Python and cleaner than JavaScript (single inheritance w/ mixins);
+- pythonic import system (you can also use `require()`)
+- support for object literals with anonymous functions, like in JavaScript
+- ability to invoke any JavaScript/DOM object/function/method as if it's part of the same framework, without the need for special syntax
 - it's self-hosting, the compiler is itself written in RapydScript and compiles into JavaScript
 
 Let's not waste any more time with the introductions, however. The best way to learn a new language/framework is to dive in.

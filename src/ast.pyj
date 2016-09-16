@@ -670,6 +670,9 @@ AST_Class = DEFNODE("Class", "init name parent static external bound decorators 
             if node.parent:
                 node.parent._walk(visitor)
         )
+    ,
+    resolveType: def(heap):
+        return this.name.name
 }, AST_Scope)
 
 AST_Module = DEFNODE("Module", "name external decorators", {

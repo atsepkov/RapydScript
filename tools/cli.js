@@ -91,7 +91,7 @@ function opt(name, aliases, type, default_val, help_text) {
 
 	if (!type || type == 'bool') options.boolean[name] = true;
 	else if (type == 'string') options.string[name] = true;
-	
+
 	if (default_val !== undefined) options.default[name] = default_val;
 
 	if (aliases && aliases.length) {
