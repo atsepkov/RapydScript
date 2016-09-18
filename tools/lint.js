@@ -24,6 +24,7 @@ var MESSAGES = {
     'def-after-use': 'The symbol "{name}" is defined (at line {line}) after it is used',
     'dup-key': 'JavaScript in strict mode does not allow for duplicate keys ("{name}" is duplicated) in object mode',
     'dup-method': 'The method {name} was defined previously at line: {line}',
+    'bad-var-name': '"{name}" is not descriptive enough or too long',
 };
 
 //BUILTINS = {'this':true, 'self':true, 'window':true, 'document':true, 'console':true};
@@ -138,6 +139,7 @@ function Scope(is_toplevel, parent_scope, filename) {
     this.defined_after_use = {};
     this.seen_method_names = {};
     this.methods = {};
+    this.bad_var_names = {};
 
     this.add_binding = function(name, node, options) {
         var already_bound = this.bindings.hasOwnProperty(name);
@@ -145,6 +147,8 @@ function Scope(is_toplevel, parent_scope, filename) {
         if (already_bound) {
             if (this.bindings[name].used) b.used = true;
             this.shadowed.push([name, this.bindings[name], b]);
+        } else if (name.length < 2 || name.length > 30) {
+            this.bad_var_names[name] = b;
         }
         this.bindings[name] = b;
         return b;
@@ -232,6 +236,15 @@ function Scope(is_toplevel, parent_scope, filename) {
         Object.keys(this.defined_after_use).forEach(function (name) {
             var use = this.defined_after_use[name][0], binding = this.defined_after_use[name][1];
             ans.push(msg_from_node(filename, 'def-after-use', name, use, ERROR, binding.node.start.line));
+        }, this);
+
+        Object.keys(this.bad_var_names).forEach(function (name) {
+            var b = this.bad_var_names[name];
+            if (b.is_import) {
+                ans.push(msg_from_node(filename, 'bad-var-name', name, b.node, WARN));
+            } else if (!b.is_toplevel && !b.is_func_arg) {
+                ans.push(msg_from_node(filename, 'bad-var-name', name, b.node, WARN));
+            }
         }, this);
 
         return ans;
