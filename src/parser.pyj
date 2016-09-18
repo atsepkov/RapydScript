@@ -819,6 +819,7 @@ def parse($TEXT, options):
         }
 
         # class setup
+        docstring = None
         definition = new AST_Class({
             start: start,
             name: name,
@@ -872,6 +873,9 @@ def parse($TEXT, options):
 
                 a = block_()
 
+                nonlocal docstring
+                docstring = S.in_scope[-1].docstring
+
                 # state "pop"
                 S.in_scope.pop()
                 S.in_loop = loop
@@ -879,6 +883,7 @@ def parse($TEXT, options):
 
                 return a
             )(S.in_loop, S.labels),
+            docstring: docstring,
             end: prev()
         })
 
@@ -950,6 +955,7 @@ def parse($TEXT, options):
         if not ctor:
             ctor = in_class ? AST_Method : AST_Function
 
+        docstring = None
         definition = new ctor({
             start: start,
             name: name,
@@ -1091,8 +1097,9 @@ def parse($TEXT, options):
                 a = block_()
 
                 # these transform variables that are used by other keys, hence the somewhat ugly use of nonlocal
-                nonlocal generator, localvars
+                nonlocal generator, localvars, docstring
                 generator = S.in_scope[-1].generator
+                docstring = S.in_scope[-1].docstring
 
                 # FIXME: debug logic
                 if generator:
@@ -1107,6 +1114,7 @@ def parse($TEXT, options):
 
                 return a
             )(S.in_loop, S.labels),
+            docstring: docstring,
             generator: generator,
             localvars: localvars,
             end: prev(),
@@ -1139,6 +1147,34 @@ def parse($TEXT, options):
             alternative: belse
         })
 
+    def is_docstring(stmt):
+        if isinstance(stmt, AST_Directive) and not S.in_scope[-1].docstring:
+            return True
+        return False
+
+    def format_docstring(string):
+        lines = string.split(/\n/g)
+
+        # determine minimum indentation (first line doesn't count):
+        indent = 1e6
+        for line in lines[1:]:
+            if line.trim().length:
+                pad = line.match(/^\s*/)[0]
+                indent = Math.min(indent, pad.length)
+
+        # remove indentation (first line is special):
+        trimmed = [lines[0].trim()]
+        if indent < 1e6:
+            for line in lines[1:]:
+                trimmed.push(line[indent:].replace(/\s+$/))
+
+        # strip off trailing and leading blank lines:
+        while trimmed and not trimmed[-1]:
+            trimmed.pop()
+        while trimmed and not trimmed[0]:
+            trimmed.shift()
+        return trimmed.join('\n')
+
     def block_():
         expect(":")
         a = []
@@ -1146,13 +1182,23 @@ def parse($TEXT, options):
             while not S.token.nlb:
                 if is_("eof"):
                     unexpected()
-                a.push(statement())
+                stmt = statement()
+                if not a.length and is_docstring(stmt):
+                    # first statement is a docstring
+                    S.in_scope[-1].docstring = format_docstring(stmt.value)
+                else:
+                    a.push(stmt)
         else:
             while not is_("punc", "}"):
                 if is_("eof"):
                     # end of file, terminate block automatically
                     return a
-                a.push(statement())
+                stmt = statement()
+                if not a.length and is_docstring(stmt):
+                    # first statement is a docstring
+                    S.in_scope[-1].docstring = format_docstring(stmt.value)
+                else:
+                    a.push(stmt)
             next()
         return a
 
@@ -2165,11 +2211,15 @@ def parse($TEXT, options):
     return (def():
         start = S.token
         body = []
+        docstring = None
         first_token = True
         while not is_("eof"):
             element = statement()
             if first_token and isinstance(element, AST_Directive) and element.value.indexOf('#!') is 0:
                 shebang = element.value
+            elif not body.length and is_docstring(element):
+                # first statement is a docstring
+                docstring = format_docstring(element.value)
             else:
                 body.push(element)
             first_token = False
@@ -2185,6 +2235,7 @@ def parse($TEXT, options):
                 body: body,
                 strict: True,
                 shebang: shebang,
+                docstring: docstring,
                 end: end
             })
 

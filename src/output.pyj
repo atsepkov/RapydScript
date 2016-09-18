@@ -268,6 +268,61 @@ def OutputStream(options):
             else:
                 print_(x)
 
+    def addProperty(prop, val):
+        # due to how unify works, this itself has to be a decorator to take inputs other than tmp
+        return def(obj): # needs to be called with output context
+            output = this
+            output.print('Object.defineProperty(')
+            output.print(obj)
+            output.comma()
+            output.print_string(prop)
+            output.comma()
+            output.with_block(def():
+                output.indent()
+                output.print('value')
+                output.colon()
+                output.print_string(val)
+                output.newline()
+            )
+            output.print(')')
+
+    def addProperties(subattr, props):
+        # due to how unify works, this itself has to be a decorator to take inputs other than tmp
+        return def(obj): # needs to be called with output context
+            output = this
+            output.print('Object.defineProperties(')
+            output.print(obj)
+            if subattr: output.print('.' + subattr)
+            output.comma()
+            output.with_block(def():
+                Object.keys(props).forEach(def(key, i):
+                    if i:
+                        output.print(",")
+                        output.newline()
+                    output.indent()
+                    output.print(key)
+                    output.colon()
+                    output.with_block(def():
+
+                        # the typical defineProperty required fields
+                        for attr in ['enumerable', 'writable']:
+                            output.indent()
+                            output.print(attr)
+                            output.colon()
+                            output.print('true')
+                            output.comma()
+                            output.newline()
+
+                        output.indent()
+                        output.print('value')
+                        output.colon()
+                        props[key](output)
+                    )
+                )
+                output.newline()
+            )
+            output.print(')')
+
     def end_statement():
         semicolon()
         newline()
@@ -342,31 +397,25 @@ def OutputStream(options):
         get: get,
         toString: get,
         indent: indent,
-        indentation: def():
-            return indentation
+        indentation: def(): return indentation
         ,
-        current_width: def():
-            return current_col - indentation
+        current_width: def(): return current_col - indentation
         ,
-        should_break: def():
-            return options.width and this.current_width() >= options.width
+        should_break: def(): return options.width and this.current_width() >= options.width
         ,
         newline: newline,
         print: print_,
         space: space,
         comma: comma,
         colon: colon,
-        last: def():
-            return last
+        last: def(): return last
         ,
         semicolon: semicolon,
         force_semicolon: force_semicolon,
         to_ascii: to_ascii,
-        print_name: def(name):
-            print_(make_name(name))
+        print_name: def(name): print_(make_name(name))
         ,
-        print_string: def(str_):
-            print_(encode_string(str_))
+        print_string: def(str_): print_(encode_string(str_))
         ,
         next_indent: next_indent,
         with_indent: with_indent,
@@ -374,6 +423,8 @@ def OutputStream(options):
         with_parens: with_parens,
         spaced: spaced,
         end_statement: end_statement,
+        addProperty: addProperty,
+        addProperties: addProperties,
         with_square: with_square,
         add_mapping: add_mapping,
         assign: assign_var,
@@ -389,33 +440,24 @@ def OutputStream(options):
                 return True
             return False
         ,
-        is_main: def():
-            return OUTPUT.length is 0
+        is_main: def(): return OUTPUT.length is 0
         ,
-        option: def(opt):
-            return options[opt]
+        option: def(opt): return options[opt]
         ,
-        line: def():
-            return current_line
+        line: def(): return current_line
         ,
-        col: def():
-            return current_col
+        col: def(): return current_col
         ,
-        pos: def():
-            return current_pos
+        pos: def(): return current_pos
         ,
-        push_node: def(node):
-            stack.push(node)
+        push_node: def(node): stack.push(node)
         ,
-        pop_node: def():
-            return stack.pop()
+        pop_node: def(): return stack.pop()
         ,
-        stack: def():
-            return stack
+        stack: def(): return stack
         ,
         tmp_index: 0,
-        parent: def(n):
-            return stack[stack.length - 2 - (n or 0)]
+        parent: def(n): return stack[stack.length - 2 - (n or 0)]
 
     }
 
@@ -440,6 +482,32 @@ def OutputStream(options):
         nonlocal tmp_index
         tmp_index += 1
         return RAPYD_PREFIX + subtype + tmp_index
+
+    def unify(output, assign, *args):
+        # unifies multiple operations to look like part of a single mechanism to JavaScript
+        # this logic is used to accomplish an intelligent caching routine, where the base operation is assumed
+        # to be primary, that gets cached into a variable reused by the decorator functions
+        # in this case we'll be returning (tmp = ...constructor..., modifier1(tmp), modifier2(tmp), ..., tmp)
+        args = args.filter(def(i): return i is not None;)
+        return def(baseFn):
+            if args.length:
+                return def():
+                    tmp = "ՐՏ" + output.tmp_index
+                    output.tmp_index += 1
+                    if assign: output.assign(assign)
+                    output.with_parens(def():
+                        output.assign(tmp)
+                        baseFn()
+                        output.comma()
+                        for arg in args:
+                            if arg is not None:
+                                arg.call(output, tmp)
+                                output.comma()
+                        # for safety, output the temp var last, in case the last operation failed to return the object itself
+                        output.print(tmp)
+                    )
+                    if assign: output.semicolon() # TODO: eventually this will need to be removed, once we start chaining this with other ops
+            else: return def(): baseFn()
 
     def DEFPRINT(nodetype, generator):
         nodetype.DEFMETHOD("_codegen", generator)
@@ -709,6 +777,7 @@ def OutputStream(options):
 
     def display_complex_body(node, is_toplevel, output):
         offset = 0 # argument offset, applies if this is a method of a class
+
         # if this is a method, add 'var self = this'
         if isinstance(node, AST_Method) and not node.static:
             output.indent()
@@ -971,7 +1040,7 @@ def OutputStream(options):
             output.semicolon()
     )
     def print_bracketed(node, output, complex):
-        if node.body.length > 0:
+        if node.body.length:
             output.with_block(def():
                 if complex:
                     display_complex_body(node, False, output)
@@ -1344,6 +1413,32 @@ def OutputStream(options):
 
     AST_Lambda.DEFMETHOD("_do_print", def(output, nokeyword):
         self = this
+
+        def addDecorators():
+            # decorate the class
+            if self.decorators and self.decorators.length:
+                return def(obj):
+                    output = this
+                    output.assign(obj)
+                    decorate(self.decorators, output, def(): output.print(obj);)
+            return None
+
+        def addDocstring():
+            if self.docstring:
+                return def(obj):
+                    output = this
+                    output.addProperty('__doc__', self.docstring).call(output, obj)
+            return None
+
+        # label the variable correctly depending on context
+        # FIXME: this is bug-prone, need var to be conditional on whether this is a standalone statement
+        name = None
+        if self.name:
+            name = 'var ' + self.name.name
+            # if first_in_statement(output):
+            #     name = 'var ' + name
+
+        @unify(output, name, addDecorators(), addDocstring())
         def internalsub():
             if not nokeyword:
                 output.print("function")
@@ -1373,14 +1468,7 @@ def OutputStream(options):
             output.space()
             print_bracketed(self, output, True)
 
-        if self.decorators and self.decorators.length:
-            output.print("var")
-            output.space()
-            output.assign(self.name.name)
-            decorate(self.decorators, output, internalsub)
-            output.semicolon()
-        else:
-            internalsub()
+        internalsub()
     )
     DEFPRINT(AST_Lambda, def(self, output):
         self._do_print(output)
@@ -1393,71 +1481,131 @@ def OutputStream(options):
         if self.external:
             return
 
-        class_def = def(method):
-            output.indent()
-            self.name.print(output)
-            if method and method in self.static:
-                output.assign("." + method)
-            else:
-                output.assign(".prototype" + ((method ? "." + method : "")))
-
         define_method = def(stmt):
-            name = stmt.name.name
-            class_def(name)
-            def internalsub():
-                output.print("function")
-                output.space()
-                output.print(name)
+            return def(output):
+                name = stmt.name.name
+                def internalsub():
+                    output.print("function")
+                    output.space()
+                    output.print(name)
 
-                output.with_parens(def():
-                    stmt.argnames.forEach(def(arg, i):
-                        # only strip first argument if the method isn't static
-                        if name in self.static:
-                            i += 1
-                        if i > 1:
-                            output.comma()
-                        if i:
-                            arg.print(output)
+                    output.with_parens(def():
+                        stmt.argnames.forEach(def(arg, i):
+                            # only strip first argument if the method isn't static
+                            if name in self.static:
+                                i += 1
+                            if i > 1:
+                                output.comma()
+                            if i:
+                                arg.print(output)
+                        )
+
+                        # handle kwargs hook, if there is a kwargs decorator
+                        if self.kwargs:
+                            if argnames.length:
+                                output.comma()
+                            # it's a generic argument name, we'll rename it in function body
+                            output.print('ՐՏ_kw')
                     )
+                    print_bracketed(stmt, output, True)
 
-                    # handle kwargs hook, if there is a kwargs decorator
-                    if self.kwargs:
-                        if argnames.length:
-                            output.comma()
-                        # it's a generic argument name, we'll rename it in function body
-                        output.print('ՐՏ_kw')
-                )
-                print_bracketed(stmt, output, True)
+                # decorate the method
+                if stmt.decorators and stmt.decorators.length:
+                    decorate(stmt.decorators, output, internalsub)
+                else:
+                    internalsub()
+                output.newline()
 
-            # decorate the method
-            if stmt.decorators and stmt.decorators.length:
-                decorate(stmt.decorators, output, internalsub)
-            else:
-                internalsub()
-            output.semicolon()
-            output.newline()
+        def addInheritance():
+            # inheritance, if parent exists
+            if self.parent:
+                return def(obj):
+                    output = this
+                    output.print("ՐՏ_extends")
+                    output.with_parens(def():
+                        output.print(obj)
+                        output.comma()
+                        self.parent.print(output)
+                    )
+            return None
+
+        def addDecorators():
+            # decorate the class
+            if self.decorators and self.decorators.length:
+                return def(obj):
+                    output = this
+                    output.assign(obj)
+                    decorate(self.decorators, output, def(): output.print(obj);)
+            return None
+
+        def addMethods():
+            # actual methods
+            methods = {}
+            static = {}
+            if self.docstring:
+                methods['__doc__'] = def(output): output.print_string(self.docstring)
+            self.body.forEach(def(stmt, i):
+                if isinstance(stmt, AST_Method):
+                    if stmt.static:
+                        static[stmt.name.name] = define_method(stmt)
+                    else:
+                        methods[stmt.name.name] = define_method(stmt)
+
+                elif isinstance(stmt, AST_Class):
+                    console.error('Nested classes aren\'t supported yet')
+            )
+
+            methodOutput = None
+            if Object.keys(methods).length:
+                methodOutput = output.addProperties('prototype', methods)
+
+            staticMethodOutput = None
+            if Object.keys(static).length:
+                staticMethodOutput = output.addProperties(None, static)
+
+            return methodOutput, staticMethodOutput
+        methods, staticmethods = addMethods()
+
+        # label the variable correctly depending on context
+        # FIXME: this is bug-prone, need var to be conditional on whether this is a standalone statement
+        name = None
+        if self.name:
+            name = 'var ' + self.name.name
+            # if first_in_statement(output):
+            #     name = 'var ' + name
 
         # generate constructor
-        def internalsub():
-            if self.init or self.parent:
+        @unify(output, name, addInheritance(), addDecorators(), methods, staticmethods)
+        def generateClass():
+            if self.init or self.parent or self.statements.length:
                 output.print("function")
                 output.space()
                 self.name.print(output)
                 output.print("()")
                 output.space()
                 output.with_block(def():
+
                     bind_methods(self.bound, output)
-                    output.indent()
-                    cname = (self.name) ? self.name : self.parent
-                    cname.print(output)
-                    output.print(".prototype.__init__.apply")
-                    output.with_parens(def():
-                        output.print("this")
-                        output.comma()
-                        output.print("arguments")
+
+                    # class variables and statements
+                    self.statements.forEach(def(stmt):
+                        output.indent()
+                        stmt.print(output)
+                        output.newline()
                     )
-                    output.semicolon()
-                    output.newline()
+
+                    if self.init or self.parent:
+                        output.indent()
+                        cname = self.name ? self.name : self.parent
+                        cname.print(output)
+                        output.print(".prototype.__init__.apply")
+                        output.with_parens(def():
+                            output.print("this")
+                            output.comma()
+                            output.print("arguments")
+                        )
+                        output.semicolon()
+                        output.newline()
                 )
             else:
                 # no init method or parent, create empty init
@@ -1470,43 +1618,8 @@ def OutputStream(options):
                     bind_methods(self.bound, output)
                 )
 
-        # decorate the class
-        if self.decorators and self.decorators.length:
-            output.print('var ')
-            output.assign(self.name)
-            decorate(self.decorators, output, internalsub)
-            output.semicolon()
-        else:
-            internalsub()
-        output.newline()
-
-        # inheritance
-        if self.parent:
-            output.indent()
-            output.print("ՐՏ_extends")
-            output.with_parens(def():
-                self.name.print(output)
-                output.comma()
-                self.parent.print(output)
-            )
-            output.semicolon()
-            output.newline()
-
-        # class variables and statements
-        self.statements.forEach(def(stmt):
-            output.indent()
-            stmt.print(output)
-            output.newline()
-        )
-
-        # actual methods
-        self.body.forEach(def(stmt, i):
-            if isinstance(stmt, AST_Method):
-                define_method(stmt)
-
-            elif isinstance(stmt, AST_Class):
-                console.error('Nested classes aren\'t supported yet')
-        )
+        # ignition
+        generateClass()
     )
     DEFPRINT(AST_Class, def(self, output):
         self._do_print(output)
@@ -2378,31 +2491,31 @@ def OutputStream(options):
             else:
                 stat.print(output)
 
-    # return true if the node at the top of the stack (that means the
-    # innermost node in the current output) is lexically the first in
-    # a statement.
     def first_in_statement(output):
-        a = output.stack()
-        i = a.length
-        node = a[i -= 1]
-        p = a[i -= 1]
+        # return true if the node at the top of the stack (that means the
+        # innermost node in the current output) is lexically the first in
+        # a statement.
+        processed = output.stack()
+        i = processed.length
+        node = processed[i -= 1]
+        prev = processed[i -= 1]
         while i > 0:
-            if isinstance(p, AST_Statement) and p.body is node:
+            if isinstance(prev, AST_Statement) and prev.body is node:
                 return True
-            if isinstance(p, AST_Seq) and p.car is node
-            or isinstance(p, AST_BaseCall) and p.expression is node
-            or isinstance(p, AST_Dot) and p.expression is node
-            or isinstance(p, AST_Sub) and p.expression is node
-            or isinstance(p, AST_Conditional) and p.condition is node
-            or isinstance(p, AST_Binary) and p.left is node
-            or isinstance(p, AST_UnaryPostfix) and p.expression is node:
-                node = p
-                p = a[i -= 1]
+            if isinstance(prev, AST_Seq) and prev.car is node
+            or isinstance(prev, AST_BaseCall) and prev.expression is node
+            or isinstance(prev, AST_Dot) and prev.expression is node
+            or isinstance(prev, AST_Sub) and prev.expression is node
+            or isinstance(prev, AST_Conditional) and prev.condition is node
+            or isinstance(prev, AST_Binary) and prev.left is node
+            or isinstance(prev, AST_UnaryPostfix) and prev.expression is node:
+                node = prev
+                prev = processed[i -= 1]
             else:
                 return False
 
-    # self should be AST_New, decide if we want to show parens or not.
     def no_constructor_parens(self, output):
+        # self should be AST_New, decide if we want to show parens or not.
         return self.args.length is 0 and not output.option("beautify")
 
     def best_of(a):

@@ -1,0 +1,31 @@
+# Author: Alexander Tsepkov
+
+def test():
+    "Simple docstring"
+    "Not a docstring"
+    return 1
+
+class Item:
+    """
+    Class docstring
+    with multiple lines
+        and indent
+    """
+    pass
+
+class Item1:
+    """
+            indentations
+        all
+                over
+                        the
+                place
+    """
+    def __init__(self):
+        """
+            doc here too
+        """
+
+assert(test.__doc__ is "Simple docstring")
+assert(Item().__doc__ is "Class docstring\nwith multiple lines\n    and indent")
+assert(Item1().__doc__ is "    indentations\nall\n        over\n                the\n        place")

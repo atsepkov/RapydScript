@@ -385,18 +385,16 @@ AST_With = DEFNODE("With", "expression", {
 }, AST_StatementWithBody)
 
 # -----[ scope and functions ]-----
-AST_Scope = DEFNODE("Scope", "directives variables localvars functions uses_with uses_eval parent_scope enclosed cname", {
+AST_Scope = DEFNODE("Scope", "docstring directives variables localvars functions parent_scope enclosed cname", {
     $documentation: "Base class for all statements introducing a lexical scope",
     $propdoc: {
+        docstring: "[string?] docstring for this scope, if any",
         directives: "[string*/S] an array of directives declared in this scope",
         variables: "[Object/S] a map of name -> SymbolDef for all variables/functions defined in this scope",
         localvars: "[SymbolDef*] list of variables local to this scope",
         functions: "[Object/S] like `variables`, but only lists function declarations",
-        uses_with: "[boolean/S] tells whether this scope uses the `with` statement",
-        uses_eval: "[boolean/S] tells whether this scope contains a direct call to the global `eval`",
         parent_scope: "[AST_Scope?/S] link to the parent scope",
         enclosed: "[SymbolDef*/S] a list of all symbol definitions that are accessed from this scope or any subscopes",
-        cname: "[integer/S] current index for mangling variables (used internally by the mangler)"
     }
 }, AST_Block)
 
@@ -536,8 +534,8 @@ AST_Decorator = DEFNODE("Decorator", "expression", {
 AST_Lambda = DEFNODE("Lambda", "name argnames kwargs uses_arguments decorators generator return_annotation", {
     $documentation: "Base class for functions",
     $propdoc: {
-        name: "[AST_SymbolDeclaration?] the name of this function",
-        argnames: "[AST_SymbolFunarg*] array of function arguments",
+        name: "[AST_SymbolDeclaration?] the name of this function/class/method",
+        argnames: "[AST_SymbolFunarg*] array of arguments",
         kwargs: "[AST_SymbolFunarg?] kwargs symbol, if any",
         uses_arguments: "[boolean/S] tells whether this function accesses the arguments array",
         decorators: "[AST_Decorator*] function decorators, if any",
