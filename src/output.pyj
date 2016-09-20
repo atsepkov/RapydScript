@@ -404,18 +404,20 @@ def OutputStream(options):
         print_("=")
         space()
 
+
+    # TEMP VAR MANIPULATION
     tmpIndex = {
         "itr": 0, # iterator
         "idx": 0, # index
         "upk": 0, # unpack
         "_": 0,   # default
     }
-    def newTemp(subtype="_"):
-        # convenience method for generating unused temporary variable
-        nonlocal tmpIndex
+    def newTemp(subtype="_", buffer=True):
+        # convenience method for generating unused temporary\ variable
         tmpIndex[subtype] += 1
         tmp = RAPYD_PREFIX + subtype + tmpIndex[subtype]
-        BUFFERS[-1].vars.push(tmp)
+        if buffer:
+            BUFFERS[-1].vars.push(tmp)
         return tmp
 
     def prevTemp(subtype="_"):
@@ -441,6 +443,7 @@ def OutputStream(options):
             )
             end_statement()
         BUFFERS[-1].output += localBuffer.output
+
 
     stack = []
     return {
@@ -764,13 +767,11 @@ def OutputStream(options):
             output.assign(arg)
             output.print("ՐՏ_bind")
             output.with_parens(def():
-                output.print("this.")
-                output.print(arg)
+                output.print("this." + arg)
                 output.comma()
                 output.print("this")
             )
-            output.semicolon()
-            output.newline()
+            output.end_statement()
 
     def write_imports(module_, output):
         imports = []
@@ -782,7 +783,7 @@ def OutputStream(options):
         )
         if imports.length > 1:
             output.indent()
-            output.print('var ՐՏ_modules = {};')
+            output.spaced('var ՐՏ_modules', '=', '{};')
             output.newline()
 
         # Declare all variable names exported from the modules as global symbols
@@ -800,9 +801,8 @@ def OutputStream(options):
         for module_ in imports:
             if module_.module_id is not '__main__':
                 output.indent()
-                output.print('ՐՏ_modules["')
-                output.print(module_.module_id)
-                output.print('"] = {}')
+                output.assign('ՐՏ_modules["' + module_.module_id + '"]')
+                output.print('{}')
                 output.end_statement()
 
         # Output module code
@@ -814,7 +814,7 @@ def OutputStream(options):
         if output.option('write_name'):
             output.newline()
             output.indent()
-            output.spaced('var', '__name__', '=', '"__main__"')
+            output.spaced('var __name__', '=', '"__main__"')
             output.end_statement()
 
     def display_complex_body(node, is_toplevel, output):
@@ -834,10 +834,7 @@ def OutputStream(options):
                 # If *args is set, pass remainder of arguments to it
                 if node.argnames.starargs:
                     output.indent()
-                    output.print("var")
-                    output.space()
-                    output.assign(node.argnames.starargs)
-                    output.print("[].slice.call")
+                    output.spaced("var", node.argnames.starargs, '=', "[].slice.call")
                     output.with_parens(def():
                         output.print("arguments")
                         output.comma()
@@ -1264,10 +1261,16 @@ def OutputStream(options):
             'DictComprehension': '{}'
         }[self.TYPE]
 
+        # create temp vars, but tell the output that we'll manage their declaration ourselves
+        # technically we could have the compiler handle it by creating a new buffer, but it isn't worth the overhead
+        iterator = output.newTemp("itr", False)
+        index = output.newTemp("idx", False)
+        result = RAPYD_PREFIX + "res"
+
         if isinstance(self, AST_DictComprehension):
             add_entry = def():
                 output.indent()
-                output.print("ՐՏ_Result")
+                output.print(result)
                 output.with_square(def():
                     self.statement.print(output)
                 )
@@ -1278,7 +1281,7 @@ def OutputStream(options):
             #list comprehension
             add_entry = def():
                 output.indent()
-                output.print("ՐՏ_Result.push")
+                output.print(result + ".push")
                 output.with_parens(def():
                     self.statement.print(output)
                 )
@@ -1290,13 +1293,17 @@ def OutputStream(options):
             output.space()
             output.with_block(def():
                 output.indent()
-                output.assign("var ՐՏ_Iter")
+
+                # handle declarations for temporary variables
+                output.print('var ' + index)
+                output.comma()
+                output.assign(iterator)
                 output.print("ՐՏ_Iterable")
                 output.with_parens(def():
                     self.object.print(output)
                 )
                 output.comma()
-                output.assign("ՐՏ_Result")
+                output.assign(result)
                 output.print(constructor)
                 # make sure to locally scope loop variables
                 if isinstance(self.init, AST_Array):
@@ -1314,15 +1321,15 @@ def OutputStream(options):
                 output.print("for")
                 output.space()
                 output.with_parens(def():
-                    output.spaced("var", "ՐՏ_Index", "=", "0")
+                    output.spaced(index, "=", "0")
                     output.semicolon()
                     output.space()
 
-                    output.spaced("ՐՏ_Index", "<", "ՐՏ_Iter.length")
+                    output.spaced(index, "<", iterator + ".length")
                     output.semicolon()
                     output.space()
 
-                    output.print("ՐՏ_Index++")
+                    output.print(index + "++")
                 )
                 output.space()
                 output.with_block(def():
@@ -1340,13 +1347,13 @@ def OutputStream(options):
                             output.comma()
                         else:
                             output.assign(output.newTemp('upk'))
-                        output.print("ՐՏ_Iter[ՐՏ_Index];")
+                        output.print(iterator + "[" + index + "];")
                         output.newline()
                         if not output.option('es6'):
                             unpack_tuple(self.init, output)
                     else:
                         output.assign(self.init)
-                        output.print("ՐՏ_Iter[ՐՏ_Index];")
+                        output.print(iterator + "[" + index + "];")
                         output.newline()
 
                     if self.condition:
@@ -1366,7 +1373,7 @@ def OutputStream(options):
                 )
                 output.newline()
                 output.indent()
-                output.print("return ՐՏ_Result")
+                output.print("return " + result)
                 output.end_statement()
             )
         )
@@ -2274,8 +2281,7 @@ def OutputStream(options):
             self.right.print(output)
             if isinstance(self.left, AST_Array):
                 if not output.option('es6'):
-                    output.semicolon()
-                    output.newline()
+                    output.end_statement()
                     unpack_tuple(self.left, output, True)
     )
     DEFPRINT(AST_Conditional, def(self, output):
