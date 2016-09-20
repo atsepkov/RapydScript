@@ -290,7 +290,7 @@ def tokenizer($TEXT, filename):  # {{{
             col: S.tokcol,
             pos: S.tokpos,
             endpos: S.pos,
-            nlb: S.newline_before,
+            newline_before: S.newline_before,
             file: filename
         }
         if not is_comment:
@@ -298,7 +298,7 @@ def tokenizer($TEXT, filename):  # {{{
             S.comments_before = []
             # make note of any newlines in the comments that came before
             for i in range(len(ret.comments_before)):
-                ret.nlb = ret.nlb or ret.comments_before[i].nlb
+                ret.newline_before = ret.newline_before or ret.comments_before[i].newline_before
 
         if not keep_newline:
             S.newline_before = False

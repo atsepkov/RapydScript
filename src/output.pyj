@@ -610,7 +610,7 @@ def OutputStream(options):
                         output.indent()
                     elif c.type is "comment:multiline":
                         output.print("/*" + c.value + "*/")
-                        if start.nlb:
+                        if start.newline_before:
                             output.print("\n")
                             output.indent()
                         else:
@@ -793,9 +793,8 @@ def OutputStream(options):
         nonlocalvars = Object.getOwnPropertyNames(nonlocalvars).join(', ')
         if nonlocalvars.length:
             output.indent()
-            output.print('var ' + nonlocalvars);
-            output.semicolon()
-            output.newline()
+            output.print('var ' + nonlocalvars)
+            output.end_statement()
 
         # Create the module objects
         for module_ in imports:
@@ -804,8 +803,7 @@ def OutputStream(options):
                 output.print('ՐՏ_modules["')
                 output.print(module_.module_id)
                 output.print('"] = {}')
-                output.semicolon()
-                output.newline()
+                output.end_statement()
 
         # Output module code
         for module_ in imports:
@@ -816,9 +814,8 @@ def OutputStream(options):
         if output.option('write_name'):
             output.newline()
             output.indent()
-            output.print('var __name__ = "__main__"')
-            output.semicolon()
-            output.newline()
+            output.spaced('var', '__name__', '=', '"__main__"')
+            output.end_statement()
 
     def display_complex_body(node, is_toplevel, output):
         output.startLocalBuffer()
@@ -827,12 +824,8 @@ def OutputStream(options):
         # if this is a method, add 'var self = this'
         if isinstance(node, AST_Method) and not node.static:
             output.indent()
-            output.print("var")
-            output.space()
-            output.assign(node.argnames[0])
-            output.print("this")
-            output.semicolon()
-            output.newline()
+            output.spaced("var", node.argnames[0], "=", "this")
+            output.end_statement()
             offset += 1
 
         if isinstance(node, AST_Scope):
@@ -850,8 +843,7 @@ def OutputStream(options):
                         output.comma()
                         output.print(node.argnames.length - offset)
                     )
-                    output.semicolon()
-                    output.newline()
+                    output.end_statement()
 
                 # initialize default function arguments, if any
                 if not output.option('es6'):    # in es 6 the logic is now declared in the header, not the body
@@ -859,21 +851,13 @@ def OutputStream(options):
                         # typeof no longer needed with strict mode
                         # it also seems that it's no longer popular to assume that some troll overrode your undefined variable :)
                         output.indent()
-                        output.assign(arg)
-                        output.print(arg)
-                        output.space()
-                        output.print("===")
-                        output.space()
-                        output.print('void 0')  # about 2x as fast as undefined test
-                        output.space()
-                        output.print('?')
+                        output.spaced(arg, '=', arg, '===', 'void 0', '?')
                         output.space()
                         force_statement(node.argnames.defaults[arg], output)
                         output.space()
                         output.colon()
                         output.print(arg)
-                        output.semicolon()
-                        output.newline()
+                        output.end_statement()
 
             # rebind parent's methods and bind own methods
             # for now we'll make a naive assumption that a function
@@ -886,8 +870,7 @@ def OutputStream(options):
                     output.comma()
                     output.print("true")
                 )
-                output.semicolon()
-                output.newline()
+                output.end_statement()
                 bind_methods(node.bound, output)
 
             declare_vars(node.localvars, output)
@@ -895,12 +878,10 @@ def OutputStream(options):
         elif isinstance(node, AST_Except):
             if node.argname:
                 output.indent()
-                output.print("var")
-                output.space()
+                output.print("var ")
                 output.assign(node.argname)
                 output.print("ՐՏ_Exception")
-                output.semicolon()
-                output.newline()
+                output.end_statement()
 
         display_body(node.body, is_toplevel, output)
         output.endLocalBuffer()
@@ -909,16 +890,14 @@ def OutputStream(options):
         # declare all variables as local, unless explictly set otherwise
         if vars.length:
             output.indent()
-            output.print("var")
-            output.space()
+            output.print("var ")
             vars.forEach(def(arg, i):
                 if i:
                     output.comma()
 
                 arg.print(output)
             )
-            output.semicolon()
-            output.newline()
+            output.end_statement()
 
     def declare_exports(module_id, exports, submodules, output):
         seen = {}
@@ -927,8 +906,7 @@ def OutputStream(options):
             output.indent()
             output.print('ՐՏ_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
             seen[symbol.name] = True
-            output.semicolon()
-            output.newline()
+            output.end_statement()
         for sub_module_id in submodules:
             if not seen.hasOwnProperty(module_id):
                 key = sub_module_id.split('.')[-1]
@@ -936,8 +914,7 @@ def OutputStream(options):
                 output.indent()
                 output.print('ՐՏ_modules["' + module_id + '"]["' + key + '"] = ')
                 output.print('ՐՏ_modules["' + sub_module_id + '"]')
-                output.semicolon()
-                output.newline()
+                output.end_statement()
 
     def unpack_tuple(tuple, output, in_statement):
         tuple.elements.forEach(def(elem, i):
@@ -948,8 +925,7 @@ def OutputStream(options):
                 output.print(i)
             )
             if not in_statement or i < tuple.elements.length - 1:
-                output.semicolon()
-                output.newline()
+                output.end_statement()
         )
 
     AST_StatementWithBody.DEFMETHOD("_do_print_body", def(output):
@@ -970,8 +946,7 @@ def OutputStream(options):
                     # kind of like Python
                     output.indent()
                     output.print('"use strict"')
-                    output.semicolon()
-                    output.newline()
+                    output.end_statement()
 
 #                    output.prologue(self)
                     Object.keys(self.baselib).forEach(def(key):
@@ -1020,19 +995,16 @@ def OutputStream(options):
             output.with_block(def():
                 # dump the logic of this module
                 output.indent()
-                output.print('var ')
-                output.assign('__name__')
+                output.assign('var __name__')
                 output.print('"' + self.module_id + '"')
-                output.semicolon()
-                output.newline()
+                output.end_statement()
                 declare_vars(self.localvars, output)
                 display_body(self.body, True, output)
                 declare_exports(self.module_id, self.exports, self.submodules, output)
             )
         )
         output.print("()")
-        output.semicolon()
-        output.newline()
+        output.end_statement()
 
     DEFPRINT(AST_Splat, def(self, output):
         if output.import(self.module.name):
@@ -1043,16 +1015,11 @@ def OutputStream(options):
     DEFPRINT(AST_Imports, def(container, output):
 
         def add_aname(aname, key, from_import):
-            output.print('var ')
-            output.assign(aname)
-            output.print('ՐՏ_modules["')
-            output.print(key)
-            output.print('"]')
+            output.assign('var ' + aname)
+            output.print('ՐՏ_modules["' + key + '"]')
             if from_import:
-                output.print('.')
-                output.print(from_import)
-            output.semicolon()
-            output.newline()
+                output.print('.' + from_import)
+            output.end_statement()
             output.indent()
 
         for self in container.imports:
@@ -1237,11 +1204,7 @@ def OutputStream(options):
             output.print("for")
             output.space()
             output.with_parens(def():
-                self.init.print(output)
-                output.space()
-                output.print('in')
-                output.space()
-                self.object.args[0].print(output)
+                output.spaced(self.init, 'in', self.object.args[0])
             )
         else:
             # regular loop
@@ -1251,8 +1214,8 @@ def OutputStream(options):
             output.with_parens(def():
                 self.object.print(output)
             )
-            output.semicolon()
-            output.newline()
+            output.end_statement()
+
             output.indent()
             output.print("for")
             output.space()
@@ -1262,11 +1225,8 @@ def OutputStream(options):
                 output.print("0")
                 output.semicolon()
                 output.space()
-                output.print(index)
-                output.space()
-                output.print("<")
-                output.space()
-                output.print(iterator + ".length")
+
+                output.spaced(index, "<", iterator + ".length")
                 output.semicolon()
                 output.space()
                 output.print(index + "++")
@@ -1311,12 +1271,9 @@ def OutputStream(options):
                 output.with_square(def():
                     self.statement.print(output)
                 )
-                output.space()
-                output.print('=')
-                output.space()
+                output.assign('')
                 self.value_statement.print(output)
-                output.semicolon()
-                output.newline()
+                output.end_statement()
         else:
             #list comprehension
             add_entry = def():
@@ -1325,8 +1282,7 @@ def OutputStream(options):
                 output.with_parens(def():
                     self.statement.print(output)
                 )
-                output.semicolon()
-                output.newline()
+                output.end_statement()
 
         output.with_parens(def():
             output.print("function")
@@ -1358,19 +1314,14 @@ def OutputStream(options):
                 output.print("for")
                 output.space()
                 output.with_parens(def():
-                    output.print("var")
-                    output.space()
-                    output.assign("ՐՏ_Index")
-                    output.print("0")
+                    output.spaced("var", "ՐՏ_Index", "=", "0")
                     output.semicolon()
                     output.space()
-                    output.print("ՐՏ_Index")
-                    output.space()
-                    output.print("<")
-                    output.space()
-                    output.print("ՐՏ_Iter.length")
+
+                    output.spaced("ՐՏ_Index", "<", "ՐՏ_Iter.length")
                     output.semicolon()
                     output.space()
+
                     output.print("ՐՏ_Index++")
                 )
                 output.space()
@@ -1416,8 +1367,7 @@ def OutputStream(options):
                 output.newline()
                 output.indent()
                 output.print("return ՐՏ_Result")
-                output.semicolon()
-                output.newline()
+                output.end_statement()
             )
         )
         output.print("()")
@@ -1665,8 +1615,7 @@ def OutputStream(options):
 
     DEFPRINT(AST_SymbolClassRef, def(self, output):
         self.class.print(output)
-        output.print('.prototype.')
-        output.print(self.name)
+        output.print('.prototype.' + self.name)
     )
 
     # -----[ exits ]-----
@@ -1729,16 +1678,16 @@ def OutputStream(options):
             make_block(self.body, output)
             return
 
-        b = self.body
+        body = self.body
         while True:
-            if isinstance(b, AST_If):
-                if not b.alternative:
+            if isinstance(body, AST_If):
+                if not body.alternative:
                     make_block(self.body, output)
                     return
 
-                b = b.alternative
-            elif isinstance(b, AST_StatementWithBody):
-                b = b.body
+                body = body.alternative
+            elif isinstance(body, AST_StatementWithBody):
+                body = body.body
             else:
                 break
 
@@ -1824,7 +1773,6 @@ def OutputStream(options):
             output.print("ՐՏ_Exception")
         )
         output.space()
-        #        print_bracketed(self, output);
         if self.body.length > 1 or self.body[0].errors.length:
             output.with_block(def():
                 output.indent()
@@ -1844,11 +1792,7 @@ def OutputStream(options):
                                     output.print("||")
                                     output.space()
 
-                                output.print("ՐՏ_Exception")
-                                output.space()
-                                output.print("instanceof")
-                                output.space()
-                                err.print(output)
+                                output.spaced("ՐՏ_Exception", "instanceof", err)
                             )
                         )
                         output.space()
@@ -1862,11 +1806,8 @@ def OutputStream(options):
                     output.space()
                     output.with_block(def():
                         output.indent()
-                        output.print("throw")
-                        output.space()
-                        output.print("ՐՏ_Exception")
-                        output.semicolon()
-                        output.newline()
+                        output.spaced("throw", "ՐՏ_Exception")
+                        output.end_statement()
                     )
                 output.newline()
             )
@@ -1906,7 +1847,6 @@ def OutputStream(options):
         else:
             try:
                 # need to take some precautions here:
-                #    https://github.com/mishoo/RapydScript2/issues/60
                 node.walk(new TreeWalker(def(node):
                     if isinstance(node, AST_Binary) and node.operator is "in":
                         raise output
@@ -1921,12 +1861,7 @@ def OutputStream(options):
         self.name.print(output)
         if self.value:
             output.assign("")
-            #            output.space();
-            #            output.print("=");
-            #            output.space();
-            p = output.parent(1)
-            noin = isinstance(p, AST_ForIn)
-            parenthesize_for_noin(self.value, output, noin)
+            parenthesize_for_noin(self.value, output, isinstance(output.parent(1), AST_ForIn))
     )
 
     # -----[ other expressions ]-----
@@ -1940,21 +1875,18 @@ def OutputStream(options):
     DEFPRINT(AST_BaseCall, def(self, output):
 
         # logic for defining the format of a function call (class, static, normal, decorated)
-        call_format = def():
+        def call_format():
             if isinstance(self, AST_ClassCall):
                 # class methods are called through the prototype unless static
                 if self.static:
                     self.class.print(output)
-                    output.print(".")
-                    output.print(self.method)
+                    output.print("." + self.method)
                 else:
                     self.class.print(output)
-                    output.print(".prototype.")
-                    output.print(self.method)
-                    output.print(".call")
+                    output.print(".prototype." + self.method + ".call")
             else:
                 # regular function call
-                rename = SPECIAL_METHODS.hasOwnProperty(self.expression.name) ? SPECIAL_METHODS[self.expression.name] : undefined
+                rename = self.expression.name in SPECIAL_METHODS ? SPECIAL_METHODS[self.expression.name] : undefined
                 if rename:
                     # this is a special baselib function
                     output.print(rename)
@@ -2241,22 +2173,11 @@ def OutputStream(options):
                 )
 
             output.space()
-            output.print("&&")
-            output.space()
-            output.print(leftvar)
-            output.space()
-            output.print(operator)
-            output.space()
-            self.right.print(output)
+            output.spaced('&&', leftvar, operator, self.right)
         else:
-            operator = normalize(self.operator)
-
-            self.left.print(output)
-            output.space()
-            output.print(operator)
-            output.space()
-            self.right.print(output)
+            output.spaced(self.left, normalize(self.operator), self.right)
     )
+
     DEFPRINT(AST_DeepEquality, def(self, output):
         # a fast implementation of deep equality
         # TODO: this does not handle comparators logic yet
@@ -2273,22 +2194,11 @@ def OutputStream(options):
             output.with_parens(def():
                 if self.operator is '==':
                     # positive case, eliminate truthy immutable comparisons
-                    self.left.print(output)
-                    output.space()
-                    output.print('===')
-                    output.space()
-                    self.right.print(output)
+                    output.spaced(self.left, '===', self.right)
                     output.space()
 
                     # negative case, eliminate falsy immutable comparisons
-                    output.print('||')
-                    output.space()
-                    output.print('typeof ')
-                    self.left.print(output)
-                    output.space()
-                    output.print('===')
-                    output.space()
-                    output.print('"object"')
+                    output.spaced('||', 'typeof', self.left, '===', '"object"')
                     output.space()
 
                     # deep case
@@ -2302,23 +2212,14 @@ def OutputStream(options):
                     )
                 else:
                     # negative case, eliminate truthy immutable comparisons
-                    self.left.print(output)
-                    output.space()
-                    output.print('!==')
-                    output.space()
-                    self.right.print(output)
+                    output.spaced(self.left, '!==', self.right)
                     output.space()
 
                     # negative case, eliminate falsy immutable comparisons
                     output.print('&&')
                     output.space()
                     output.with_parens(def():
-                        output.print('typeof ')
-                        self.left.print(output)
-                        output.space()
-                        output.print('!==')
-                        output.space()
-                        output.print('"object"')
+                        output.spaced('typeof', self.left, '!==', '"object"')
                         output.space()
 
                         # deep case
@@ -2391,11 +2292,11 @@ def OutputStream(options):
     # -----[ literals ]-----
     DEFPRINT(AST_Array, def(self, output):
         output.with_square(def():
-            a = self.elements
-            len_ = a.length
+            array = self.elements
+            len_ = array.length
             if len_ > 0:
                 output.space()
-            a.forEach(def(exp, i):
+            array.forEach(def(exp, i):
                 if i:
                     output.comma()
                 exp.print(output)
@@ -2413,7 +2314,7 @@ def OutputStream(options):
             if self.operator is "to": end += step/1e6
             output.with_square(def():
                 for i in range(start, end, step):
-                    if (i is not start): output.comma()
+                    if i is not start: output.comma()
                     output.print(i)
             )
         else:
@@ -2555,35 +2456,36 @@ def OutputStream(options):
         # self should be AST_New, decide if we want to show parens or not.
         return self.args.length is 0 and not output.option("beautify")
 
-    def best_of(a):
-        best = a[0]
+    def best_of(choices):
+        best = choices[0]
         len_ = best.length
-        for i in range(1, a.length):
-            if a[i].length < len_:
-                best = a[i]
+        for i in range(1, choices.length):
+            if choices[i].length < len_:
+                best = choices[i]
                 len_ = best.length
         return best
 
     def make_num(num):
+        # convert number into best possible numeric representation
         str_ = num.toString(10)
-        a = [ str_.replace(/^0\./, ".").replace("e+", "e") ]
-        m = None
+        choices = [ str_.replace(/^0\./, ".").replace("e+", "e") ]
+        match = None
 
         if Math.floor(num) is num:
             if num >= 0:
-                a.push("0x" + num.toString(16).toLowerCase(), # probably pointless
+                choices.push("0x" + num.toString(16).toLowerCase(), # probably pointless
                 "0" + num.toString(8))
             else:
-                a.push("-0x" + (-num).toString(16).toLowerCase(), # probably pointless
+                choices.push("-0x" + (-num).toString(16).toLowerCase(), # probably pointless
                 "-0" + (-num).toString(8))
 
-            if m = /^(.*?)(0+)$/.exec(num):
-                a.push(m[1] + "e" + m[2].length)
+            if match = /^(.*?)(0+)$/.exec(num):
+                choices.push(match[1] + "e" + match[2].length)
 
-        elif m = /^0?\.(0+)(.*)$/.exec(num):
-            a.push(m[2] + "e-" + (m[1].length + m[2].length), str_.substr(str_.indexOf(".")))
+        elif match = /^0?\.(0+)(.*)$/.exec(num):
+            choices.push(match[2] + "e-" + (match[1].length + match[2].length), str_.substr(str_.indexOf(".")))
 
-        return best_of(a)
+        return best_of(choices)
 
     def make_block(stmt, output):
         if isinstance(stmt, AST_BlockStatement):

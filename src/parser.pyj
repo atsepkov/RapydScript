@@ -311,12 +311,12 @@ def parse($TEXT, options):
         return expect_token("punc", punc)
 
     def can_insert_semicolon():
-        return not options.strict and (S.token.nlb or is_("eof") or is_("punc", "}"))
+        return not options.strict and (S.token.newline_before or is_("eof") or is_("punc", "}"))
 
     def semicolon():
         if is_("punc", ";"):
             next()
-            S.token.nlb = True
+            S.token.newline_before = True
 
     def parenthesised():
         expect("(")
@@ -390,7 +390,7 @@ def parse($TEXT, options):
     def statement():
         if is_("operator", "/") or is_("operator", "/="):
             S.peeked = None
-            S.token = S.input(S.token.value.substr(1))
+            S.token = S.input(S.token.value[1:])
 
         tmp_ = S.token.type
         if tmp_ is "string":
@@ -521,7 +521,7 @@ def parse($TEXT, options):
                     body: in_loop(switch_body_)
                 })
             elif tmp_ is "raise":
-                if S.token.nlb:
+                if S.token.newline_before:
                     return new AST_Throw({
                         value: new AST_SymbolCatch({
                             name: "ՐՏ_Exception"
@@ -1180,8 +1180,8 @@ def parse($TEXT, options):
     def block_():
         expect(":")
         a = []
-        if not S.token.nlb:
-            while not S.token.nlb:
+        if not S.token.newline_before:
+            while not S.token.newline_before:
                 if is_("eof"):
                     unexpected()
                 stmt = statement()
@@ -1790,7 +1790,7 @@ def parse($TEXT, options):
                 end: prev()
             }), allow_calls)
 
-        if is_("punc", "[") and not S.token.nlb:
+        if is_("punc", "[") and not S.token.newline_before:
             next()
             slice_bounds = []
             is_slice = False
@@ -1880,7 +1880,7 @@ def parse($TEXT, options):
                     end: prev()
                 }), allow_calls)
 
-        if allow_calls and is_("punc", "(") and not S.token.nlb:
+        if allow_calls and is_("punc", "(") and not S.token.newline_before:
             next()
             if isinstance(expr, AST_SymbolRef) and expr.name is "JS":
                 # raw JavaScript chunk of code
@@ -1989,7 +1989,7 @@ def parse($TEXT, options):
             return ex
 
         val = expr_atom(allow_calls)
-        while is_("operator") and UNARY_POSTFIX(S.token.value) and not S.token.nlb:
+        while is_("operator") and UNARY_POSTFIX(S.token.value) and not S.token.newline_before:
             val = make_unary(AST_UnaryPostfix, S.token.value, val)
             val.start = start
             val.end = S.token
@@ -2116,7 +2116,7 @@ def parse($TEXT, options):
         expr = maybe_assign(no_in)
         if commas:
             left = [ expr ]
-            while is_("punc", ",") and not peek().nlb:
+            while is_("punc", ",") and not peek().newline_before:
                 S.in_seq = True
                 next()
                 if isinstance(expr, AST_Assign):

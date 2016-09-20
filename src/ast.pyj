@@ -91,22 +91,22 @@ def DEFNODE(type, props, methods, base):
             return this.computedType
 
     if methods:
-        for i in dir(methods):
-            if methods.hasOwnProperty(i):
-                if i is 'resolveType':
-                    # poor man's decorator until I get rid of this entire function
-                    ctor.prototype[i] = memoized(methods[i])
-                elif /^\$/.test(i):
-                    ctor[i.substr(1)] = methods[i]
+        for method in dir(methods):
+            if methods.hasOwnProperty(method):
+                if method is 'resolveType':
+                    # poor man's decorator until method get rid of this entire function
+                    ctor.prototype[method] = memoized(methods[method])
+                elif /^\$/.test(method):
+                    ctor[method[1:]] = methods[method]
                 else:
-                    ctor.prototype[i] = methods[i]
+                    ctor.prototype[method] = methods[method]
 
     ctor.DEFMETHOD = def(name, method):
         this.prototype[name] = method
 
     return ctor
 
-AST_Token = DEFNODE("Token", "type value line col pos endpos nlb comments_before file", {}, None)
+AST_Token = DEFNODE("Token", "type value line col pos endpos newline_before comments_before file", {}, None)
 
 AST_Node = DEFNODE("Node", "start end", {
     clone: def():
@@ -134,7 +134,7 @@ AST_Node = DEFNODE("Node", "start end", {
             compact: use compact representation of the node
         """
 
-        out = def(string):
+        def out(string):
             pad = Array(offset + 1).join('  ')
             console.log(pad + string)
 
