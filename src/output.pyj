@@ -75,7 +75,10 @@ def OutputStream(options):
     current_col = 0
     current_line = 1
     current_pos = 0
-    OUTPUT = ""
+    BUFFERS = [{
+        vars: [],
+        output: ""
+    }]
     IMPORTED = {}
     def to_ascii(str_, identifier):
         return str_.replace(/[\u0080-\uffff]/g, def(ch):
@@ -161,20 +164,19 @@ def OutputStream(options):
         if options.max_line_len and current_col > options.max_line_len:
             print_("\n")
 
-
     requireSemicolonChars = makePredicate("( [ + * / - , .")
     def print_(str_):
-        nonlocal might_need_space, might_need_semicolon, last, current_line, current_pos, current_col, OUTPUT
-        str_ = JS("String(str_)")
+        nonlocal might_need_space, might_need_semicolon, last, current_line, current_pos, current_col
+        str_ = (String)(str_)
         ch = str_.charAt(0)
         if might_need_semicolon:
             if (not ch or ch not in ";}") and not /[;]$/.test(last):
                 if options.semicolons or requireSemicolonChars(ch):
-                    OUTPUT += ";"
+                    BUFFERS[-1].output += ";"
                     current_col += 1
                     current_pos += 1
                 else:
-                    OUTPUT += "\n"
+                    BUFFERS[-1].output += "\n"
                     current_pos += 1
                     current_line += 1
                     current_col = 0
@@ -189,7 +191,7 @@ def OutputStream(options):
         if not options.beautify and options.preserve_line and stack[stack.length - 1]:
             target_line = stack[stack.length - 1].start.line
             while current_line < target_line:
-                OUTPUT += "\n"
+                BUFFERS[-1].output += "\n"
                 current_pos += 1
                 current_line += 1
                 current_col = 0
@@ -200,7 +202,7 @@ def OutputStream(options):
             prev = last_char()
             if is_identifier_char(prev) and (is_identifier_char(ch) or ch is "\\")
             or /^[\+\-\/]$/.test(ch) and ch is prev:
-                OUTPUT += " "
+                BUFFERS[-1].output += " "
                 current_col += 1
                 current_pos += 1
 
@@ -216,7 +218,7 @@ def OutputStream(options):
 
         current_pos += str_.length
         last = str_
-        OUTPUT += str_
+        BUFFERS[-1].output += str_
 
     space = options.beautify ? def(): print_(" ")
     : def():
@@ -380,7 +382,17 @@ def OutputStream(options):
     : noop)
 
     def get():
-        return OUTPUT
+        if BUFFERS.len > 1:
+            raise Error('Something went wrong, output generator didn\'t exit all of its scopes properly.')
+
+        # a bit of a cheat to reuse the scope-closing logic to dump variables in main scope consistently
+        if BUFFERS[0].vars.length:
+            BUFFERS.unshift({
+                vars: [],
+                output: ''
+            })
+            endLocalBuffer()
+        return BUFFERS[0].output
 
     # generates: '[name] = '
     def assign_var(name):
@@ -391,6 +403,44 @@ def OutputStream(options):
         space()
         print_("=")
         space()
+
+    tmpIndex = {
+        "itr": 0, # iterator
+        "idx": 0, # index
+        "upk": 0, # unpack
+        "_": 0,   # default
+    }
+    def newTemp(subtype="_"):
+        # convenience method for generating unused temporary variable
+        nonlocal tmpIndex
+        tmpIndex[subtype] += 1
+        tmp = RAPYD_PREFIX + subtype + tmpIndex[subtype]
+        BUFFERS[-1].vars.push(tmp)
+        return tmp
+
+    def prevTemp(subtype="_"):
+        # returns most recently declared temporary variable
+        return RAPYD_PREFIX + subtype + tmpIndex[subtype]
+
+    def startLocalBuffer():
+        # helper method for abstracting scope creation a bit, allows us cleaner injection of temp vars
+        BUFFERS.push({
+            vars: [],
+            output: ""
+        })
+
+    def endLocalBuffer():
+        # flushes local buffer, declaring the requested localvars
+        localBuffer = BUFFERS.pop()
+        if localBuffer.vars.length:
+            indent()
+            print_('var ')
+            localBuffer.vars.forEach(def(local, i):
+                if i: comma()
+                print_(local)
+            )
+            end_statement()
+        BUFFERS[-1].output += localBuffer.output
 
     stack = []
     return {
@@ -424,6 +474,8 @@ def OutputStream(options):
         spaced: spaced,
         end_statement: end_statement,
         addProperty: addProperty,
+        startLocalBuffer: startLocalBuffer,
+        endLocalBuffer: endLocalBuffer,
         addProperties: addProperties,
         with_square: with_square,
         add_mapping: add_mapping,
@@ -440,7 +492,7 @@ def OutputStream(options):
                 return True
             return False
         ,
-        is_main: def(): return OUTPUT.length is 0
+        is_main: def(): return BUFFERS.length is 1 and BUFFERS[-1].output.length is 0
         ,
         option: def(opt): return options[opt]
         ,
@@ -456,7 +508,8 @@ def OutputStream(options):
         ,
         stack: def(): return stack
         ,
-        tmp_index: 0,
+        newTemp: newTemp,
+        prevTemp: prevTemp,
         parent: def(n): return stack[stack.length - 2 - (n or 0)]
 
     }
@@ -476,13 +529,6 @@ def OutputStream(options):
         eslice: "ՐՏ_eslice",
     }
 
-    tmp_index = 0 # TODO: replace with a generator when ES6 becomes mainstream
-    def tempVar(subtype=""):
-        # convenience method for generating unused temporary variable
-        nonlocal tmp_index
-        tmp_index += 1
-        return RAPYD_PREFIX + subtype + tmp_index
-
     def unify(output, assign, *args):
         # unifies multiple operations to look like part of a single mechanism to JavaScript
         # this logic is used to accomplish an intelligent caching routine, where the base operation is assumed
@@ -492,8 +538,7 @@ def OutputStream(options):
         return def(baseFn):
             if args.length:
                 return def():
-                    tmp = "ՐՏ" + output.tmp_index
-                    output.tmp_index += 1
+                    tmp = output.newTemp()
                     if assign: output.assign(assign)
                     output.with_parens(def():
                         output.assign(tmp)
@@ -776,6 +821,7 @@ def OutputStream(options):
             output.newline()
 
     def display_complex_body(node, is_toplevel, output):
+        output.startLocalBuffer()
         offset = 0 # argument offset, applies if this is a method of a class
 
         # if this is a method, add 'var self = this'
@@ -857,6 +903,7 @@ def OutputStream(options):
                 output.newline()
 
         display_body(node.body, is_toplevel, output)
+        output.endLocalBuffer()
 
     def declare_vars(vars, output):
         # declare all variables as local, unless explictly set otherwise
@@ -896,7 +943,7 @@ def OutputStream(options):
         tuple.elements.forEach(def(elem, i):
             output.indent()
             output.assign(elem)
-            output.print("ՐՏ_Unpack" + output.tmp_index)
+            output.print(output.prevTemp("upk"))
             output.with_square(def():
                 output.print(i)
             )
@@ -923,12 +970,6 @@ def OutputStream(options):
                     # kind of like Python
                     output.indent()
                     output.print('"use strict"')
-                    output.semicolon()
-                    output.newline()
-
-                    # TODO: this is a hack for now, should probably declare this in local-most scope
-                    output.indent()
-                    output.print("var ՐՏ_Temp")
                     output.semicolon()
                     output.newline()
 
@@ -1112,8 +1153,8 @@ def OutputStream(options):
             if not (is_simple_for(self) or is_simple_for_in(self)):
                 # if we're using multiple iterators, unpack them
                 output.indent()
-                iterator = "ՐՏ_Iter" + output.tmp_index
-                index = "ՐՏ_Index" + output.tmp_index
+                iterator = output.prevTemp('itr') # declared in DEFPRINT
+                index = output.prevTemp('idx')    # declared in DEFPRINT
                 if isinstance(self.init, AST_Array):
                     if output.option('es6'):
                         output.with_square(def():
@@ -1128,8 +1169,8 @@ def OutputStream(options):
                         output.print(iterator + "[" + index + "];")
                         output.newline()
                     else:
-                        unpack = "ՐՏ_Unpack" + output.tmp_index
-                        output.assign("var " + unpack)
+                        unpack = output.newTemp('upk')
+                        output.assign(unpack)
                         output.print(iterator + "[" + index + "];")
                         output.newline()
                         unpack_tuple(self.init, output)
@@ -1137,8 +1178,6 @@ def OutputStream(options):
                     output.assign(self.init)
                     output.print(iterator + "[" + index + "];")
                     output.newline()
-
-                output.tmp_index += 1
 
             self.body.body.forEach(def(stmt, i):
                 output.indent()
@@ -1194,7 +1233,7 @@ def OutputStream(options):
                         output.print("++")
             )
         elif is_simple_for_in(self):
-            # optimize dir() into a simple for in loop
+            # optimize dir() into a simple for-in loop
             output.print("for")
             output.space()
             output.with_parens(def():
@@ -1206,7 +1245,8 @@ def OutputStream(options):
             )
         else:
             # regular loop
-            output.assign("var ՐՏ_Iter" + output.tmp_index)
+            iterator = output.newTemp('itr')
+            output.assign(iterator)
             output.print("ՐՏ_Iterable")
             output.with_parens(def():
                 self.object.print(output)
@@ -1217,20 +1257,19 @@ def OutputStream(options):
             output.print("for")
             output.space()
             output.with_parens(def():
-                output.print("var")
-                output.space()
-                output.assign("ՐՏ_Index" + output.tmp_index)
+                index = output.newTemp('idx')
+                output.assign(index)
                 output.print("0")
                 output.semicolon()
                 output.space()
-                output.print("ՐՏ_Index" + output.tmp_index)
+                output.print(index)
                 output.space()
                 output.print("<")
                 output.space()
-                output.print("ՐՏ_Iter" + output.tmp_index + ".length")
+                output.print(iterator + ".length")
                 output.semicolon()
                 output.space()
-                output.print("ՐՏ_Index" + output.tmp_index + "++")
+                output.print(index + "++")
             )
 
         output.space()
@@ -1349,12 +1388,11 @@ def OutputStream(options):
                             output.print('=')
                             output.comma()
                         else:
-                            output.assign("var ՐՏ_Unpack" + output.tmp_index)
+                            output.assign(output.newTemp('upk'))
                         output.print("ՐՏ_Iter[ՐՏ_Index];")
                         output.newline()
                         if not output.option('es6'):
                             unpack_tuple(self.init, output)
-                        output.tmp_index += 1
                     else:
                         output.assign(self.init)
                         output.print("ՐՏ_Iter[ՐՏ_Index];")
@@ -1460,7 +1498,7 @@ def OutputStream(options):
 
                 # handle kwargs hook, if there is a kwargs decorator
                 if self.kwargs:
-                    if argnames.length:
+                    if self.argnames.length:
                         output.comma()
                     # it's a generic argument name, we'll rename it in function body
                     output.print('ՐՏ_kw')
@@ -2197,9 +2235,9 @@ def OutputStream(options):
                 output.space()
                 output.with_parens(def():
                     nonlocal leftvar
-                    output.assign("ՐՏ_Temp")
+                    leftvar = output.newTemp()
+                    output.assign(leftvar)
                     self.left.right.print(output)
-                    leftvar = "ՐՏ_Temp"
                 )
 
             output.space()
@@ -2322,7 +2360,7 @@ def OutputStream(options):
                         )
                     )
                 else:
-                    output.print("var ՐՏ_Unpack" + output.tmp_index)
+                    output.print(output.newTemp('upk'))
             else:
                 self.left.print(output)
 
@@ -2338,7 +2376,6 @@ def OutputStream(options):
                     output.semicolon()
                     output.newline()
                     unpack_tuple(self.left, output, True)
-                output.tmp_index += 1
     )
     DEFPRINT(AST_Conditional, def(self, output):
         self.condition.print(output)

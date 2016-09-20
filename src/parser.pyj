@@ -273,9 +273,11 @@ def parse($TEXT, options):
     def next():
         S.prev = S.token
         if S.peeked:
+            # next token is already cached, reuse it
             S.token = S.peeked
             S.peeked = None
         else:
+            # process next token
             S.token = S.input()
 
         S.in_directives = S.in_directives and (S.token.type is "string" or is_("punc", ";"))
@@ -1085,7 +1087,7 @@ def parse($TEXT, options):
                     name: name ? name.name : None,
                     return: return_annotation,
                     nonlocal: {},
-                    vars: { "ՐՏ_Temp": ["?"] }, # a temporary workaround to avoid strict mode from going berserk, we'll assume there is a temp var in each scope
+                    vars: {},
                     args: function_args,
                     functions: {},
                     classes: {}

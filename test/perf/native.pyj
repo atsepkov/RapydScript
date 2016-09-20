@@ -10,6 +10,7 @@
 hash = {foo: 1, bar: 2, baz: 3, qux: 4, quux: 5}
 arr = [1 to 10]
 string = 'baz'
+str2 = Array(1000).join('x')
 c = 1
 
 bench.add('===', def():
@@ -62,4 +63,13 @@ bench.add('c += 1', def():
 )
 bench.add('++c', def():
     JS('++c')
+)
+bench.add('str.substr', def():
+    JS('str2.substr(50)')
+)
+bench.add('str.substring', def():
+    JS('str2.substring(50)')
+)
+bench.add('str.slice', def():
+    JS('str2.slice(50)')
 )

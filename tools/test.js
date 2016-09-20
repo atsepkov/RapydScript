@@ -119,7 +119,7 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
             });
         }
         files.forEach(function(file) {
-            var bench = new Benchmark.Suite;
+            var bench = new Benchmark.Suite();
             var output = compileFile(file, perf_dir);
             var code = output.toString();
 

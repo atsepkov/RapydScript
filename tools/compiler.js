@@ -52,6 +52,7 @@ exports.parse_baselib = function(src_path, beautify) {
         baselibAst = RapydScript.parse(fs.readFileSync(baselibPath, "utf-8"), {
             readfile: fs.readFileSync,
         });
+        //baselibAst.dump();
     } catch(e) {
         if (e.code == "ENOENT") {
             throw "Failed to locate baselib module.";
@@ -74,15 +75,6 @@ exports.parse_baselib = function(src_path, beautify) {
         baselibList[key] = splat_baselib(key, value);
     });
 
-    // GET RID OF THIS, we just want to return a list of splats
-//    var outputStream = RapydScript.OutputStream({
-//        private_scope: false,
-//        beautify: beautify,
-//        write_name: false,
-//        omit_baselib: true,  // We are generating baselib here, cannot depend on it
-//    });
-//    baselibAst.print(outputStream);
-//    return eval(outputStream.toString());  // jshint ignore:line
     return baselibList;
 };
 
@@ -135,7 +127,7 @@ exports.get_import_dirs = function(paths_string, ignore_env) {
     }
     if (paths_string) paths_string.split(path.delimiter).forEach(merge);
     return paths;
-}
+};
 
 exports.minify = function(files, options) {
     options = RapydScript.defaults(options, {

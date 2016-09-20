@@ -472,16 +472,16 @@ def tokenizer($TEXT, filename):  # {{{
                     while tmp.length:
                         # parse escaped characters
                         if tmp[0] is "\\":
-                            tmp = tmp.substr(1)
+                            tmp = tmp[1:]
                             ret += read_escaped_char(True, def():
                                 nonlocal tmp
                                 ch = tmp[0]
-                                tmp = tmp.substr(1)
+                                tmp = tmp[1:]
                                 return ch
                             )
                         else:
                             ret += tmp[0]
-                            tmp = tmp.substr(1)
+                            tmp = tmp[1:]
 
                     # add traversed lines to the counter
                     find_newlines = ret.match(/\n/g)
