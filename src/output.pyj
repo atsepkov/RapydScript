@@ -1476,7 +1476,7 @@ def OutputStream(options):
         if self.external:
             return
 
-        define_method = def(stmt):
+        def define_method(stmt):
             return def(output):
                 name = stmt.name.name
                 def internalsub():
@@ -1497,7 +1497,7 @@ def OutputStream(options):
 
                         # handle kwargs hook, if there is a kwargs decorator
                         if self.kwargs:
-                            if argnames.length:
+                            if self.argnames.length:
                                 output.comma()
                             # it's a generic argument name, we'll rename it in function body
                             output.print('ՐՏ_kw')

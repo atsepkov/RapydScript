@@ -1,0 +1,166 @@
+# Performance tests for various native functions. Unlike other modules in
+# this directory these tests are not representative of RapydScript itself,
+# but they're useful to understand when writing new modules or baselib
+# functionality for RapydScript. When possible, replace the slower logic
+# with more performant equivalents. Keep in mind that performance may vary
+# somewhat depending on platform-specific implementation, I would ignore any
+# differences smaller than 20% for that reason.
+# Author: Alexander Tsepkov
+
+arg = 'foo'
+prebuilt = {
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eightteen": 18,
+    "nineteen": 19
+}
+m = new Map()
+m.set("one", 1)
+m.set("two", 2)
+m.set("three", 3)
+m.set("four", 4)
+m.set("five", 5)
+m.set("six", 6)
+m.set("seven", 7)
+m.set("eight", 8)
+m.set("nine", 9)
+m.set("ten", 10)
+m.set("eleven", 11)
+m.set("twelve", 12)
+m.set("thirteen", 13)
+m.set("fourteen", 14)
+m.set("fifteen", 15)
+m.set("sixteen", 16)
+m.set("seventeen", 17)
+m.set("eightteen", 18)
+m.set("nineteen", 19)
+array = [1 to 19]
+
+bench.add('if/elif', def():
+    JS("""
+        if (arg == "one") return 1;
+        else if (arg == "two") return 2;
+        else if (arg == "three") return 3;
+        else if (arg == "four") return 4;
+        else if (arg == "five") return 5;
+        else if (arg == "six") return 6;
+        else if (arg == "seven") return 7;
+        else if (arg == "eight") return 8;
+        else if (arg == "nine") return 9;
+        else if (arg == "ten") return 10;
+        else if (arg == "eleven") return 11;
+        else if (arg == "twelve") return 12;
+        else if (arg == "thirteen") return 13;
+        else if (arg == "fourteen") return 14;
+        else if (arg == "fifteen") return 15;
+        else if (arg == "sixteen") return 16;
+        else if (arg == "seventeen") return 17;
+        else if (arg == "eightteen") return 18;
+        else if (arg == "nineteen") return 19;
+        else return 20;
+    """)
+)
+bench.add('switch', def():
+    JS("""
+        switch (arg) {
+            case "one": return 1;
+            case "two": return 2;
+            case "three": return 3;
+            case "four": return 4;
+            case "five": return 5;
+            case "six": return 6;
+            case "seven": return 7;
+            case "eight": return 8;
+            case "nine": return 9;
+            case "ten": return 10;
+            case "eleven": return 11;
+            case "twelve": return 12;
+            case "thirteen": return 13;
+            case "fourteen": return 14;
+            case "fifteen": return 15;
+            case "sixteen": return 16;
+            case "seventeen": return 17;
+            case "eightteen": return 18;
+            case "nineteen": return 19;
+            default: return 20;
+        }
+    """)
+)
+bench.add('hash', def():
+    JS("""
+        return ({
+            "one": 1,
+            "two": 2,
+            "three": 3,
+            "four": 4,
+            "five": 5,
+            "six": 6,
+            "seven": 7,
+            "eight": 8,
+            "nine": 9,
+            "ten": 10,
+            "eleven": 11,
+            "twelve": 12,
+            "thirteen": 13,
+            "fourteen": 14,
+            "fifteen": 15,
+            "sixteen": 16,
+            "seventeen": 17,
+            "eightteen": 18,
+            "nineteen": 19
+        })[arg] || 20;
+    """)
+)
+bench.add('prebuilt hash', def():
+    JS("""
+        return prebuilt[arg] || 20;
+    """)
+)
+bench.add('prebuilt Map', def():
+    JS("""
+        return m.get(arg) || 20;
+    """)
+)
+bench.add('ternary', def():
+    JS("""
+        return arg === "one" ? 1 :
+            arg === "two" ? 2 :
+            arg === "three" ? 3 :
+            arg === "four" ? 4 :
+            arg === "five" ? 5 :
+            arg === "six" ? 6 :
+            arg === "seven" ? 7 :
+            arg === "eight" ? 8 :
+            arg === "nine" ? 9 :
+            arg === "ten" ? 10 :
+            arg === "eleven" ? 11 :
+            arg === "twelve" ? 12 :
+            arg === "thirteen" ? 13 :
+            arg === "fourteen" ? 14 :
+            arg === "fifteen" ? 15 :
+            arg === "sixteen" ? 16 :
+            arg === "seventeen" ? 17 :
+            arg === "eightteen" ? 18 :
+            arg === "nineteen" ? 19 : 20;
+    """)
+)
+bench.add('prebuilt array (string comparison replaced by index offset)', def():
+    JS("""
+        return array[arg] || 20;
+    """)
+)
