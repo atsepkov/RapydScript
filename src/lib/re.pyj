@@ -52,7 +52,7 @@ class MatchObject:
     def end(g=0):
         return self._end[g]
 
-class RegexObject(RegExp):
+class RegexObject:
     def __init__(self, pattern, flags):
         if isinstance(pattern, RegexObject):
             self.pattern = pattern.pattern
@@ -142,18 +142,3 @@ def sub(pattern, repl, string, count=0, flags=0):
 
 def subn(pattern, repl, string, count=0, flags=0):
     return RegexObject(pattern, flags).subn(repl, string, count)
-
-
-
-#import stdlib
-#a = re.compile('test.*one', re.I + re.M + re.D)
-#print(a)
-#s = "Isaac Newton, physicist"
-#c = re.search("(\\w+) (\\w+)", s)
-#print(c)
-#c = re.match("(\\w+) (\\w+)", s)
-#print(c)
-#print(re.split('\\s', s))
-#print(re.findall('s[a-z]', s))
-#print(re.sub('[A-Z]', '_', s))
-#print(re.subn('[A-Z]', '_', s))
