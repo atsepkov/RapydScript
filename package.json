@@ -11,11 +11,12 @@
   "main": "tools/compiler.js",
   "scripts": {
     "test": "bin/rapydscript --test",
+    "test6": "bin/rapydscript --test --es6",
     "preversion": "npm test",
     "postversion": "npm publish",
     "build-self": "bin/rapydscript --self"
   },
-  "version": "0.5.14",
+  "version": "0.5.15",
   "license": "BSD-2-Clause",
   "engines": {
     "node": ">=0.12.0"

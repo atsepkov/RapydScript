@@ -22,6 +22,9 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
 	var baselib = RapydScript.parse_baselib(src_path, true);
     var files, ok;
 
+    // visual indicator of version
+    if (argv.ecmascript6) console.log('Running in ES6 mode!\n');
+
     // this function is the actual transcompiler, the rest of the code in this module is
     // just a test harness
     function compileFile(file, basepath) {
@@ -30,6 +33,7 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
         try {
             ast = RapydScript.parse(fs.readFileSync(filepath, "utf-8"), {
                 filename: file,
+                es6: argv.ecmascript6,
                 toplevel: ast,
                 readfile: fs.readFileSync,
                 basedir: test_dir,

@@ -9,4 +9,4 @@ node_js:
 
 before_script: "npm run-script build-self"
 
-script: "npm run-script test"
+script: "npm run-script test && npm run-script test6"
