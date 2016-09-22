@@ -822,7 +822,7 @@ def OutputStream(options):
         offset = 0 # argument offset, applies if this is a method of a class
 
         # if this is a method, add 'var self = this'
-        if isinstance(node, AST_Method) and not node.static:
+        if isinstance(node, AST_Method) and not node.static and not (output.option('es6') and node.name.name is '__init__'):
             output.indent()
             output.spaced("var", node.argnames[0], "=", "this")
             output.end_statement()
@@ -1476,142 +1476,202 @@ def OutputStream(options):
         if self.external:
             return
 
-        def define_method(stmt):
-            return def(output):
-                name = stmt.name.name
-                def internalsub():
+        if output.option('es6'):
+            # new ES6 classes
+            def generateClass():
+                output.print('class')
+
+                # with ES6, class names are optional, just like functions we can have anonymous classes
+                if self.name:
+                    output.space()
+                    self.name.print(output)
+
+                # inheritance, if any
+                if self.parent:
+                    output.space()
+                    output.print('extends')
+                    output.space()
+                    self.parent.print(output)
+
+                output.space()
+                output.with_block(def():
+
+                    # build constructor
+                    # in ES5 we created a sub-constructor called __init__ to call from the main constructor, the intention was to
+                    # circumvent a limitation which I no longer remember, may have been something to do with existence of `this` in
+                    # constructor context. Let's see if we can circumvent that with ES6 classes without the hack.
+
+                    # add methods
+                    # TODO: for now assume everything we see in class body is a method, we'll handle class variables later
+                    # in a special way since ES6 dropped the ball on their support
+                    self.body.forEach(def(stmt, i):
+                        if isinstance(stmt, AST_Method):
+                            output.indent()
+                            if stmt.static:
+                                output.print('static')
+                                output.space()
+                            if stmt.name.name is '__init__':
+                                output.print('constructor')
+                            else:
+                                stmt.name.print(output)
+                            output.space()
+
+                            # argument list
+                            output.with_parens(def():
+                                stmt.argnames.forEach(def(arg, i):
+                                    # only strip first argument if the method isn't static
+                                    if name in self.static: i += 1
+                                    if i > 1: output.comma()
+                                    if i: arg.print(output)
+                                )
+
+                                # handle kwargs hook, if there is a kwargs decorator
+                                if self.kwargs:
+                                    if self.argnames.length: output.comma()
+                                    # it's a generic argument name, we'll rename it in function body
+                                    output.print('ՐՏ_kw')
+                            )
+                            output.space()
+                            print_bracketed(stmt, output, True)
+                            output.newline()
+                    )
+                )
+
+        else:
+            # original ES5 class generation logic
+            def define_method(stmt):
+                return def(output):
+                    name = stmt.name.name
+                    def internalsub():
+                        output.print("function")
+                        output.space()
+                        output.print(name)
+
+                        output.with_parens(def():
+                            stmt.argnames.forEach(def(arg, i):
+                                # only strip first argument if the method isn't static
+                                if name in self.static: i += 1
+                                if i > 1: output.comma()
+                                if i: arg.print(output)
+                            )
+
+                            # handle kwargs hook, if there is a kwargs decorator
+                            if self.kwargs:
+                                if self.argnames.length:
+                                    output.comma()
+                                # it's a generic argument name, we'll rename it in function body
+                                output.print('ՐՏ_kw')
+                        )
+                        print_bracketed(stmt, output, True)
+
+                    # decorate the method
+                    if stmt.decorators and stmt.decorators.length:
+                        decorate(stmt.decorators, output, internalsub)
+                    else:
+                        internalsub()
+                    output.newline()
+
+            def addInheritance():
+                # inheritance, if parent exists
+                if self.parent:
+                    return def(obj):
+                        output = this
+                        output.print("ՐՏ_extends")
+                        output.with_parens(def():
+                            output.print(obj)
+                            output.comma()
+                            self.parent.print(output)
+                        )
+                return None
+
+            def addDecorators():
+                # decorate the class
+                if self.decorators and self.decorators.length:
+                    return def(obj):
+                        output = this
+                        output.assign(obj)
+                        decorate(self.decorators, output, def(): output.print(obj);)
+                return None
+
+            def addMethods():
+                # actual methods
+                methods = {}
+                static = {}
+                if self.docstring:
+                    methods['__doc__'] = def(output): output.print_string(self.docstring)
+                self.body.forEach(def(stmt, i):
+                    if isinstance(stmt, AST_Method):
+                        if stmt.static:
+                            static[stmt.name.name] = define_method(stmt)
+                        else:
+                            methods[stmt.name.name] = define_method(stmt)
+
+                    elif isinstance(stmt, AST_Class):
+                        console.error('Nested classes aren\'t supported yet')
+                )
+
+                methodOutput = None
+                if Object.keys(methods).length:
+                    methodOutput = output.addProperties('prototype', methods)
+
+                staticMethodOutput = None
+                if Object.keys(static).length:
+                    staticMethodOutput = output.addProperties(None, static)
+
+                return methodOutput, staticMethodOutput
+            methods, staticmethods = addMethods()
+
+            # label the variable correctly depending on context
+            # FIXME: this is bug-prone, need var to be conditional on whether this is a standalone statement
+            name = None
+            if self.name:
+                name = 'var ' + self.name.name
+                # if first_in_statement(output):
+                #     name = 'var ' + name
+
+            # generate constructor
+            @unify(output, name, addInheritance(), addDecorators(), methods, staticmethods)
+            def generateClass():
+                if self.init or self.parent or self.statements.length:
                     output.print("function")
                     output.space()
-                    output.print(name)
+                    self.name.print(output)
+                    output.print("()")
+                    output.space()
+                    output.with_block(def():
 
-                    output.with_parens(def():
-                        stmt.argnames.forEach(def(arg, i):
-                            # only strip first argument if the method isn't static
-                            if name in self.static:
-                                i += 1
-                            if i > 1:
-                                output.comma()
-                            if i:
-                                arg.print(output)
+                        bind_methods(self.bound, output)
+
+                        # class variables and statements
+                        self.statements.forEach(def(stmt):
+                            output.indent()
+                            stmt.print(output)
+                            output.newline()
                         )
 
-                        # handle kwargs hook, if there is a kwargs decorator
-                        if self.kwargs:
-                            if self.argnames.length:
+                        # constructor
+                        if self.init or self.parent:
+                            output.indent()
+                            cname = self.name ? self.name : self.parent
+                            cname.print(output)
+                            output.print(".prototype.__init__.apply")
+                            output.with_parens(def():
+                                output.print("this")
                                 output.comma()
-                            # it's a generic argument name, we'll rename it in function body
-                            output.print('ՐՏ_kw')
+                                output.print("arguments")
+                            )
+                            output.end_statement()
                     )
-                    print_bracketed(stmt, output, True)
-
-                # decorate the method
-                if stmt.decorators and stmt.decorators.length:
-                    decorate(stmt.decorators, output, internalsub)
                 else:
-                    internalsub()
-                output.newline()
-
-        def addInheritance():
-            # inheritance, if parent exists
-            if self.parent:
-                return def(obj):
-                    output = this
-                    output.print("ՐՏ_extends")
-                    output.with_parens(def():
-                        output.print(obj)
-                        output.comma()
-                        self.parent.print(output)
+                    # no init method or parent, create empty init
+                    output.print("function")
+                    output.space()
+                    self.name.print(output)
+                    output.print("()")
+                    output.space()
+                    output.with_block(def():
+                        bind_methods(self.bound, output)
                     )
-            return None
-
-        def addDecorators():
-            # decorate the class
-            if self.decorators and self.decorators.length:
-                return def(obj):
-                    output = this
-                    output.assign(obj)
-                    decorate(self.decorators, output, def(): output.print(obj);)
-            return None
-
-        def addMethods():
-            # actual methods
-            methods = {}
-            static = {}
-            if self.docstring:
-                methods['__doc__'] = def(output): output.print_string(self.docstring)
-            self.body.forEach(def(stmt, i):
-                if isinstance(stmt, AST_Method):
-                    if stmt.static:
-                        static[stmt.name.name] = define_method(stmt)
-                    else:
-                        methods[stmt.name.name] = define_method(stmt)
-
-                elif isinstance(stmt, AST_Class):
-                    console.error('Nested classes aren\'t supported yet')
-            )
-
-            methodOutput = None
-            if Object.keys(methods).length:
-                methodOutput = output.addProperties('prototype', methods)
-
-            staticMethodOutput = None
-            if Object.keys(static).length:
-                staticMethodOutput = output.addProperties(None, static)
-
-            return methodOutput, staticMethodOutput
-        methods, staticmethods = addMethods()
-
-        # label the variable correctly depending on context
-        # FIXME: this is bug-prone, need var to be conditional on whether this is a standalone statement
-        name = None
-        if self.name:
-            name = 'var ' + self.name.name
-            # if first_in_statement(output):
-            #     name = 'var ' + name
-
-        # generate constructor
-        @unify(output, name, addInheritance(), addDecorators(), methods, staticmethods)
-        def generateClass():
-            if self.init or self.parent or self.statements.length:
-                output.print("function")
-                output.space()
-                self.name.print(output)
-                output.print("()")
-                output.space()
-                output.with_block(def():
-
-                    bind_methods(self.bound, output)
-
-                    # class variables and statements
-                    self.statements.forEach(def(stmt):
-                        output.indent()
-                        stmt.print(output)
-                        output.newline()
-                    )
-
-                    if self.init or self.parent:
-                        output.indent()
-                        cname = self.name ? self.name : self.parent
-                        cname.print(output)
-                        output.print(".prototype.__init__.apply")
-                        output.with_parens(def():
-                            output.print("this")
-                            output.comma()
-                            output.print("arguments")
-                        )
-                        output.semicolon()
-                        output.newline()
-                )
-            else:
-                # no init method or parent, create empty init
-                output.print("function")
-                output.space()
-                self.name.print(output)
-                output.print("()")
-                output.space()
-                output.with_block(def():
-                    bind_methods(self.bound, output)
-                )
 
         # ignition
         generateClass()
@@ -1882,12 +1942,18 @@ def OutputStream(options):
     DEFPRINT(AST_BaseCall, def(self, output):
 
         # logic for defining the format of a function call (class, static, normal, decorated)
+        selfArg = None
         def call_format():
             if isinstance(self, AST_ClassCall):
                 # class methods are called through the prototype unless static
                 if self.static:
                     self.class.print(output)
                     output.print("." + self.method)
+                elif output.option('es6') and self.super:
+                    nonlocal selfArg
+                    output.print('super')
+                    if self.method is not 'constructor': output.print("." + self.method)
+                    selfArg = self.args.shift()
                 else:
                     self.class.print(output)
                     output.print(".prototype." + self.method + ".call")
@@ -2032,6 +2098,11 @@ def OutputStream(options):
                         output.comma()
                     output_kwargs()
             )
+
+        if output.option('es6') and isinstance(self, AST_ClassCall) and self.super:
+            output.end_statement()
+            output.indent()
+            output.spaced("var", selfArg, "=", "this")
     )
     DEFPRINT(AST_New, def(self, output):
         output.print("new")

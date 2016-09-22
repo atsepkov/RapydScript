@@ -1175,6 +1175,7 @@ The remaining features are all supported with regular mode but take advantage of
 
 - Cleaner optional function arguments
 - Cleaner array to variable unpacking
+- Cleaner class declaration logic
 
 Out of the new features mentioned above, function generator syntax is the same as in Python:
 

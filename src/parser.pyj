@@ -674,12 +674,12 @@ def parse($TEXT, options):
         # an easy way to walk the ast tree upwards.
         if isinstance(expr, AST_SymbolRef):
             # check Native JS classes
-            if NATIVE_CLASSES.hasOwnProperty(expr.name):
+            if expr.name in NATIVE_CLASSES:
                 return NATIVE_CLASSES[expr.name]
 
             # traverse in reverse to check local variables first
             for s in range(S.in_scope.length-1, -1, -1):
-                if S.in_scope[s].classes.hasOwnProperty(expr.name):
+                if expr.name in S.in_scope[s].classes:
                     return S.in_scope[s].classes[expr.name]
 
         elif isinstance(expr, AST_Dot):
@@ -694,7 +694,7 @@ def parse($TEXT, options):
                 if len(referenced_path) > 1:
                     class_name = referenced_path.join('.')
                     for s in range(S.in_scope.length-1, -1, -1):
-                        if S.in_scope[s].classes.hasOwnProperty(class_name):
+                        if class_name in S.in_scope[s].classes:
                             return S.in_scope[s].classes[class_name]
         return False
 
@@ -821,6 +821,7 @@ def parse($TEXT, options):
         }
 
         # class setup
+        parent = None
         docstring = None
         definition = new AST_Class({
             start: start,
@@ -833,9 +834,11 @@ def parse($TEXT, options):
                         S.in_parenthesized_expr = False
                         next()
                         return None
-                    a = expr_atom(False)
+                    atom = expr_atom(False)
                     expect(")")
-                    return a
+                    nonlocal parent
+                    parent = atom.name
+                    return atom
                 else:
                     return None
             )(),
@@ -864,6 +867,7 @@ def parse($TEXT, options):
                 S.in_scope.push({
                     type: "class",
                     name: name.name,
+                    parent: parent,
                     nonlocal: {},
                     functions: {},
                     vars: {},
@@ -1913,9 +1917,9 @@ def parse($TEXT, options):
                 }), True)
             else:
                 if isinstance(expr, AST_Dot):
-                    c = get_class_in_scope(expr.expression)
+                    cls = get_class_in_scope(expr.expression)
 
-                if c:
+                if cls:
                     # generate class call
                     funcname = expr
                     if funcname.property is "__init__":
@@ -1923,9 +1927,10 @@ def parse($TEXT, options):
 
                     return subscripts(new AST_ClassCall({
                         start: start,
-                        "class": expr.expression,
+                        class: expr.expression,
                         method: funcname.property,
-                        "static": is_static_method(c, funcname.property),
+                        super: S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and expr.expression.name is S.in_scope[-2].parent,
+                        static: is_static_method(cls, funcname.property),
                         args: func_call_list(),
                         end: prev()
                     }), True)

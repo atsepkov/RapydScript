@@ -975,11 +975,12 @@ AST_Call = DEFNODE("Call", "expression", {
         return "?"
 }, AST_BaseCall)
 
-AST_ClassCall = DEFNODE("ClassCall", "class method static", {
+AST_ClassCall = DEFNODE("ClassCall", "class super method static", {
     $documentation: "A function call expression",
     $propdoc: {
         "class": "[string] name of the class method belongs to",
-        method: "[string] class method being called",
+        "super": "[boolean] this call can be replaced with a super() call",
+        "method": "[string] class method being called",
         "static": "[boolean] defines whether the method is static"
     },
     _walk: def(visitor):
