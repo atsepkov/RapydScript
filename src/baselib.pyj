@@ -159,13 +159,22 @@
     else:
         return Math.min.apply(null, arguments)
 ,
-"mixin": def ՐՏ_mixin(target, source, overwrite):
+"merge": def ՐՏ_merge(target, source, overwrite):
     for JS('var i in source'):
-        # class variables
+        # instance variables
         if source.hasOwnProperty(i) and (overwrite or JS('typeof target[i]') is 'undefined'): target[i] = source[i]
     for JS('var i in source.prototype'):
         # methods
         if source.prototype.hasOwnProperty(i) and (overwrite or JS('typeof target.prototype[i]') is 'undefined'): target.prototype[i] = source.prototype[i]
+,
+"mixin": def ՐՏ_mixin(*classes):
+    return def(baseClass):
+        for cls in classes:
+            for key in Object.keys(cls.prototype):
+                if key not in baseClass.prototype:
+                    baseClass.prototype[key] = cls.prototype[key]
+        return baseClass
+
 ,
 "print": def ՐՏ_print():
     if JS('typeof console') is 'object': console.log.apply(console, arguments)

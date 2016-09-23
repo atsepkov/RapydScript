@@ -203,16 +203,29 @@ class Mute:
 class FlyingDuck(Flyable):
     def __init__(self):
         Flyable.__init__(self)
-mixin(FlyingDuck, Quackable)
+merge(FlyingDuck, Quackable)
 
 flyingduck = FlyingDuck()
 
 assert.equal(flyingduck.fly(), "flying...")
 assert.equal(flyingduck.quack(), "quack!")
 
-mixin(FlyingDuck, Mute)
+merge(FlyingDuck, Mute)
 assert.equal(flyingduck.fly(), "flying...")
 
-mixin(FlyingDuck, Mute, True)
+merge(FlyingDuck, Mute, True)
 assert.equal(flyingduck.fly(), "...")
 
+class Skateable:
+    def skate(self):
+        return "...zooom"
+
+@mixin(Quackable, Skateable)
+class MightyDuck(Human):
+    pass
+
+player = MightyDuck('Charlie Conway')
+assert.equal(player.name, 'Charlie Conway')
+assert.equal(player.quack(), 'quack!')
+assert.equal(player.fly(), 'N/A')
+assert.equal(player.skate(), '...zooom')

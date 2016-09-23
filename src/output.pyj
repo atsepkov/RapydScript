@@ -528,6 +528,7 @@ def OutputStream(options):
         "float": "parseFloat",
         "int": "parseInt",
         mixin: "ՐՏ_mixin",
+        merge: "ՐՏ_merge",
         print: "ՐՏ_print",
         eslice: "ՐՏ_eslice",
     }
@@ -1652,7 +1653,7 @@ def OutputStream(options):
                         # constructor
                         if self.init or self.parent:
                             output.indent()
-                            cname = self.name ? self.name : self.parent
+                            cname = self.init ? self.name : self.parent
                             cname.print(output)
                             output.print(".prototype.__init__.apply")
                             output.with_parens(def():

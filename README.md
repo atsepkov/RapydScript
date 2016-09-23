@@ -807,7 +807,7 @@ But RapydScript's capability doesn't end here. Like Python, RapydScript allows i
 
 A couple things to note here. We can invoke methods from the parent class the same way we would in Python, by using `Parent.method(self, ...)` syntax. This allows us to control when and how (assuming it requires additional arguments) the parent method gets executed. Also note the use of `\` operator to break up a line. This is something Python allows for keeping each line short and legible. Likewise, RapydScript, being indentation-based, allows the same.
 
-An important distinction between Python and RapydScript is that RapydScript does not allow multiple inheritance. This might seem like a big deal at first, but in actuality it barely matters. When using multiple inheritance, we usually only care about a few methods from the alternative classes. Leveraging JavaScript prototypical inheritance, RapydScript allows us to reuse methods from another class without even inheriting from it:
+An important distinction between Python and RapydScript is that RapydScript does not allow multiple inheritance. This is intentional, both for performance reasons and because multiple inheritance creates ambiguity. When using multiple inheritance, we usually only care about a few methods from the alternative classes (also see `mixin` section below). Leveraging JavaScript prototypical inheritance, RapydScript allows us to reuse methods from another class without even inheriting from it:
 
 	class Something(Parent):
 		def method(self, var):
@@ -817,12 +817,19 @@ An important distinction between Python and RapydScript is that RapydScript does
 
 Notice that `Something` class has no `__init__` method. Like in Python, this method is optional for classes. If you omit it, an empty constructor will automatically get created for you by RapydScript (or when inheriting, the parent's constructor will be used). Also notice that we never inherited from SomethingElse class, yet we can invoke its methods. This brings us to the next point, the only real advantage of inheriting from another class (which you can't gain by calling the other classes method as shown above) is that the omitted methods are automatically copied from the parent. Admittedly, we might also care about `isinstance()` method, to have it work with the non-main parent, which is equivalent to JavaScript's `instanceof` operator.
 
-**NOTE:** If you compile your code without `--screw-ie8` flag, the constructor will be executed every time you create a subclass of the given class. In most cases this will not hurt you, but in some cases you could see odd side-effects. For example, having a `print()` statement in the parent constructor will cause its contents to be output for every subclass, even if you do not explicitly create an instance. `--screw-ie8` option fixes this issue, at the expense of compatibility with Internet Explorer 6-8.
+To reuse portions of other classes similar to how one would expect via multiple inheritance, RapydScript also allows `mixin`s. To declare class with a few mixins simply use a decorator:
 
-There is also a convenience function in RapydScript called `mixin` that lets you assign all methods of a given class to another, like Python's multiple inheritance:
+	@mixin(Predator, Maneuverable)
+	class Shark(Fish):
+		def __init__(self):
+			Fish.__init__(self)
+			self.bites = True
+			self.damage = 999
 
-	mixin(Snake, Animal, false)     # add Animal's methods to Snake, don't overwrite ones already declared in Snake
-	mixin(Snake, Animal, true)      # add Animal's methods to Snake, overwriting ones already declared in Snake
+There is also a convenience function in RapydScript called `merge` that lets you assign all methods of a given class to another, it gives you a bit more control than a `mixin` at the expense of prettier syntax:
+
+	merge(Snake, Animal, false)     # add Animal's methods to Snake, don't overwrite ones already declared in Snake
+	merge(Snake, Animal, true)      # add Animal's methods to Snake, overwriting ones already declared in Snake
 
 To summarize classes, assume they work the same way as in Python, plus a few bonus cases. The following, for example, are equivalent:
 
