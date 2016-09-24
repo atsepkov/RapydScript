@@ -1466,17 +1466,20 @@ AST_Null = DEFNODE("Null", None, {
 
 AST_NaN = DEFNODE("NaN", None, {
     $documentation: "The impossible value",
-    value: 0 / 0
+    value: 0 / 0,
+    resolveType: def(): return None
 }, AST_Atom)
 
 AST_Undefined = DEFNODE("Undefined", None, {
     $documentation: "The `undefined` value",
-    value: void 0
+    value: void 0,
+    resolveType: def(): return None
 }, AST_Atom)
 
 AST_Hole = DEFNODE("Hole", None, {
     $documentation: "A hole in an array",
-    value: void 0
+    value: void 0,
+    resolveType: def(): return None
 }, AST_Atom)
 
 AST_Infinity = DEFNODE("Infinity", None, {

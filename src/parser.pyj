@@ -1574,21 +1574,6 @@ def parse($TEXT, options):
                 BASELIB['range'] = True
                 next()
                 expr.push(expression(False))
-#                expr.push(new AST_Binary({
-#                    left: expression(False),
-#                    operator: "+",
-#                    right: new AST_Number({
-#                        value: 0.000001
-#                    })
-#                }))
-#                ret = subscripts(new AST_Call({
-#                    start: S.token,
-#                    expression: new AST_SymbolRef({
-#                        name: "range"
-#                    }),
-#                    args: expr,
-#                    end: prev()
-#                }), True)
                 ret = new AST_Range({
                     start: S.token,
                     left: expr[0],
@@ -2003,10 +1988,46 @@ def parse($TEXT, options):
         return val
 
     def make_unary(ctor, op, expr):
-        return new ctor({
+        return validateUnary(new ctor({
             operator: op,
             expression: expr
-        })
+        }))
+
+    def validateBinary(astElement):
+        # check for invalid operations using our knowledge of types
+        # allow int + str for now
+        left = astElement.left.resolveType(S.in_scope)
+        right = astElement.right.resolveType(S.in_scope)
+        op = astElement.operator
+        # for in, instanceof, ==, !=, ===, !==, 'or', 'and' everything is allowed
+        # for 2 numbers any operator is valid
+        # for 2 strings or number and string only the + operator is valid
+        # for ?, we don't have enough information
+        # for everything else, no operator is valid
+        if op not in ['in', 'instanceof', '==', '!=', '===', '!==', '||', '&&'] and (
+            left not in ['Number', 'String', 'Boolean', '?']
+            or right not in ['Number', 'String', 'Boolean', '?']
+            or left is 'String' and op is not '+'
+            or right is 'String' and op is not '+'
+        ):
+            # make the representations a bit more human-friendly
+            if left[0] is '[': left = 'Array'
+            elif left[0] is '{': left = 'Object'
+            if right[0] is '[': right = 'Array'
+            elif right[0] is '{': right = 'Object'
+            raise croak("cannot perform binary '" + op + "' operation on incompatbile elements of type " + left + " and " + right + "")
+        return astElement
+
+    def validateUnary(astElement):
+        # check that the prefix is compatible with the element
+        element = astElement.expression.resolveType(S.in_scope)
+        op = astElement.operator
+        if element not in ['Number', '?'] and op in ['+', '-'] or element[0] not in ['[', '{'] and op is '*':
+            # make the representations a bit more human-friendly
+            if element[0] is '[': element = 'Array'
+            elif element[0] is '{': element = 'Object'
+            raise croak("cannot perform unary '" + op + "' operation on incompatbile element of type " + element)
+        return astElement
 
     def expr_op(left, min_prec, no_in):
         op = (is_("operator") ? S.token.value : None)
@@ -2047,6 +2068,7 @@ def parse($TEXT, options):
                     right: right,
                     end: right.end
                 })
+                validateBinary(ret)
             if not_in:
                 ret = new AST_UnaryPrefix({
                     start: left.start,
