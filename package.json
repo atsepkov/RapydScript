@@ -16,7 +16,7 @@
     "postversion": "npm publish",
     "build-self": "bin/rapydscript --self"
   },
-  "version": "0.5.18",
+  "version": "0.5.19",
   "license": "BSD-2-Clause",
   "engines": {
     "node": ">=0.12.0"
