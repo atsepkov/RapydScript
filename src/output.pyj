@@ -1983,31 +1983,41 @@ def OutputStream(options):
 
         if self.args.starargs or has_kwargs:
             obj = isinstance(self, AST_New) ? object : (self.expression.expression ? self.expression.expression : new AST_This())
-            if isinstance(self, AST_New):
-                # class constructor
-                # we need to declare the class a bit differently with *args and **kwargs
-                call_format()
-                output.semicolon()
-                output.newline()
-                output.indent()
+            if output.option('es6'):
+                # starargs in ES6 work very similar to Python, the only complication is kwargs
                 if has_kwargs:
                     # **kwargs requires currying
                     output.print('kwargs')
-                    output.with_parens(def():
+                    output.with_parens(def(): call_format();)
+                else:
+                    # *args, format doesn't change
+                    call_format()
+            else:
+                if isinstance(self, AST_New):
+                    # class constructor
+                    # we need to declare the class a bit differently with *args and **kwargs
+                    call_format()
+                    output.semicolon()
+                    output.newline()
+                    output.indent()
+                    if has_kwargs:
+                        # **kwargs requires currying
+                        output.print('kwargs')
+                        output.with_parens(def():
+                            object.print(output)
+                            output.print('.__init__')
+                        )
+                    else:
+                        # *args only requires that we call apply on __init__ rather than the object itself
                         object.print(output)
                         output.print('.__init__')
-                    )
+                elif has_kwargs:
+                    # regular **kwargs call
+                    output.print('kwargs')
+                    output.with_parens(def(): call_format();)
                 else:
-                    # *args only requires that we call apply on __init__ rather than the object itself
-                    object.print(output)
-                    output.print('.__init__')
-            elif has_kwargs:
-                # regular **kwargs call
-                output.print('kwargs')
-                output.with_parens(def(): call_format();)
-            else:
-                # *args, the format of the prefix doesn't change
-                call_format()
+                    # *args, the format of the prefix doesn't change
+                    call_format()
         else:
             # regular call without *args or **kwargs
             call_format()
@@ -2038,10 +2048,22 @@ def OutputStream(options):
                 )
                 output.print('}')
 
-        # *args logic requires unique compilation via apply() method
-        # **kwargs always needs to be the last argument
-        if self.args.starargs:
-            # *args
+        if output.option('es6') and self.args.starargs:
+            # TODO: current "Pythonic" limtation forces the user to put *args as a last argument, in ES6 such limitation
+            # does not exist, therefore for now we'll make the output oblivious to it and in the future will remove
+            # the limitation from parser as well. Moreover we'll also need to remove the limitation of being limited
+            # to a single *args argument, since it also does not exist in ES6
+            output.with_parens(def():
+                self.args.forEach(def(expr, i):
+                    if i: output.comma()
+                    if self.args.starargs and i is self.args.length - 1:
+                        output.print('...')
+                    expr.print(output)
+                )
+            )
+        elif self.args.starargs:
+            # in ES5 *args logic requires unique compilation via apply() method
+            # **kwargs always needs to be the last argument
             output.print(".apply")
             output.with_parens(def():
                 obj.print(output)
@@ -2051,8 +2073,7 @@ def OutputStream(options):
                     # start with basic arguments
                     output.with_square(def():
                         self.args[:-1].forEach(def(expr, i):
-                            if i:
-                                output.comma()
+                            if i: output.comma()
                             expr.print(output)
                         )
                     )
@@ -2072,7 +2093,6 @@ def OutputStream(options):
                         output_kwargs()
                     )
             )
-
         elif has_kwargs and (isinstance(self, AST_New) or self.expression and self.expression.expression):
             # **kwargs for class methods require .call() notation since currying loses track of the context
             output.print('.call')
