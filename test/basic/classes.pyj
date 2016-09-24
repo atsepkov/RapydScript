@@ -222,10 +222,11 @@ class Skateable:
 
 @mixin(Quackable, Skateable)
 class MightyDuck(Human):
-    pass
+    hitPoints = 200
 
 player = MightyDuck('Charlie Conway')
 assert.equal(player.name, 'Charlie Conway')
 assert.equal(player.quack(), 'quack!')
 assert.equal(player.fly(), 'N/A')
 assert.equal(player.skate(), '...zooom')
+assert.equal(player.hitPoints, 200)

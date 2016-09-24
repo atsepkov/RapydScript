@@ -1393,6 +1393,7 @@ def OutputStream(options):
 
     # -----[ functions ]-----
     def decorate(decorators, output, internalsub):
+        # build a decoration chain for the function
         pos = 0
         wrap = def():
             nonlocal pos
@@ -1406,6 +1407,11 @@ def OutputStream(options):
                 internalsub()
         wrap()
 
+    def decorated(decorators, output):
+        # a version of the above function that can be called as a decorator
+        return def(baseFn):
+            return def():
+                decorate(decorators, output, baseFn)
 
     AST_Lambda.DEFMETHOD("_do_print", def(output, nokeyword):
         self = this
@@ -1477,8 +1483,44 @@ def OutputStream(options):
         if self.external:
             return
 
+        def addDecorators():
+            # decorate the class
+            if self.decorators and self.decorators.length:
+                return def(obj):
+                    output = this
+                    output.assign(obj)
+                    decorate(self.decorators, output, def(): output.print(obj);)
+            return None
+
+        # label the variable correctly depending on context
+        # FIXME: this is bug-prone, need var to be conditional on whether this is a standalone statement
+        name = None
+        if self.name:
+            name = 'var ' + self.name.name
+            # if first_in_statement(output):
+            #     name = 'var ' + name
+
         if output.option('es6'):
+            def addClassVariables():
+                # these were somehow omitted from ES6 standard, so we'll have to handle them ourselves, the messy way
+                properties = {}
+                if self.docstring:
+                    properties['__doc__'] = def(output): output.print_string(self.docstring)
+                self.body.forEach(def(stmt, i):
+                    if isinstance(stmt, AST_SimpleStatement) and isinstance(stmt.body, AST_Assign) and stmt.body.operator is '=':
+                        # naively assume left side will not be an expression
+                        properties[stmt.body.left.name] = def(output):
+                            stmt.body.right.print(output)
+                            output.newline()
+                )
+
+                if Object.keys(properties).length:
+                    return output.addProperties('prototype', properties)
+                return None
+
             # new ES6 classes
+            # @decorated(self.decorators, output)
+            @unify(output, name, addDecorators(), addClassVariables())
             def generateClass():
                 output.print('class')
 
@@ -1585,15 +1627,6 @@ def OutputStream(options):
                         )
                 return None
 
-            def addDecorators():
-                # decorate the class
-                if self.decorators and self.decorators.length:
-                    return def(obj):
-                        output = this
-                        output.assign(obj)
-                        decorate(self.decorators, output, def(): output.print(obj);)
-                return None
-
             def addMethods():
                 # actual methods
                 methods = {}
@@ -1621,14 +1654,6 @@ def OutputStream(options):
 
                 return methodOutput, staticMethodOutput
             methods, staticmethods = addMethods()
-
-            # label the variable correctly depending on context
-            # FIXME: this is bug-prone, need var to be conditional on whether this is a standalone statement
-            name = None
-            if self.name:
-                name = 'var ' + self.name.name
-                # if first_in_statement(output):
-                #     name = 'var ' + name
 
             # generate constructor
             @unify(output, name, addInheritance(), addDecorators(), methods, staticmethods)
