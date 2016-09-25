@@ -2210,7 +2210,7 @@ def OutputStream(options):
         self.property.print(output)
         output.print("]")
     )
-    DEFPRINT(AST_Splice, def(self, output):
+    DEFPRINT(AST_Slice, def(self, output):
         # splice assignment via pythonic array[start:end]
         output.print('[].splice.apply')
         output.with_parens(def():

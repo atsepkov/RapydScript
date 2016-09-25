@@ -185,3 +185,11 @@ class Qux:
 assert.equal(concat('air', 'plane'), 'airplane')
 assert.equal(add(5, 2), 7)
 assert.equal(boz(2, 11), 13)
+
+# now that we infer types from property access, make sure this causes no errors
+def Quux(a:Number, b:[Number], c:{String:Number}) -> [[Number]]:
+    b.push(a)
+    if a:
+        return [b]
+    return [[c['test']]]
+    # unfortunately we can't yet assert on the case of return [[Number]] or Number since it resolves to ?, which we don't assert on

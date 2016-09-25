@@ -100,7 +100,7 @@ Table of Contents
 - [Anonymous Functions](#anonymous-functions)
 - [Decorators](#decorators)
 - [Function Annotations](#function-annotations)
-- [Static Typing](#static-typing)
+- [Static Typing / Hybrid Typing](#static-typing-hybrid-typing)
 - [Self-Executing Functions](#self-executing-functions)
 - [Chaining Blocks](#chaining-blocks)
 - [Function calling with optional arguments](#function-calling-with-optional-arguments)

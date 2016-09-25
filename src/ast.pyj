@@ -550,7 +550,7 @@ AST_Annotation = DEFNODE("Annotation", "expression", {
                 return '[?]'
             if isinstance(obj, AST_Object):
                 # {String:Type}
-                if obj.properties.length is 1: return '{' + parse(obj.properties[0]) + '}'
+                if obj.properties.length is 1: return '{String:' + parse(obj.properties[0].value) + '}'
                 return '{String:?}'
             if isinstance(obj, AST_SymbolRef):
                 # Type
@@ -1078,6 +1078,12 @@ AST_Dot = DEFNODE("Dot", None, {
         return visitor._visit(node, def():
             node.expression._walk(visitor)
         )
+    ,
+    resolveType: def(heap):
+        # dot access can only unpack hashes
+        containerType = this.expression.resolveType(heap)
+        if containerType and containerType[0] is '{': return /\{\w+:(.*)\}/.exec(containerType)[1]
+        return '?'
 }, AST_PropAccess)
 
 AST_Sub = DEFNODE("Sub", None, {
@@ -1088,9 +1094,18 @@ AST_Sub = DEFNODE("Sub", None, {
             node.expression._walk(visitor)
             node.property._walk(visitor)
         )
+    ,
+    resolveType: def(heap):
+        # index-style access can unpack both hashes and arrays
+        containerType = this.expression.resolveType(heap)
+        if containerType:
+            # unpack the array/hash
+            if containerType[0] is '[' and isinstance(this.property, AST_Number): return /\[(.*)\]/.exec(containerType)[1]
+            if containerType[0] is '{': return /\{\w+:(.*)\}/.exec(containerType)[1]
+        return '?'
 }, AST_PropAccess)
 
-AST_Splice = DEFNODE("Slice", "property2 assignment", {
+AST_Slice = DEFNODE("Slice", "property2 assignment", {
     $documentation: 'Index-style property access, i.e. `a[3:5]`',
     $propdoc: {
         property2: "[AST_Node] the 2nd property to access - typically ending index for the array.",
@@ -1103,6 +1118,10 @@ AST_Splice = DEFNODE("Slice", "property2 assignment", {
             node.property._walk(visitor)
             node.property2._walk(visitor)
         )
+    ,
+    resolveType: def(heap):
+        # a slice of an iterable will be of same type as the iterable
+        return this.expression.resolveType(heap)
 }, AST_PropAccess)
 
 AST_Unary = DEFNODE("Unary", "operator expression", {

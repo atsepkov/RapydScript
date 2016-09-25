@@ -17,9 +17,18 @@ a = 2; a++
 a += 1
 a = 5; def(): a += 1
 
-# return outside function
+# exit statements outside their scope
 return 1
 yield 'ok'
+break
+
+# invalid args
+def(foo, 1): return
+def(foo, 'foo'): return
+def(foo, 1:Number): return
+
+# classes
+class One: def foo(): pass
 
 # type-checking
 a = NaN; b = 5 + a
