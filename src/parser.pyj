@@ -2054,7 +2054,36 @@ def parse($TEXT, options):
 
     def validateCallArgs(astElement):
         # check that passed in arguments match function signature
-        # TODO: to be filled in later
+        # also, let's check that we're not passing too many arguments
+        if isinstance(astElement.expression, AST_SymbolRef):
+            name = astElement.expression.name
+            found = False
+            for scope in reversed(S.in_scope):
+                for func in scope.functions:
+                    if func is name:
+                        signature = scope.functions[func]
+                        found = True
+                        break
+                for variable in scope.vars:
+                    if variable is name:
+                        signature = scope.vars[func]
+                        found = True
+                        break
+                if found: break
+            # TODO: there is a case of having found == True and signature = undefined, it shouldn't happen
+            if signature and signature[:9] is 'Function(':
+                # TODO: fix this, current logic naively assumes there are no nested commas
+                # validate the number of args first
+                args = /\((.*)\)/.exec(signature)[1].split(',')
+                if args.length is 1 and not args[0].length: args.pop()
+                if args.length < astElement.args.length:
+                    croak("Function '" + name + "' takes " + args.length + " arguments, yet your call contains " + astElement.args.length + "")
+                # now validate argument types
+                for i, arg in enumerate(astElement.args):
+                    expected = args[i].trim()
+                    actual = arg.resolveType(S.in_scope)
+                    if expected is not '?' and actual not in [expected, '?']:
+                        croak("Function '" + name + "' expects argument " + i + " type of " + expected + ", but you're passing " + actual + "")
         return astElement
 
     def expr_op(left, min_prec, no_in):

@@ -95,10 +95,10 @@ check_in('c = A(2)\nc.a', '2')
 def completions(line):
     return rl.completer(line)[0]
 
-def check_completions():
-    items = completions(arguments[0])
-    for x in Array.prototype.slice.call(arguments, 1):
-        assert.ok(x in items, x + ' not in completions for: ' + arguments[0])
+def check_completions(*args):
+    items = completions(args[0])
+    for x in Array.prototype.slice.call(args, 1):
+        assert.ok(x in items, x + ' not in completions for: ' + args[0])
 
 check_completions('', 'return', 'A')
 check_completions('Array.', 'isArray', 'apply')

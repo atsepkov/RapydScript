@@ -33,3 +33,5 @@ a = (def(b:Number, c:Number) -> String: return b + c;)(1, 2)
 def(a:[Date],b:Date) -> Date: a.push(b); return a
 def foo() -> Array: return []; b = 'a' + foo()
 foo = def() -> Array: return []; b = 'a' + foo()
+def foo(one:Number): return one; foo(1, 2)
+def foo(one:Number): return one; foo('foo')

@@ -613,6 +613,8 @@ AST_Accessor = DEFNODE("Accessor", None, {
 AST_Function = DEFNODE("Function", None, {
     $documentation: "A function expression",
     resolveType: def(heap):
+        # I don't want to bother handling starargs yet, just say the signature is unknown
+        if this.argnames.starargs: return 'Function'
         # this logic relies mostly on the resolveType within each annotation itself
         annotated = True
         args = []

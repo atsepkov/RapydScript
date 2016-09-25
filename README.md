@@ -447,15 +447,14 @@ used to enforce static typing. In current version of RapydScript they are signif
 See "Static Typing" section for more details.
 
 
-Static Typing
--------------
-RapydScript allows you to use both dynamic and static typing (similar to TypeScript). Unlike TypeScript, however, RapydScript goes a step further in
-raising errors and optimizing your code when you use static typing. We call this approach hybrid-typing. Some of the error detections and
-optimizations TypeScript simply can't perform due to it wanting to stay pure to native JavaScript.
+Static Typing / Hybrid Typing
+-----------------------------
+RapydScript allows you to use both dynamic and static typing (similar to TypeScript or Flow). Unlike TypeScript, however, RapydScript goes
+a step further with error detection and code optimization when you use static typing. I call this approach hybrid-typing.
 
-The idea behind hybrid-typing is to allow the developer a hybrid approach of static and dynamic typing. Dynamic typing gives more flexibility to the
+The idea behind hybrid-typing is to combine the best of dynamic typing and static typing. Dynamic typing gives more flexibility to the
 user and the code can more easily be reused in other places. Static typing gives the compiler more information about the context,
-allowing for better linting, error checking and optimization.
+allowing for better linting, error checking and optimizations.
 
 Some examples of logic the compiler can do for statically-typed code are:
 
@@ -463,6 +462,28 @@ Some examples of logic the compiler can do for statically-typed code are:
 - raise errors when an incompatible operation is performed on two variables (no more `{} + []`)
 - inline certain functions/operations
 - precompute certain values, assuming enough context/information about their state
+
+You may wonder why compilers like TypeScript can't do the same. There are two parts to the answer:
+
+- TypeScript tries to be more compatible with native JavaScript and as a result has to be more conservative with its optimizations
+- RapydScript uses some non-JavaScript design patterns, as well as banning some traditional JavaScript anti-patterns, this stricter language syntax allows RapydScript to be more aggressive with its optimizations and errors
+
+You don't need to do anything to benefit from RapydScript's type inference, your variable types are automatically resolved behind the scenes. However,
+you can give the compiler even more hints about variables types (and as a result benefit from its optimizations and error detection even more). Do do
+so, simply label function inputs and outputs via type annotations as mentioned in previous section:
+
+```python
+def optimizeMe(a: Number, b:Number) -> Number:
+	...
+```
+
+The compiler will now check that the arguments passed to the function are indeed numbers and the output is also a number, throwing an error if it detects
+an incorrect input or return. Additionally, the compiler will use inputs and outputs of this function to resolve the types of other variables in
+your code, further assisting itself in optimizations and error checking.
+
+The best way to use hybrid-typing is to start out with dynamically-typed code and add types to it once you finalize and refactor the function. While
+static typing is optional, I definitely recommend you do it. The best way to think about static typing is as a free unit test for your
+logic.
 
 
 Self-Executing Functions
