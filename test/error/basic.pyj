@@ -1,0 +1,30 @@
+# Author: Alexander Tsepkov
+# Every single (non-comment) line in this file should raise a compile-time error
+# In case an error is not raised, the test fails
+
+# illegal operators
+a = 1 || 2
+a = 1 === 4
+a = 2; a++
+
+# invalid assignment
+1 = 5
+'foo' = 6
+[1, foo] = 3, 4
+(1, foo) = 3, 4
+
+# undeclared variables
+a += 1
+a = 5; def(): a += 1
+
+# return outside function
+return 1
+yield 'ok'
+
+# type-checking
+a = [] + {}
+a = 1; b = 'string'; c = b - a
+a = []; b = -a
+a = []; b = 9; b -= a
+a = (def(b:Number, c:Number) -> String: return b + c;)(1, 2)
+def(a:[Date],b:Date) -> Date: a.push(b); return a

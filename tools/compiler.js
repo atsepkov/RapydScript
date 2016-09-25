@@ -51,6 +51,7 @@ exports.parse_baselib = function(src_path, beautify) {
         var baselibPath = path.join(src_path, 'baselib.pyj');
         baselibAst = RapydScript.parse(fs.readFileSync(baselibPath, "utf-8"), {
             readfile: fs.readFileSync,
+            filename: 'baselib.pyj',
         });
         //baselibAst.dump();
     } catch(e) {
@@ -159,20 +160,6 @@ exports.minify = function(files, options) {
         code : stream + "",
     };
 };
-
-// exports.describe_ast = function() {
-//     function doitem(ctor) {
-//         var sub = {};
-//         ctor.SUBCLASSES.forEach(function(ctor){
-//             sub[ctor.TYPE] = doitem(ctor);
-//         });
-//         var ret = {};
-//         if (ctor.SELF_PROPS.length > 0) ret.props = ctor.SELF_PROPS;
-//         if (ctor.SUBCLASSES.length > 0) ret.sub = sub;
-//         return ret;
-//     }
-//     return doitem(RapydScript.AST_Node).sub;
-// }
 
 exports.describe_ast = function() {
     var out = RapydScript.OutputStream({ beautify: true });

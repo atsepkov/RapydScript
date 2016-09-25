@@ -100,6 +100,7 @@ Table of Contents
 - [Anonymous Functions](#anonymous-functions)
 - [Decorators](#decorators)
 - [Function Annotations](#function-annotations)
+- [Static Typing](#static-typing)
 - [Self-Executing Functions](#self-executing-functions)
 - [Chaining Blocks](#chaining-blocks)
 - [Function calling with optional arguments](#function-calling-with-optional-arguments)
@@ -441,12 +442,27 @@ def bar(x: "x coordinate of the point", y: "y coordinate of the point") -> "dist
 	return Math.sqrt(x**2 + y**2)
 ```
 
-Python is more flexible about them since they're treated as a fancy comment. 
-In TypeScript they are actually significant and used to enforce static typing. In current version of RapydScript they are not significant yet,
-but will eventually work similar to TypeScript when used properly. The idea is to allow the developer a hybrid approach of static and dynamic
-typing. Dynamic typing gives more flexibility to the user and the code can more easily be reused in other places. Static typing gives the compiler
-more information about the context, allowing for better linting and optimization. It may be possible in the future to leverage this information to
-provide compile-time optimizations for the code.
+Python is more flexible about them since they're treated as a fancy comment. In TypeScript they are actually significant and
+used to enforce static typing. In current version of RapydScript they are significant if they resolve to a static type.
+See "Static Typing" section for more details.
+
+
+Static Typing
+-------------
+RapydScript allows you to use both dynamic and static typing (similar to TypeScript). Unlike TypeScript, however, RapydScript goes a step further in
+raising errors and optimizing your code when you use static typing. We call this approach hybrid-typing. Some of the error detections and
+optimizations TypeScript simply can't perform due to it wanting to stay pure to native JavaScript.
+
+The idea behind hybrid-typing is to allow the developer a hybrid approach of static and dynamic typing. Dynamic typing gives more flexibility to the
+user and the code can more easily be reused in other places. Static typing gives the compiler more information about the context,
+allowing for better linting, error checking and optimization.
+
+Some examples of logic the compiler can do for statically-typed code are:
+
+- raise errors when the type of a statically declared variable is violated
+- raise errors when an incompatible operation is performed on two variables (no more `{} + []`)
+- inline certain functions/operations
+- precompute certain values, assuming enough context/information about their state
 
 
 Self-Executing Functions

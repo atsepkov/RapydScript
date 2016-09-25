@@ -17,6 +17,7 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
     var all_ok = true;
     var vm = require('vm');
     var test_dir = path.join(base_path, 'test/basic');
+    var error_dir = path.join(base_path, 'test/error');
     var web_dir = path.join(base_path, 'test/web');
     var perf_dir = path.join(base_path, 'test/perf');
 	var baselib = RapydScript.parse_baselib(src_path, true);
@@ -53,6 +54,8 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
     }
 
     if (test_type !== 'bench') {
+        // basic test cases
+        console.log('\nBASIC TESTS\n');
         if (argv.files.length) {
             files = [];
             argv.files.forEach(function(fname) { files.push(fname + '.pyj'); });
@@ -62,7 +65,7 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
                 return /^[^_].*\.pyj$/.test(name);
             });
         }
-        files.forEach(function(file){
+        files.forEach(function(file) {
             var output = compileFile(file);
             var code = output.toString();
 
@@ -71,12 +74,12 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
             fs.writeFileSync(jsfile, code);
             try {
                 vm.runInNewContext(code, {
-                    'assert':require('assert'),
-                    'require':require,
-                    'RapydScript':RapydScript,
-                    'console':console,
+                    'assert': assert,
+                    'require': require,
+                    'RapydScript': RapydScript,
+                    'console': console,
                     'base_path': base_path
-                }, {'filename':jsfile});
+                }, {'filename': jsfile});
                 ok = true;
                 fs.unlinkSync(jsfile);
             } catch (e) {
@@ -90,11 +93,48 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
             if (ok) console.log(file + ":\ttest completed successfully\n");
             else { all_ok = false; console.log(file + ":\ttest failed\n"); }
         });
+
+        // tests that cause compile time errors
+        console.log('\nCOMPILATION ERROR TESTS\n');
+        if (!argv.files.length) {
+            files = fs.readdirSync(error_dir).filter(function(name){
+                // omit files that start with underscores
+                return /^[^_].*\.pyj$/.test(name);
+            });
+        }
+        files.forEach(function(file) {
+            var filepath = path.join(error_dir, file);
+            var code = fs.readFileSync(filepath, "utf-8").split('\n');
+            ok = true;
+            code.forEach(function(line) {
+                if (line[0] === '#' || !line.trim().length) {
+                    return; // blank line, no test here
+                }
+                try {
+                    var ast;
+                    ast = RapydScript.parse(line, {
+                        filename: file,
+                        es6: argv.ecmascript6,
+                        toplevel: ast,
+                        readfile: fs.readFileSync,
+                        basedir: error_dir,
+                        libdir: path.join(src_path, 'lib'),
+                    });
+                    // we want EVERY line to throw an exception
+                    ok = false;
+                    console.log(file + ":\t`" + line + "` did not throw an error\n");
+                } catch(ex) {
+                    return;
+                }
+            });
+            if (ok) console.log(file + ":\ttest completed successfully\n");
+            else { all_ok = false; console.log(file + ":\ttest failed\n"); }
+        });
     }
 
     // DOM/web tests
     if (test_type === 'full') {
-        console.log('\nRUNNING DOM TESTS\n');
+        console.log('\nDOM TESTS\n');
         var output = compileFile('tests.pyj', web_dir);
         var code = output.toString();
         //fs.writeFileSync(path.join(web_dir, 'tests.js'), code);
@@ -112,6 +152,7 @@ module.exports = function(argv, base_path, src_path, lib_path, test_type) {
 
     // performance benchmarks
     if (test_type === 'full' || test_type === 'bench') {
+        console.log('\nBENCHMARK TESTS\n');
         var Benchmark = require('benchmark');
         if (argv.files.length) {
             files = [];

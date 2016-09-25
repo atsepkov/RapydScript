@@ -502,7 +502,7 @@ def parse($TEXT, options):
                 else:
                     ctor = AST_Return
 
-                return new ctor({
+                result = new ctor({
                     value: (is_("punc", ";") ?
                         (def():
                             semicolon()
@@ -516,6 +516,13 @@ def parse($TEXT, options):
                         )
                     )
                 })
+                # check if user violated a contract they agreed to follow
+                if (S.in_scope[-1].return_annotation):
+                    expectedType = S.in_scope[-1].return_annotation.resolveType(S.in_scope)
+                    actualType = result.resolveType(S.in_scope)
+                    if actualType not in [expectedType, '?']:
+                        croak("Type annotation states that function returns " + expectedType + ", actual returned type is " + actualType + "")
+                return result
             elif tmp_ is "switch":
                 return new AST_Switch({
                     expression: parenthesised(),
@@ -984,6 +991,7 @@ def parse($TEXT, options):
                     # check if we have an argument annotation
                     ntok = peek()
                     if ntok.type is 'punc' and ntok.value is ':':
+                        # arg:Annotation
                         next()
                         expect(':')
                         annotation = maybe_conditional()
@@ -1000,11 +1008,14 @@ def parse($TEXT, options):
                             'name': name_token.value,
                             'start': S.token,
                             'end': S.token,
-                            'annotation': annotation
+                            'annotation': annotation ? new AST_Annotation({
+                                'start': annotation.start,
+                                'expression': annotation,
+                                'end': annotation.end
+                            }) : None
                         })
-                        function_args[sym.name] = sym.annotation and sym.annotation.name in NATIVE_CLASSES ? sym.annotation.name : "?"
-                        return sym
                     else:
+                        # arg (no annotation)
                         if not is_("name"):
                             # there is no name, which is an error we should report on the
                             # same line as the definition, so move to that is we're not already there.
@@ -1021,8 +1032,8 @@ def parse($TEXT, options):
                             'annotation': None
                         })
                         next()
-                        function_args[sym.name] = sym.annotation and sym.annotation.name in NATIVE_CLASSES ? sym.annotation.name : "?"
-                        return sym
+                    function_args[sym.name] = sym.annotation ? sym.annotation.resolveType(S.in_scope) : '?'
+                    return sym
 
                 while not is_("punc", ")"):
                     if first:
@@ -1068,7 +1079,12 @@ def parse($TEXT, options):
                     next()
                     nonlocal return_annotation
                     # return_annotation = expression(True)
-                    return_annotation = expression(True)
+                    expr = expression(True)
+                    return_annotation = new AST_Annotation({
+                        start: expr.start,
+                        expression: expr,
+                        end: expr.end
+                    })
                 a.defaults = defaults
                 return a
             )([]),
@@ -1090,7 +1106,7 @@ def parse($TEXT, options):
                 S.in_scope.push({
                     type: "function",
                     name: name ? name.name : None,
-                    return: return_annotation,
+                    return_annotation: return_annotation,
                     nonlocal: {},
                     vars: {},
                     args: function_args,
@@ -1999,16 +2015,16 @@ def parse($TEXT, options):
         left = astElement.left.resolveType(S.in_scope)
         right = astElement.right.resolveType(S.in_scope)
         op = astElement.operator
-        # for in, instanceof, ==, !=, ===, !==, 'or', 'and' everything is allowed
+        # for in, instanceof, ==, !=, ===, !==, 'or', 'and', '=' everything is allowed
         # for 2 numbers any operator is valid
         # for 2 strings or number and string only the + operator is valid
         # for ?, we don't have enough information
         # for everything else, no operator is valid
-        if op not in ['in', 'instanceof', '==', '!=', '===', '!==', '||', '&&'] and (
+        if op not in ['in', 'instanceof', '==', '!=', '===', '!==', '||', '&&', '='] and (
             left not in ['Number', 'String', 'Boolean', '?']
             or right not in ['Number', 'String', 'Boolean', '?']
-            or left is 'String' and op is not '+'
-            or right is 'String' and op is not '+'
+            or left is 'String' and op not in ['+', '+=']
+            or right is 'String' and op not in ['+', '+=']
         ):
             # make the representations a bit more human-friendly
             if left[0] is '[': left = 'Array'
@@ -2098,22 +2114,25 @@ def parse($TEXT, options):
             })
         return expr
 
-    def is_assignable(expr):
-        if not options.strict:
+    def isAssignable(expr):
+        # recursively checks if every element being assigned to is in fact assignable
+        if isinstance(expr, AST_SymbolRef) or isinstance(expr, AST_PropAccess):
             return True
-
-        tmp_ = expr[0] + ""
-        if tmp_ is "dot" or tmp_ is "sub" or tmp_ is "new" or tmp_ is "call":
+        if isinstance(expr, AST_Array):
+            for element in expr.elements:
+                if not isAssignable(element): return False
             return True
-        elif tmp_ is "name":
-            return expr[1] is not "this"
+        if isinstance(expr, AST_Seq):
+            # remind me to get rid of these AST_Seq nodes, they do more harm than good
+            if isAssignable(expr.car) and isAssignable(expr.cdr): return True
+        return False
 
     def maybe_assign(no_in):
         start = S.token
         left = maybe_conditional(no_in)
         val = S.token.value
         if is_("operator") and ASSIGNMENT(val):
-            if is_assignable(left):
+            if isAssignable(left):
                 if isinstance(left, AST_SymbolRef)
                 and val is not "="
                 and left.name not in S.in_scope[-1].vars
@@ -2127,13 +2146,13 @@ def parse($TEXT, options):
                     # regular assignment of type a = ... will be picked up here
                     # other assignments such as a, b = ..., [a, b] = ... will be picked up in sequence formation logic
                     mark_local_assignment(left, right)
-                return new AST_Assign({
+                return validateBinary(new AST_Assign({
                     start: start,
                     left: left,
                     operator: val,
                     right: right,
                     end: prev()
-                })
+                }))
             croak("Invalid assignment")
         return left
 

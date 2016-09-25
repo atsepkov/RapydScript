@@ -523,12 +523,51 @@ AST_Imports = DEFNODE('Imports', 'imports', {
 AST_Decorator = DEFNODE("Decorator", "expression", {
     $documentation: "Class for function decorators",
     $propdoc: {
-        name: "[AST_Node] decorator expression"
+        expression: "[AST_Node] decorator expression"
     },
     _walk: def(visitor):
         if this.expression:
             this.expression.walk(visitor)
     ,
+})
+
+AST_Annotation = DEFNODE("Annotation", "expression", {
+    $documentation: "Class for argument/return annotations",
+    $propdoc: {
+        expression: "[AST_Node] decorator expression"
+    },
+    _walk: def(visitor):
+        if this.expression:
+            this.expression.walk(visitor)
+    ,
+    resolveType: def(heap):
+        # annotations are parsed differently from other elements in that it's not what's contained within the variable
+        # that defines the type but rather the variable syntax itself
+        def parse(obj):
+            if isinstance(obj, AST_Array):
+                # [Type]
+                if obj.elements.length is 1: return '[' + parse(obj.elements[0]) + ']'
+                return '[?]'
+            if isinstance(obj, AST_Object):
+                # {String:Type}
+                if obj.properties.length is 1: return '{' + parse(obj.properties[0]) + '}'
+                return '{String:?}'
+            if isinstance(obj, AST_SymbolRef):
+                # Type
+                return obj.name
+            if isinstance(obj, AST_Call):
+                if isinstance(obj.expression, AST_SymbolRef) and obj.expression.name is 'Array' and obj.args.length is 1:
+                    # Array(Type)
+                    return '[' + parse(obj.args[0]) + ']'
+                if isinstance(obj.expression, AST_SymbolRef) and obj.expression.name in ['Object', 'Dictionary']:
+                    # Object(Type), Dictionary(Type), Object(String, Type), Dictionary(String, Type)
+                    # in place of Dictionary you can also use Object keyword
+                    # both formats are accepted as a convenience feature for developers
+                    if 1 <= obj.args.length <= 2:
+                        return '{String:' + parse(obj.args[-1]) + '}'
+                    return '{String:?}'
+            return '?'
+        return parse(this.expression)
 })
 
 AST_Lambda = DEFNODE("Lambda", "name argnames kwargs uses_arguments decorators generator return_annotation", {
@@ -540,7 +579,7 @@ AST_Lambda = DEFNODE("Lambda", "name argnames kwargs uses_arguments decorators g
         uses_arguments: "[boolean/S] tells whether this function accesses the arguments array",
         decorators: "[AST_Decorator*] function decorators, if any",
         generator: "[boolean] true if this is a generator function (false by default)",
-        return_annotation: "[AST_Node?] the return type annotation provided (if any)"
+        return_annotation: "[AST_Annotation?] the return type annotation provided (if any)"
     },
     _walk: def(visitor):
         node = this
@@ -573,64 +612,12 @@ AST_Accessor = DEFNODE("Accessor", None, {
 AST_Function = DEFNODE("Function", None, {
     $documentation: "A function expression",
     resolveType: def(heap):
-
-        # helper method for detecting if this is a type annotation, and returning appropriate type
-        parse = def(variable):
-            wrap = {
-                "array": def(value): return "[" + value + "]";,
-                "dict": def(value): return "{String:" + value + "}";,
-                "base": def(value): return value
-            }
-            wrapper = "base"
-            if isinstance(variable, AST_Array):
-                # format: [Item]
-                if variable.elements.length is not 1:
-                    # multiple items mentioned in array, not a case we can handle yet
-                    return
-                wrapper = "array"
-                element = variable.elements[0]
-            elif isinstance(variable, AST_Call) and isinstance(variable.expression, AST_SymbolRef) and variable.expression.name is 'Array':
-                # format: Array(Item)
-                # alias for [Item]
-                if variable.args.length is not 1:
-                    # multiple items mentioned in array, not a case we can handle yet
-                    return
-                wrapper = "array"
-                element = variable.args[0]
-            elif isinstance(variable, AST_Object):
-                # format: {Item1:Item2}
-                if variable.properties.length is not 1:
-                    # multiple items mentioned in hash, not a case we can handle yet
-                    return
-                wrapper = "dict"
-                # key is always a string, ignore it
-                element = variable.properties[0].value
-            elif isinstance(variable, AST_Call) and isinstance(variable.expression, AST_SymbolRef) and variable.expression.name in ['Object', 'Dictionary']:
-                # format: Dictionary(Item2) or Dictionary(String,Item2), in place of Dictionary you can also use Object keyword
-                # both formats are accepted as a convenience feature for developers
-                # alias for {Item1:Item2}
-                if 1 <= variable.args.length <= 2:
-                    element = variable.args[-1]
-                    wrapper = "dict"
-                else:
-                    return
-            else:
-                # format: Item
-                element = variable
-
-            if isinstance(element, AST_SymbolRef) and element.name in NATIVE_CLASSES:
-                # wrap element in dict/array if needed
-                return wrap[wrapper](element.name)
-            elif isinstance(element, AST_Array) or isinstance(element, AST_Object) or isinstance(element, AST_Call):
-                # potentially nested array/dict (i.e. array of dicts, array of arrays, dict of arrays, etc.)
-                result = parse(element)
-                if result: return wrap[wrapper](result)
-
+        # this logic relies mostly on the resolveType within each annotation itself
         annotated = True
         args = []
         for arg in this.argnames:
             if arg.annotation:
-                computedType = parse(arg.annotation)
+                computedType = arg.annotation.resolveType(heap)
                 if computedType:
                     args.push(computedType)
                 else:
@@ -641,7 +628,7 @@ AST_Function = DEFNODE("Function", None, {
                 break
 
         if this.return_annotation:
-            result = parse(this.return_annotation)
+            result = this.return_annotation.resolveType(heap)
             if not result:
                 # it's ok not to have a return annotation, but not ok to have one that doesn't parse
                 annotated = False
@@ -714,6 +701,9 @@ AST_Exit = DEFNODE("Exit", "value", {
             if node.value:
                 node.value._walk(visitor)
         )
+    ,
+    resolveType: def(heap):
+        return this.value.resolveType(heap)
 }, AST_Jump)
 
 AST_Return = DEFNODE("Return", None, {
@@ -918,10 +908,10 @@ AST_Call = DEFNODE("Call", "expression", {
             # this is where we get a bit devious, we use scope to infer the return type, if possible
             for scope in reversed(heap):
                 if this.expression.name in scope.vars and '->' in scope.vars[this.expression.name][-1]:
-                    # local var declarations
+                    # local var declarations, return result
                     return scope.vars[this.expression.name][-1].split('->')[1].trim()
                 elif this.expression.name in scope.functions and '->' in scope.functions[this.expression.name]:
-                    # local function declarations
+                    # local function declarations, return result
                     return scope.functions[this.expression.name].split('->')[1].trim()
                 elif scope.type is "function" and this.expression.name is scope.name and scope.return:
                     # recursion, need to check return_annotation
@@ -969,7 +959,14 @@ AST_Call = DEFNODE("Call", "expression", {
                         else:
                             # format: Item
                             element = variable
-                    result = parse(scope.return)
+                        if isinstance(element, AST_SymbolRef) and element.name in NATIVE_CLASSES:
+                            # wrap element in dict/array if needed
+                            return wrap[wrapper](element.name)
+                        elif isinstance(element, AST_Array) or isinstance(element, AST_Object) or isinstance(element, AST_Call):
+                            # potentially nested array/dict (i.e. array of dicts, array of arrays, dict of arrays, etc.)
+                            result = parse(element)
+                            if result: return wrap[wrapper](result)
+                    result = parse(scope.return_annotation)
                     if result: return result
                 # TODO: there is still a large set of functions we'll miss, address this later
         return "?"
@@ -1064,7 +1061,7 @@ AST_Seq = DEFNODE("Seq", "car cdr", {
 })
 
 AST_PropAccess = DEFNODE("PropAccess", "expression property", {
-    $documentation: 'Base class for property access expressions, i.e. `a.foo` or `a["foo"]`',
+    $documentation: 'Base class for property access expressions, i.e. `a.foo`, `a["foo"]` or a[1:5]',
     $propdoc: {
         expression: "[AST_Node] the “container” expression",
         property: "[AST_Node|string] the property to access. For AST_Dot this is always a plain string, while for AST_Sub it's an arbitrary AST_Node"
@@ -1356,7 +1353,7 @@ AST_SymbolConst = DEFNODE("SymbolConst", None, {
 AST_SymbolFunarg = DEFNODE("SymbolFunarg", 'annotation', {
     $documentation: "Symbol naming a function argument",
     $propdoc: {
-        annotation: "[AST_Node?] annotation provided for this argument, if any"
+        annotation: "[AST_Annotation?] annotation provided for this argument, if any"
     }
 }, AST_SymbolVar)
 
