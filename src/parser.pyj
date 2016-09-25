@@ -639,6 +639,7 @@ def parse($TEXT, options):
             for i, element in enumerate(init.elements):
                 value = None
                 if isinstance(obj, AST_Call) and isinstance(obj.expression, AST_SymbolRef) and obj.expression.name is 'enumerate':
+                    # FIXME: instead of doing this hack, annotate all of baselib and have compiler rely on it
                     # a naive assumption that user won't overwrite inbuilt functions
                     if i == 0: value = "Number"
                 mark_local_assignment(element, value)
@@ -646,6 +647,7 @@ def parse($TEXT, options):
             # infer object type for the iteration sequence
             value = None
             if isinstance(obj, AST_Call) and isinstance(obj.expression, AST_SymbolRef) and obj.expression.name is 'range':
+                # FIXME: instead of doing this hack, annotate all of baselib and have compiler rely on it
                 # a naive assumption that user won't overwrite inbuilt functions
                 value = "Number"
             mark_local_assignment(init, value)
@@ -1932,7 +1934,7 @@ def parse($TEXT, options):
                     if funcname.property is "__init__":
                         funcname.property = "constructor"
 
-                    return subscripts(new AST_ClassCall({
+                    return validateCallArgs(subscripts(new AST_ClassCall({
                         start: start,
                         class: expr.expression,
                         method: funcname.property,
@@ -1940,7 +1942,7 @@ def parse($TEXT, options):
                         static: is_static_method(cls, funcname.property),
                         args: func_call_list(),
                         end: prev()
-                    }), True)
+                    }), True))
                 elif isinstance(expr, AST_SymbolRef):
                     tmp_ = expr.name
                     # special functions that trigger addition of extra logic to generated JavaScript
@@ -1966,12 +1968,12 @@ def parse($TEXT, options):
                         })
 
                 # fall-through to basic function call
-                return subscripts(new AST_Call({
+                return validateCallArgs(subscripts(new AST_Call({
                     start: start,
                     expression: expr,
                     args: func_call_list(),
                     end: prev()
-                }), True)
+                }), True))
 
         return expr
 
@@ -2048,6 +2050,11 @@ def parse($TEXT, options):
             if element[0] is '[': element = 'Array'
             elif element[0] is '{': element = 'Object'
             raise croak("cannot perform unary '" + op + "' operation on incompatbile element of type " + element)
+        return astElement
+
+    def validateCallArgs(astElement):
+        # check that passed in arguments match function signature
+        # TODO: to be filled in later
         return astElement
 
     def expr_op(left, min_prec, no_in):

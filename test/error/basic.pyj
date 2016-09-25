@@ -31,3 +31,5 @@ a = []; b = -a
 a = []; b = 9; b -= a
 a = (def(b:Number, c:Number) -> String: return b + c;)(1, 2)
 def(a:[Date],b:Date) -> Date: a.push(b); return a
+def foo() -> Array: return []; b = 'a' + foo()
+foo = def() -> Array: return []; b = 'a' + foo()

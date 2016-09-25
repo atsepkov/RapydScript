@@ -554,7 +554,8 @@ AST_Annotation = DEFNODE("Annotation", "expression", {
                 return '{String:?}'
             if isinstance(obj, AST_SymbolRef):
                 # Type
-                return obj.name
+                # rename Array and Object/Dictionary to [?] and {String:?}
+                return obj.name is 'Array' ? '[?]' : obj.name in ['Object', 'Dictionary'] ? '{String:?}' : obj.name
             if isinstance(obj, AST_Call):
                 if isinstance(obj.expression, AST_SymbolRef) and obj.expression.name is 'Array' and obj.args.length is 1:
                     # Array(Type)

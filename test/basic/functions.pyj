@@ -167,7 +167,7 @@ assert.equal(j, 6)
 
 
 # ANNOTATIONS
-# the only thing we can test at this time is that they're harmless
+# these particular ones should be harmless, we'll test violation cases in error directory
 def concat(a: String, b: String):
     return a + b
 
