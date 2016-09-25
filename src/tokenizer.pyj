@@ -56,7 +56,7 @@ KEYWORDS = "as break case class const continue debugger default def del do elif 
 KEYWORDS_ATOM = "False None True"
 
 RESERVED_WORDS = "abstract boolean byte char double enum export extends final float goto " +
-"implements int interface long native package private protected public short static super " +
+"implements int interface long native package private protected public short static " +
 "synchronized this throws transient volatile " + KEYWORDS_ATOM + " " + KEYWORDS
 
 KEYWORDS_BEFORE_EXPRESSION = "return new del raise elif else if"

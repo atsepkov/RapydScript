@@ -221,7 +221,7 @@ def parse($TEXT, options):
         es6: False,             # whether we're using EcmaScript 6 mode
         toplevel: None,         # existing tree to append to, if None, new tree will be started
         import_dirs: [],        # List of directories to scan for imports
-        classes: undefined      # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
+        classes: None           # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
     })
     module_id = options.module_id
 
@@ -1375,7 +1375,12 @@ def parse($TEXT, options):
         tok = token or S.token
         tmp_ = tok.type
         if tmp_ is "name":
-            ret = as_symbol(AST_SymbolRef, token=tok)
+            if tok.value is 'NaN':
+                ret = as_symbol(AST_NaN, token=tok)
+            elif tok.value is 'undefined':
+                ret = as_symbol(AST_Undefined, token=tok)
+            else:
+                ret = as_symbol(AST_SymbolRef, token=tok)
         elif tmp_ is "num":
             ret = new AST_Number({
                 start: tok,

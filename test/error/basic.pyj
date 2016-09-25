@@ -22,6 +22,9 @@ return 1
 yield 'ok'
 
 # type-checking
+a = NaN; b = 5 + a
+a = undefined; b = 5 + a
+a = None; b = 'foo' + a
 a = [] + {}
 a = 1; b = 'string'; c = b - a
 a = []; b = -a

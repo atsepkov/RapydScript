@@ -1448,7 +1448,8 @@ AST_RegExp = DEFNODE("RegExp", "value", {
     $documentation: "A regexp literal",
     $propdoc: {
         value: "[RegExp] the actual regexp"
-    }
+    },
+    resolveType: def(): return "RegExp"
 }, AST_Constant)
 
 AST_Atom = DEFNODE("Atom", None, {
