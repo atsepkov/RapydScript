@@ -2045,7 +2045,7 @@ def parse($TEXT, options):
         # check that the prefix is compatible with the element
         element = astElement.expression.resolveType(S.in_scope)
         op = astElement.operator
-        if element not in ['Number', '?'] and op in ['+', '-'] or element[0] not in ['[', '{'] and op is '*':
+        if element not in ['Number', '?'] and op in ['+', '-'] or element[0] not in ['[', '{', '?'] and op is '*':
             # make the representations a bit more human-friendly
             if element[0] is '[': element = 'Array'
             elif element[0] is '{': element = 'Object'
