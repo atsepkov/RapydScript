@@ -1,11 +1,18 @@
 # Performance tests for RapydScript in operator
 # Author: Alexander Tsepkov
 
-array = [1 to 50]
+array = [1 to 100]
 hash = {foo: 1, bar: 2, baz: 3}
 
 bench.add('indexOf', def():
     array.indexOf(11) != -1
+)
+bench.add('Array.prototype.indexOf.call', def():
+    # useful for when container is not an array, but still arraylike
+    Array.prototype.indexOf.call(array, 11) is not -1
+)
+bench.add('[].indexOf.call', def():
+    [].indexOf.call(array, 11) is not -1
 )
 bench.add('in array', def():
     11 in array

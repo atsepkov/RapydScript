@@ -2268,6 +2268,7 @@ def OutputStream(options):
             return op
 
         if self.operator in function_ops:
+            # TODO: possible unroll optimization for short 'in' sequences
             output.print(function_ops[self.operator])
             output.with_parens(def():
                 self.left.print(output)
@@ -2319,14 +2320,32 @@ def OutputStream(options):
             output.space()
             self.right.print(output)
         else:
+            def cacheBubble(operand):
+                # helper function for caching expensive function calls and complex operations that may happen inside the comparison
+                if not (isinstance(operand, AST_SymbolRef) or isinstance(operand, AST_SymbolClassRef)):
+                    # looks like operand is doing some calculation, let's cache it for performance
+                    tmp = output.newTemp()
+                    output.with_parens(def():
+                        output.spaced(tmp, '=', operand)
+                    )
+                    return { # a little trick to allow us to call print consistently from outside
+                        print: def(output): output.print(tmp)
+                    }
+                operand.print(output)
+                return operand
+
             output.with_parens(def():
+                left = cacheBubble(self.left)
                 if self.operator is '==':
                     # positive case, eliminate truthy immutable comparisons
-                    output.spaced(self.left, '===', self.right)
+                    output.space()
+                    output.spaced('===')
+                    output.space()
+                    right = cacheBubble(self.right)
                     output.space()
 
                     # negative case, eliminate falsy immutable comparisons
-                    output.spaced('||', 'typeof', self.left, '===', '"object"')
+                    output.spaced('||', 'typeof', left, '===', '"object"')
                     output.space()
 
                     # deep case
@@ -2334,20 +2353,23 @@ def OutputStream(options):
                     output.space()
                     output.print('ՐՏ_eq')
                     output.with_parens(def():
-                        self.left.print(output)
+                        left.print(output)
                         output.comma()
-                        self.right.print(output)
+                        right.print(output)
                     )
                 else:
                     # negative case, eliminate truthy immutable comparisons
-                    output.spaced(self.left, '!==', self.right)
+                    output.space()
+                    output.spaced('!==')
+                    output.space()
+                    right = cacheBubble(self.right)
                     output.space()
 
                     # negative case, eliminate falsy immutable comparisons
                     output.print('&&')
                     output.space()
                     output.with_parens(def():
-                        output.spaced('typeof', self.left, '!==', '"object"')
+                        output.spaced('typeof', left, '!==', '"object"')
                         output.space()
 
                         # deep case
@@ -2355,9 +2377,9 @@ def OutputStream(options):
                         output.space()
                         output.print('!ՐՏ_eq')
                         output.with_parens(def():
-                            self.left.print(output)
+                            left.print(output)
                             output.comma()
-                            self.right.print(output)
+                            right.print(output)
                         )
                     )
             )

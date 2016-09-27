@@ -3,6 +3,15 @@
 
 from danger_zone import equality
 
+# naive fibinacci function to simulate a slow operation
+def fib(n):
+    if n == 0: return 0
+    elif n == 1: return 1
+    else: return fib(n-1) + fib(n-2)
+
+# passthrough operation to hide operand type (otherwise the compiler will optimize it at compile time instead of letting us test it at runtime)
+result = (def(n): return n;)(75025)
+
 bench.add('identity, truthy', def():
     1 is 1
 )
@@ -13,7 +22,7 @@ bench.add('RS/proper equality, truthy', def():
     1 == 1
 )
 bench.add('deep equality, truthy', def():
-    eq(1, 1)
+    ՐՏ_eq(1, 1)
 )
 
 bench.add('identity, falsy', def():
@@ -26,6 +35,28 @@ bench.add('RS/proper equality, falsy', def():
     1 == 2
 )
 bench.add('deep equality, falsy', def():
-    eq(1, 2)
+    ՐՏ_eq(1, 2)
+)
+
+# expensive operations
+# the purpose here is to show that RS equality performance matches that of identity operator
+# even when faced with worst-case scenario
+bench.add('expensive call (left) ===', def():
+    fib(25) is result
+)
+bench.add('expensive call (left) RS equality', def():
+    fib(25) == result
+)
+bench.add('expensive call (right) ===', def():
+    result is fib(25)
+)
+bench.add('expensive call (right) RS equality', def():
+    result == fib(25)
+)
+bench.add('expensive call (both) ===', def():
+    fib(25) is fib(25)
+)
+bench.add('expensive call (both) RS equality', def():
+    fib(25) == fib(25)
 )
 
