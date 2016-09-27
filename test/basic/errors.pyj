@@ -13,28 +13,28 @@ assert.throws(
 class ArrayishTest:
     def __init__(self, arr):
         self._ = arr
-    def get(self, index):
+    def get_(self, index):
         if 0 <= index < self._.length:
             return self._[index]
         else:
             raise IndexError()
-    def set(self, index, value):
+    def set_(self, index, value):
         if 0 <= index < self._.length:
             self._[index] = value
         else:
             raise IndexError()
 b = ArrayishTest([1 to 5])
-assert.doesNotThrow(def(): b.get(3);)
-assert.doesNotThrow(def(): b.set(0, 'hi');)
+assert.doesNotThrow(def(): b.get_(3);)
+assert.doesNotThrow(def(): b.set_(0, 'hi');)
 assert.throws(
     def():
-        b.get(6)
+        b.get_(6)
     ,
     IndexError
 )
 assert.throws(
     def():
-        b.set(-1, 4)
+        b.set_(-1, 4)
     ,
     /IndexError/
 )

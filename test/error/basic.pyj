@@ -29,6 +29,13 @@ def(foo, 1:Number): return
 
 # classes
 class One: def foo(): pass
+class One: get foo(): pass
+class One: get foo(self, i): pass
+class One: set foo(self): pass
+class One: set foo(self, bar, i): pass
+
+# hashes
+{ x: 1, get z(i): return x }
 
 # type-checking
 a = NaN; b = 5 + a

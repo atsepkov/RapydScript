@@ -102,27 +102,27 @@ class ParseError(Error):
         return this.message + " (line: " + this.line + ", col: " + this.col + ", pos: " + this.pos + ")" + "\n\n" + this.stack
 
 def defaults(args, defs, croak):
+    # Takes args as a user-supplied set of options, applies defaults from defs for any missing options, optionally raises an
+    # error if property has been passed in args that doesn't exist in defaults.
     if args is True:
         args = {}
     ret = args or {}
     if croak:
-        for i in dir(ret):
-            if ret.hasOwnProperty(i) and not defs.hasOwnProperty(i):
-                raise new DefaultsError("`" + i + "` is not a supported option", defs)
+        for key in ret:
+            if key not in defs:
+                raise new DefaultsError("`" + key + "` is not a supported option", defs)
 
-    for i in dir(defs):
-        if defs.hasOwnProperty(i):
-            ret[i] = args and args.hasOwnProperty(i) ? args[i] : defs[i]
+    for key in defs:
+        ret[key] = args and key in args ? args[key] : defs[key]
     return ret
 
 def merge(obj, ext):
-    for i in dir(ext):
-        if ext.hasOwnProperty(i):
-            obj[i] = ext[i]
+    # merge ext into obj, clobbering baselib if values overlap
+    for key in ext:
+        obj[key] = ext[key]
     return obj
 
-def noop():
-    pass
+def noop(): pass
 
 MAP = def():
     def MAP(a, f, backwards):
@@ -186,6 +186,7 @@ MAP = def():
 .call(this)
 
 def push_uniq(array, el):
+    # push el into array if it doesn't already exist there
     if el not in array:
         array.push(el)
 
@@ -195,8 +196,9 @@ def string_template(text, props):
     )
 
 def remove(array, el):
-    for i in range(array.length-1, -1, -1):
-        if array[i] is el:
+    # remove all occurences of el from array
+    for idx in range(array.length-1, -1, -1):
+        if array[idx] is el:
             array.splice(i, 1)
 
 def mergeSort(array, cmp):

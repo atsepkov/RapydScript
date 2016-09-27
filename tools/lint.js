@@ -51,6 +51,9 @@ var BUILTINS = {};
     'clearInterval',
     'clearTimeout',
 
+    // node
+    'process',
+
     // Python
     'bool',
     'int',

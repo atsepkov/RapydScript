@@ -381,7 +381,7 @@ def OutputStream(options):
             })
     : noop)
 
-    def get():
+    def get_():
         if BUFFERS.len > 1:
             raise Error('Something went wrong, output generator didn\'t exit all of its scopes properly.')
 
@@ -447,8 +447,8 @@ def OutputStream(options):
 
     stack = []
     return {
-        get: get,
-        toString: get,
+        get: get_,
+        toString: get_,
         indent: indent,
         indentation: def(): return indentation
         ,
@@ -1548,7 +1548,7 @@ def OutputStream(options):
                     # TODO: for now assume everything we see in class body is a method, we'll handle class variables later
                     # in a special way since ES6 dropped the ball on their support
                     self.body.forEach(def(stmt, i):
-                        if isinstance(stmt, AST_Method):
+                        if isinstance(stmt, AST_Lambda):
                             output.indent()
                             if stmt.static:
                                 output.print('static')
@@ -1556,6 +1556,10 @@ def OutputStream(options):
                             if stmt.name.name is '__init__':
                                 output.print('constructor')
                             else:
+                                if isinstance(stmt, AST_ObjectGetter):
+                                    output.print('get ')
+                                elif isinstance(stmt, AST_ObjectSetter):
+                                    output.print('set ')
                                 stmt.name.print(output)
                             output.space()
 
@@ -2429,10 +2433,20 @@ def OutputStream(options):
         )
     )
     DEFPRINT(AST_Range, def(self, output):
-        if isinstance(self.left, AST_Number) and isinstance(self.right, AST_Number) and Math.abs(self.right.value - self.left.value) < 50:
+        # FIXME: make use of computedValue which we'll add later
+        indexes = []
+        for element in [self.left, self.right]:
+            if isinstance(element, AST_UnaryPrefix) and element.operator is '-' and isinstance(element.expression, AST_Number):
+                indexes.push(parseFloat('-' + element.expression.value))
+            elif isinstance(element, AST_Number):
+                indexes.push(parseFloat(element.value))
+            else:
+                indexes.push(None)
+
+        if indexes[0] and indexes[1] and Math.abs(indexes[1] - indexes[0]) < 50:
             # optimization
-            start = parseFloat(self.left.value)
-            end = parseFloat(self.right.value)
+            start = indexes[0]
+            end = indexes[1]
             step = start < end ? 1 : -1
             if self.operator is "to": end += step/1e6
             output.with_square(def():
@@ -2482,14 +2496,6 @@ def OutputStream(options):
             )
         output.colon()
         self.value.print(output)
-    )
-    DEFPRINT(AST_ObjectSetter, def(self, output):
-        output.print("set")
-        self.value._do_print(output, True)
-    )
-    DEFPRINT(AST_ObjectGetter, def(self, output):
-        output.print("get")
-        self.value._do_print(output, True)
     )
     AST_Symbol.DEFMETHOD("definition", def():
         return this.thedef

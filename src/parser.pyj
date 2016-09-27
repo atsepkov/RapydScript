@@ -208,8 +208,6 @@ STATEMENTS_WITH_LABELS = array_to_hash([ "for", "do", "while", "switch" ])
 
 ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ])
 
-# per-module list of danger_zone flags, if any
-DANGER_ZONE = {}
 
 # -----[ Parser ]-----
 def parse($TEXT, options):
@@ -233,7 +231,6 @@ def parse($TEXT, options):
     IMPORTED = options.IMPORTED or {}
     IMPORTING = options.IMPORTING or {}
     IMPORTING[module_id] = True
-    DANGER_ZONE[module_id] = {}
 
     S = {
         input: (typeof $TEXT is "string" ? tokenizer($TEXT, options.filename) : $TEXT),
@@ -428,6 +425,12 @@ def parse($TEXT, options):
             else:
                 unexpected()
         elif tmp_ is "name":
+            if S.token.value in ['set', 'get']:
+                if not options.es6: croak("Class getters/setters require ES6 compilation mode")
+                type = S.token.value
+                start = S.token.start
+                next()
+                return accessor_(type, start, True)
             return (is_token(peek(), "punc", ":") ? labeled_statement() : simple_statement())
         elif tmp_ is "keyword":
             tmp_ = S.token.value
@@ -945,7 +948,7 @@ def parse($TEXT, options):
 
     def function_(in_class, ctor):
         start = prev()
-        is_accessor = ctor is AST_Accessor
+        is_accessor = ctor is AST_ObjectGetter or ctor is AST_ObjectSetter
         name = (is_("name") ? as_symbol((in_class ? AST_SymbolDefun : (is_accessor ? AST_SymbolAccessor : AST_SymbolLambda))) : (is_accessor and (is_("string") or is_("num")) ? as_atom_node() : None))
         if in_class and not name:
             unexpected()
@@ -1149,10 +1152,32 @@ def parse($TEXT, options):
         if name:    # track this function in local scope
             S.in_scope[-1].functions[name.name] = definition.resolveType(S.in_scope)
 
-        if in_class and not staticmethod and definition.argnames.length < 1:
-            croak("Class methods require at least one argument (self)", start.line, start.col, start.pos)
+        # do a few extra safety checks on arguments
+        if in_class and not staticmethod:
+            if definition.argnames.length < 1:
+                croak("Class methods require at least one argument (self)", start.line, start.col, start.pos)
+            elif ctor is AST_ObjectGetter and definition.argnames.length is not 1:
+                croak("Class getters don't take any arguments aside from one referencing the instance (self)", start.line, start.col, start.pos)
+            elif ctor is AST_ObjectSetter and definition.argnames.length is not 2:
+                croak("Class setters take exactly 2 arguments (self, value)", start.line, start.col, start.pos)
+        elif is_accessor:
+            if ctor is AST_ObjectGetter and definition.argnames.length:
+                croak("Object getters don't take any arguments", start.line, start.col, start.pos)
+            elif ctor is AST_ObjectSetter and definition.argnames.length is not 1:
+                croak("Object setters take exactly 1 argument", start.line, start.col, start.pos)
 
         return definition
+
+    def accessor_(type, start, in_class):
+        if type is "get":
+            func = function_(in_class, AST_ObjectGetter)
+        elif type is "set":
+            func = function_(in_class, AST_ObjectSetter)
+        else:
+            croak("Expecting setter/getter, got '" + type + "' instead.")
+        func.start = start
+        func.end = prev()
+        return func
 
     def if_():
         cond = expression(True)
@@ -1685,23 +1710,8 @@ def parse($TEXT, options):
                 ctx.expect_object_literal_key = orig
 
                 if type is "name" and not is_("punc", ":"):
-                    if name is "get":
-                        a.push(new AST_ObjectGetter({
-                            start: start,
-                            key: key,
-                            value: function_(False, AST_Accessor),
-                            end: prev()
-                        }))
-                        continue
-
-                    if name is "set":
-                        a.push(new AST_ObjectSetter({
-                            start: start,
-                            key: key,
-                            value: function_(False, AST_Accessor),
-                            end: prev()
-                        }))
-                        continue
+                    a.push(accessor_(name, start, False))
+                    continue
 
             if not saw_starargs:
                 expect(":")

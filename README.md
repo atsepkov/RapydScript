@@ -100,7 +100,7 @@ Table of Contents
 - [Anonymous Functions](#anonymous-functions)
 - [Decorators](#decorators)
 - [Function Annotations](#function-annotations)
-- [Static Typing / Hybrid Typing](#static-typing--hybrid-typing)
+- [Hybrid and Static Typing](#hybrid-and-static-typing)
 - [Self-Executing Functions](#self-executing-functions)
 - [Chaining Blocks](#chaining-blocks)
 - [Function calling with optional arguments](#function-calling-with-optional-arguments)
@@ -447,8 +447,8 @@ used to enforce static typing. In current version of RapydScript they are signif
 See "Static Typing" section for more details.
 
 
-Static Typing / Hybrid Typing
------------------------------
+Hybrid And Static Typing
+------------------------
 RapydScript allows you to use both dynamic and static typing (similar to TypeScript or Flow). Unlike TypeScript, however, RapydScript goes
 a step further with error detection and code optimization when you use static typing. I call this approach hybrid-typing.
 
@@ -1214,6 +1214,7 @@ Most of the features in the compiler work fine with any version of JavaScript. S
 - Computed dictionary/object literal keys (`(foo**2): val`, only supported with ES6 flag)
 - Spread operators in arrays (`['one', *splat, 'ten']`, only supported with ES6 flag)
 - Spread operators in object literals (`{foo: "bar", *splat, baz: "qux"}`, only supported with ES6 flag)
+- Setters and getters for classes
 
 The remaining features are all supported with regular mode but take advantage of ES6 features when compiled with `-es6` flag:
 
@@ -1262,6 +1263,23 @@ more intuitive to me, so there is a good chance it may change (or at least suppo
 		*props,
 		qux: "quux"
 	}
+
+Setters and getters for classes are implemented in a way that's more similar to JavaScript than Python, mainly because their syntax is so horrible
+in Python. As an added bonus, they actually feel more consistent with RapydScript's `def` keyword than they do in JavaScript itself:
+
+```python
+class Item:
+    _item = None
+
+    def unit(self):
+        pass
+
+    get item(self):
+        return self._item
+
+    set item(self, val):
+        self._item = val
+```
 
 
 Available Libraries

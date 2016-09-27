@@ -681,7 +681,7 @@ AST_Module = DEFNODE("Module", "name external decorators", {
     }
 }, AST_Scope)
 
-AST_Method = DEFNODE("Defun", "static", {
+AST_Method = DEFNODE("Method", "static", {
     $documentation: "A class method definition",
     $propdoc: {
         "static": "[boolean] true if method is static"
@@ -1280,18 +1280,27 @@ AST_Object = DEFNODE("Object", "properties", {
         start = 0
         spread = None
         while isinstance(this.properties[start], AST_UnaryPrefix):
+            # if proeprties start with spread operators, check them all for consistency, if possible
             spread = this.properties[start].expression.resolveType(heap)
             if "?" in spread: return "{String:?}"
             start += 1
 
         expected = this.properties[start].value.resolveType(heap)
         for element in this.properties[start+1:]:
+            # now loop through remaining properties
             if isinstance(element, AST_UnaryPrefix):
+                # another spread operator
                 if spread:
                     if spread is not element.expression.resolveType(heap): return "{String:?}"
                 else:
                     spread = element.expression.resolveType(heap)
+            elif isinstance(element, AST_Accessor):
+                # hashmap has getters/setters, ignore for now
+                # if it's a setter, it has no return type anyway
+                # if it's a getter, chances are it returns same type as objects stored inside (although that may be false)
+                pass
             else:
+                # regular element
                 current = element.value.resolveType(heap)
                 if current is not expected:
                     if expected.indexOf("Function") is 0 and current.indexOf("Function") is 0: return "{String:Function}" # only the signatures don't match
@@ -1323,11 +1332,11 @@ AST_ObjectKeyVal = DEFNODE("ObjectKeyVal", None, {
 
 AST_ObjectSetter = DEFNODE("ObjectSetter", None, {
     $documentation: "An object setter property"
-}, AST_ObjectProperty)
+}, AST_Accessor)
 
 AST_ObjectGetter = DEFNODE("ObjectGetter", None, {
     $documentation: "An object getter property"
-}, AST_ObjectProperty)
+}, AST_Accessor)
 
 AST_Symbol = DEFNODE("Symbol", "scope name thedef", {
     $propdoc: {
