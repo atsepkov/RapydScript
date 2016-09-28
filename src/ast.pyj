@@ -94,7 +94,7 @@ def DEFNODE(type, props, methods, base):
         for method in dir(methods):
             if methods.hasOwnProperty(method):
                 if method is 'resolveType':
-                    # poor man's decorator until method get rid of this entire function
+                    # poor man's decorator until I get rid of this entire function
                     ctor.prototype[method] = memoized(methods[method])
                 elif /^\$/.test(method):
                     ctor[method[1:]] = methods[method]
@@ -204,8 +204,8 @@ AST_Node = DEFNODE("Node", "start end", {
         per-node basis
         """
         return "?"
-
 }, None)
+
 AST_Node.warn_function = None
 AST_Node.warn = def(txt, props):
     if AST_Node.warn_function:

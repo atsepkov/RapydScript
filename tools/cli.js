@@ -252,6 +252,13 @@ are searched before the builtin paths, which means you
 can use them to replace builtin modules.
 */});
 
+opt("drop_decorators", "dd", 'string', '', function(){/*
+A comma-separated list of decorators to drop during
+compilation. This flag's purpose is to allow the user
+to keep debug/test decorators in development and later
+drop them in production.
+*/});
+
 opt("comments", undefined, 'string', '', function(){/*
 Preserve copyright comments in the output.
 By default this works like Google Closure, keeping 

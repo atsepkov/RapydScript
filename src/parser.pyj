@@ -219,6 +219,7 @@ def parse($TEXT, options):
         es6: False,             # whether we're using EcmaScript 6 mode
         toplevel: None,         # existing tree to append to, if None, new tree will be started
         import_dirs: [],        # List of directories to scan for imports
+        dropDecorators: [],     # Decorators to omit from compilation
         classes: None           # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
     })
     module_id = options.module_id
@@ -1987,6 +1988,29 @@ def parse($TEXT, options):
 
         return expr
 
+    def keepDecorator(expr):
+        # helper function for figuring out whether this decorator should be dropped
+        if not options.dropDecorators.length: return True
+
+        def stringifyName(expr):
+            if isinstance(expr, AST_Dot):
+                return stringifyName(expr.expression) + "." + expr.property
+            return expr.name
+
+        if isinstance(expr, AST_SymbolRef):
+            # regular decorator
+            name = expr.name
+        elif isinstance(expr, AST_Dot):
+            # dot decorator
+            name = stringifyName(expr)
+        elif isinstance(expr, AST_Call):
+            # decorator with args
+            name = stringifyName(expr.expression)
+        else:
+            croak("Unsupported decorator")
+
+        return name not in options.dropDecorators
+
     def maybe_unary(allow_calls):
         start = S.token
 
@@ -1997,7 +2021,8 @@ def parse($TEXT, options):
             S.in_decorator = True
             expr = expression()
             S.in_decorator = False
-            S.decorators.push(expr)
+            if keepDecorator(expr):
+                S.decorators.push(expr)
             return new AST_EmptyStatement({
                 stype: '@',
                 start: prev(),
