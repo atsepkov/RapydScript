@@ -1,6 +1,6 @@
 {
   "name": "rapydscript",
-  "description": "Pythonic JavaScript that doesn't suck",
+  "description": "Python-inspired, decluttered version of JavaScript with optional static typing, automatic optimizations and enhanced error-checking.",
   "homepage": "http://rapydscript.com",
   "keywords": [
     "javascript",
@@ -16,7 +16,7 @@
     "postversion": "npm publish",
     "build-self": "bin/rapydscript --self"
   },
-  "version": "0.5.25",
+  "version": "0.5.26",
   "license": "BSD-2-Clause",
   "engines": {
     "node": ">=0.12.0"
@@ -24,7 +24,7 @@
   "maintainers": [
     {
       "name": "Alexander Tsepkov",
-      "email": "atsepkov@pyjeon.com",
+      "email": "atsepkov@rapydscript.com",
       "web": "http://rapydscript.com"
     }
   ],
