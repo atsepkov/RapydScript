@@ -1214,7 +1214,8 @@ Most of the features in the compiler work fine with any version of JavaScript. S
 - Computed dictionary/object literal keys (`(foo**2): val`, only supported with ES6 flag)
 - Spread operators in arrays (`['one', *splat, 'ten']`, only supported with ES6 flag)
 - Spread operators in object literals (`{foo: "bar", *splat, baz: "qux"}`, only supported with ES6 flag)
-- Setters and getters for classes
+- Setters and getters for classes (only supported with ES6 flag)
+- Template literals
 
 The remaining features are all supported with regular mode but take advantage of ES6 features when compiled with `-es6` flag:
 
@@ -1280,6 +1281,19 @@ class Item:
     set item(self, val):
         self._item = val
 ```
+
+Template literals are new type of string in ES6 that auto-interpolates variables for you. Python's answer to this is `.format()` string method, while
+JavaScript uses the backtick character and auto-fills the variables instead. I prefer the JavaScript approach of a template, but dislike the backtick,
+which is easily confused with a single quote. Instead RapydScript uses a `t` prefix for the string to signify a template:
+
+```python
+name = 'Simon'
+greeting = t"Hello, my name is ${name}."
+```
+
+This will auto-fill name into the greeting, after which it will function as a regular string. This will eventually be the preferred approach over
+concatenating strings, and integer/string concatenation will probably be marked as an error. It is, however, possible that the `${}` syntax may change
+into something like `{{}}`.
 
 
 Available Libraries

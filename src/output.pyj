@@ -96,7 +96,7 @@ def OutputStream(options):
 
         )
 
-    def make_string(str_):
+    def make_string(str_, quotes):
         dq = 0
         sq = 0
         str_ = str_.replace(/[\\\b\f\n\r\t\x22\x27\u2028\u2029\0]/g, def(s):
@@ -131,13 +131,16 @@ def OutputStream(options):
         if options.ascii_only:
             str_ = to_ascii(str_)
 
-        if dq > sq:
-            return "'" + str_.replace(/\x27/g, "\\'") + "'"
+        if quotes:
+            if dq > sq:
+                return "'" + str_.replace(/\x27/g, "\\'") + "'"
+            else:
+                return '"' + str_.replace(/\x22/g, '\\"') + '"'
         else:
-            return '"' + str_.replace(/\x22/g, '\\"') + '"'
+            return str_
 
-    def encode_string(str_):
-        ret = make_string(str_)
+    def encode_string(str_, quotes):
+        ret = make_string(str_, quotes)
         if options.inline_script:
             ret = ret.replace(/<\x2fscript([>\/\t\n\f\r ])/gi, "<\\/script$1")
 
@@ -468,7 +471,7 @@ def OutputStream(options):
         to_ascii: to_ascii,
         print_name: def(name): print_(make_name(name))
         ,
-        print_string: def(str_): print_(encode_string(str_))
+        print_string: def(str_, quotes=True): print_(encode_string(str_, quotes))
         ,
         next_indent: next_indent,
         with_indent: with_indent,
@@ -2543,7 +2546,14 @@ def OutputStream(options):
         output.print(self.getValue())
     )
     DEFPRINT(AST_String, def(self, output):
-        output.print_string(self.getValue())
+        if self.modifier in 'tT':
+            # string template, ES6
+            output.print('`')
+            output.print_string(self.getValue(), False)
+            output.print('`')
+        else:
+            # regular string
+            output.print_string(self.getValue())
     )
     DEFPRINT(AST_Verbatim, def(self, output):
         output.print(self.getValue())

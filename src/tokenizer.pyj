@@ -157,7 +157,7 @@ UNICODE = {  # {{{
 }
 
 IDENTIFIER_PAT = /^[a-z_$][_a-z0-9$]*$/i
-STRING_MODIFIERS = 'urUR'
+STRING_MODIFIERS = 'urtURT'
 UNARY_POSTFIX = makePredicate([ "--", "++" ])
 
 def is_letter(code):

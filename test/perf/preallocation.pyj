@@ -1,0 +1,54 @@
+# Author: Alexander Tsepkov
+# array preallocation myth: BUSTED
+# better performance with same type myth: BUSTED
+# and typed arrays don't yield better performance, at least in V8
+
+
+n = 500
+
+bench.add('til', def():
+    a = [0 til n]
+)
+bench.add('range', def():
+    a = range(n)
+)
+bench.add('Array.push() loop', def():
+    a = []
+    i = 0
+    while i < n:
+        a.push(i)
+        i += 1
+)
+bench.add('Array.push() loop (inconsistent value types)', def():
+    a = []
+    i = 0
+    while i < 30:
+        a.push(i)
+        i += 1
+    a.push({ cow: 'moo' })
+    i += 1
+    while i < n:
+        a.push(i)
+        i += 1
+)
+bench.add('Array(N) preallocation', def():
+    a = Array(n)
+    i = 0
+    while i < n:
+        a[i] = i
+        i += 1
+)
+bench.add('Int32Array(N) preallocation', def():
+    a = Int32Array(n)
+    i = 0
+    while i < n:
+        a[i] = i
+        i += 1
+)
+bench.add('Int16Array(N) preallocation', def():
+    a = Int16Array(n)
+    i = 0
+    while i < n:
+        a[i] = i
+        i += 1
+)

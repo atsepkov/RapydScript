@@ -106,7 +106,7 @@ def DEFNODE(type, props, methods, base):
 
     return ctor
 
-AST_Token = DEFNODE("Token", "type value line col pos endpos newline_before comments_before file", {}, None)
+AST_Token = DEFNODE("Token", "type subtype value line col pos endpos newline_before comments_before file", {}, None)
 
 AST_Node = DEFNODE("Node", "start end", {
     clone: def():
