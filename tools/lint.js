@@ -52,12 +52,16 @@ var BUILTINS = {};
     'clearTimeout',
 
     // node
+    'global',
     'process',
 
     // Python
     'bool',
     'int',
     'float',
+
+    // RapydScript
+    'root',
 ].forEach(function (name) { BUILTINS[name] = true; });
 
 // TEMP: temporary polyfill until ES6

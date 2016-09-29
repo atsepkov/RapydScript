@@ -121,6 +121,7 @@ Table of Contents
 - [Available Libraries](#available-libraries)
 - [Advanced Usage Topics](#advanced-usage-topics)
   - [System Scripts](#system-scripts)
+  - [Unit Testing](#unit-testing)
   - [Browser Compatibility](#browser-compatibility)
   - [Code Conventions](#code-conventions)
     - [Tabs vs Spaces](#tabs-vs-spaces)
@@ -1327,6 +1328,35 @@ This is identical to the following terminal operation:
 
 It will trigger the script, omitting the compiled code. You can include the `--pretty` option to include output of the compiled code as well.
 
+### Unit Testing
+You're free to use any unit testing library you wish, but RapydScript comes with a `dev` library out of the box. It's a convenient way to test your
+functions without having to build out a test harness yourself. To use it, simply import `dev`, set `UTEST` to true on global `root` object and
+use `dev.utest` decorator:
+
+```python
+import dev
+
+root.UTEST = True
+
+@dev.utest({input: [1, 2], output: 3})
+@dev.utest({input: [1, 2, 3], output: 3})
+@dev.utest({input: [Infinity, 2], output: Infinity})
+def foo(a, b):
+	return a + b
+
+@dev.utest({input: [], error: /qux/})
+def bar():
+	raise Error('qux')
+```
+The function is tested at load time, not when it's executed, which means these test decorators can stay in your code without affecting execution after.
+You may disable the test, however, by unsetting the `UTEST` variable. Aside from running at initialization, you won't even experience function-call
+overhead with these decorators since they pass the original function through. However, if you want to remove them altogether in your production
+environment, you can use `drop_decorators` and `drop_imports` flags:
+
+```bash
+rapydscript file.pyj --dd dev.utest --di dev
+```
+
 ### Browser Compatibility
 By default, RapydScript compiles your logic such that it will work on modern browsers running HTML5. Previously I generated code that was compatible with older versions of IE, but have since decided that it wasn't worth it. It prevented me from making use of sensible JavaScript features many developers take for granted (setters, getters, strict mode, etc.), forced special cases on me, and required overly verbose JavaScript with unnecessary polyfill. RapydScript no longer supports versions of IE before 9, but you can easily bring that support back into RapydScript with the help of a tool like `Modernizr` or `Babel`.
 
@@ -1424,7 +1454,9 @@ In a perfect world, software works flawlessly and doesn't have any special cases
 
 - Operators in JavaScript are very different from Python. `1 + '1'` would be
   an error in Python, but results in `'11'` in JavaScript. Keep that in mind
-  as you write code.
+  as you write code. When possible, RapydScript tries to detect type and warn
+  you ahead of time of nonsensical operations such as `[] + {}`, but sometimes
+  it can't do its magic.
 
 - Method binding in RS is not automatic. So ``someobj.somemethod()`` will do the
   right thing, but ``x = someobj.somethod; x()`` will not. RS could work around

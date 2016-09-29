@@ -65,7 +65,10 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
                 console.log(output);
                 console.log('\n------------ Execution -------------\n');
             }
-            vm.runInNewContext(output, {'console':console}, {'filename':files[0]});
+            vm.runInNewContext(output, {
+                'console': console,
+                'root': typeof window === 'object' ? window : global
+            }, {'filename':files[0]});
         } else {
             console.log(output);
         }

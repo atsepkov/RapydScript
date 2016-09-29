@@ -1,0 +1,86 @@
+"""
+Developer toolbelt for unit testing
+Author: Alexander Tsepkov
+Copyright 2016
+
+Usage:
+    import dev
+
+    root.UTEST = True # enable tests
+
+    @dev.utest({input: [1, 2], output: 3})
+    @dev.utest({input: [1, 2, 3], output: 3})
+    @dev.utest({input: [Infinity, 2], output: Infinity})
+    def foo(a, b):
+        return a + b
+
+    @dev.utest({input: [], error: /qux/})
+    def bar():
+        raise Error('qux')
+
+"""
+
+
+def _out(test, result):
+    # takes result and pretty-prints it
+    if result.expected:
+        print(test + ": expected: " + JSON.stringify(result.expected) + ", actual: " + JSON.stringify(result.actual))
+    elif result.expectedError or result.actualError:
+
+        if isinstance(result.expectedError, RegExp):
+            expected = result.expectedError.toString()
+        else:
+            expected = JSON.stringify(result.expectedError)
+
+        if isinstance(result.actualError, Error):
+            actual = result.actualError.toString()
+        else:
+            actual = JSON.stringify(result.actualError)
+
+        print(test + ": expected error: " + expected + ", actual error: " + actual)
+    else:
+        print(test + ": ok")
+
+def utest(hash):
+    """
+    Hash format:
+        {
+            input: an array of args to test
+
+            (conditional group, one is required)
+            output: expected output value to compare against
+            error: regex to test the error against
+        }
+    """
+
+    return def(f):
+        # run the test case
+        if root and root.UTEST:
+            name = f.name + '(' + hash.input.toString() + ')'
+            try:
+                result = f(*hash.input)
+            except as error:
+                if hash.error and hash.error.test(error):
+                    _out(name, {})
+                else:
+                    _out(name, {
+                        expectedError: hash.error or None,
+                        actualError: error
+                    })
+            if result:
+                if result == hash.output:
+                    _out(name, {})
+                elif hash.error:
+                    _out(name, {
+                        expectedError: hash.error,
+                        actualError: error or None
+                    })
+                else:
+                    _out(name, {
+                        expected: hash.output,
+                        actual: result
+                    })
+
+        # return the same undecorated function
+        return f
+

@@ -27,6 +27,7 @@ function create_ctx(baselib, show_js, console) {
     };
 
     var ctx = vm.createContext({
+        'root': typeof window === 'object' ? window : global,
         'console': console,
         'RapydScript': RapydScript,
         'require': require,
