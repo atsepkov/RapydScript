@@ -39,6 +39,7 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
     var STATS = {}, TOPLEVEL;
     var num_of_files = files.length || 1;
     var dropDecorators = argv.drop_decorators.split(/\s*,\s*/);
+    var dropImports = argv.drop_imports.split(/\s*,\s*/);
 
     function parse_file(code, file, toplevel) {
         return RapydScript.parse(code, {
@@ -50,7 +51,8 @@ module.exports = function(start_time, argv, base_path, src_path, lib_path) {
             es6: argv.ecmascript6,
             libdir: path.join(src_path, 'lib'),
             import_dirs: RapydScript.get_import_dirs(argv.import_path),
-            dropDecorators: dropDecorators
+            dropDecorators: dropDecorators,
+            dropImports: dropImports
         });
     }
 

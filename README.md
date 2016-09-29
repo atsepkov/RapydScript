@@ -216,6 +216,8 @@ The available options are:
 	-h, --help         Print usage and more information on each of these options
 		--self         Compile the compiler itself
 		--stats        Show compilation metrics in STDERR (time to parse, generate code, etc.)
+		--dd           Drop specified decorators (takes a comma-separated list of decorator names)
+		--di           Drop specified imports (takes a comma-separated list of import names)
 	-l, --lint         Check file for errors and compilation problems
 
 You can also use RapydScript as your main system's scripting language (similar to how some prefer to write their system scripts in Python). To do so, add the following line to the top of your script files:
@@ -1282,18 +1284,16 @@ class Item:
         self._item = val
 ```
 
-Template literals are new type of string in ES6 that auto-interpolates variables for you. Python's answer to this is `.format()` string method, while
-JavaScript uses the backtick character and auto-fills the variables instead. I prefer the JavaScript approach of a template, but dislike the backtick,
-which is easily confused with a single quote. Instead RapydScript uses a `t` prefix for the string to signify a template:
+Template literals are new type of string in ES6 that auto-interpolates variables for you. Just like Python 3.6, RapydScript uses the `f` prefix for these:
 
 ```python
 name = 'Simon'
-greeting = t"Hello, my name is ${name}."
+greeting = f"Hello, my name is ${name}."
 ```
 
 This will auto-fill name into the greeting, after which it will function as a regular string. This will eventually be the preferred approach over
-concatenating strings, and integer/string concatenation will probably be marked as an error. It is, however, possible that the `${}` syntax may change
-into something like `{{}}`.
+concatenating strings, and integer/string concatenation will probably be marked as an error. It is, however, possible that the `${}` syntax, which was
+taken from ES6, may change (Python's own syntax is `{}` by themselves).
 
 
 Available Libraries

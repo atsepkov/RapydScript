@@ -220,6 +220,7 @@ def parse($TEXT, options):
         toplevel: None,         # existing tree to append to, if None, new tree will be started
         import_dirs: [],        # List of directories to scan for imports
         dropDecorators: [],     # Decorators to omit from compilation
+        dropImports: [],        # Imports to omit from compilation
         classes: None           # Map of class names to AST_Class that are available in the global namespace (used by the REPL)
     })
     module_id = options.module_id
@@ -745,14 +746,19 @@ def parse($TEXT, options):
         if src_code is None:
             raise "Failed Import: '" + key + "' module doesn't exist in any of the import directories: " + import_dirs.join(', ')
         contents = parse(src_code, {
-                filename: filename,
-                toplevel: None,
-                readfile: options.readfile,
-                basedir: options.basedir,
-                libdir: options.libdir,
-                module_id: key,
-                IMPORTED: IMPORTED,
-                IMPORTING: IMPORTING,
+            filename: filename,
+            toplevel: None,
+            readfile: options.readfile,
+            basedir: options.basedir,
+            libdir: options.libdir,
+            module_id: key,
+            IMPORTED: IMPORTED,
+            IMPORTING: IMPORTING,
+            auto_bind: options.auto_bind,
+            es6: options.es6,
+            import_dirs: options.import_dirs,
+            dropDecorators: options.dropDecorators,
+            dropImports: options.dropImports,
         })
         if len(package_module_id) > 0:
             IMPORTED[package_module_id].submodules.push(key)
@@ -767,6 +773,11 @@ def parse($TEXT, options):
                 key = "." + tmp.property + key
                 tmp = tmp.expression
             key = tmp.name + key
+            if not keepDecoratorOrImport(key, True):
+                return new AST_EmptyStatement({
+                    start: prev(),
+                    end: prev()
+                })
             alias = None
             if not from_import and is_('keyword', 'as'):
                 next()
@@ -1988,16 +1999,22 @@ def parse($TEXT, options):
 
         return expr
 
-    def keepDecorator(expr):
+    def keepDecoratorOrImport(expr, imp=False):
         # helper function for figuring out whether this decorator should be dropped
-        if not options.dropDecorators.length: return True
+        if imp:
+            if not options.dropImports.length: return True
+        else:
+            if not options.dropDecorators.length: return True
 
         def stringifyName(expr):
             if isinstance(expr, AST_Dot):
                 return stringifyName(expr.expression) + "." + expr.property
             return expr.name
 
-        if isinstance(expr, AST_SymbolRef):
+        if type(expr) is 'string':
+            # passed in a string
+            name = expr
+        elif isinstance(expr, AST_SymbolRef):
             # regular decorator
             name = expr.name
         elif isinstance(expr, AST_Dot):
@@ -2009,7 +2026,10 @@ def parse($TEXT, options):
         else:
             croak("Unsupported decorator")
 
-        return name not in options.dropDecorators
+        if imp:
+            return name not in options.dropImports
+        else:
+            return name not in options.dropDecorators
 
     def maybe_unary(allow_calls):
         start = S.token
@@ -2021,7 +2041,7 @@ def parse($TEXT, options):
             S.in_decorator = True
             expr = expression()
             S.in_decorator = False
-            if keepDecorator(expr):
+            if keepDecoratorOrImport(expr):
                 S.decorators.push(expr)
             return new AST_EmptyStatement({
                 stype: '@',

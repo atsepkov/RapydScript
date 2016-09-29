@@ -2546,7 +2546,7 @@ def OutputStream(options):
         output.print(self.getValue())
     )
     DEFPRINT(AST_String, def(self, output):
-        if self.modifier in 'tT':
+        if self.modifier in 'fF':
             # string template, ES6
             output.print('`')
             output.print_string(self.getValue(), False)

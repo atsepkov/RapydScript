@@ -259,6 +259,14 @@ to keep debug/test decorators in development and later
 drop them in production.
 */});
 
+opt("drop_imports", "di", 'string', '', function(){/*
+A comma-separated list of imports to drop during
+compilation. This flag's purpose is to allow the user
+to keep debug/test imports in development and later
+drop them in production. This option can be
+used together with drop_decorators.
+*/});
+
 opt("comments", undefined, 'string', '', function(){/*
 Preserve copyright comments in the output.
 By default this works like Google Closure, keeping 
