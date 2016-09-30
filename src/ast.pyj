@@ -245,9 +245,8 @@ def walk_body(node, visitor):
     if isinstance(node.body, AST_Statement):
         node.body._walk(visitor)
     elif node.body:
-        node.body.forEach(def(stat):
+        for stat in node.body:
             stat._walk(visitor)
-        )
 
 AST_Block = DEFNODE("Block", "body", {
     $documentation: "A body of statements (usually bracketed)",
@@ -419,11 +418,10 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang impor
         self = this
         args = []
         parameters = []
-        arg_parameter_pairs.forEach(def(pair):
+        for pair in arg_parameter_pairs:
             split = pair.split(":")
             args.push(split[0])
             parameters.push(split[1])
-        )
         wrapped_tl = "(function(" + parameters.join(",") + "){ '$ORIG'; })(" + args.join(",") + ")"
         wrapped_tl = parse(wrapped_tl)
         wrapped_tl = wrapped_tl.transform(new TreeTransformer(def before(node):
@@ -455,7 +453,7 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang impor
                         return MAP.splice(self.body)
                     elif tmp_ is "$EXPORTS":
                         body = []
-                        to_export.forEach(def(sym):
+                        for sym in to_export:
                             body.push(new AST_SimpleStatement({
                                 body: new AST_Assign({
                                     left: new AST_Sub({
@@ -470,7 +468,6 @@ AST_Toplevel = DEFNODE("Toplevel", "globals baselib imports strict shebang impor
                                     right: new AST_SymbolRef(sym)
                                 })
                             }))
-                        )
                         return MAP.splice(body)
         ))
         return wrapped_tl
@@ -497,9 +494,8 @@ AST_Import = DEFNODE("Import", "module key alias argnames body", {
     _walk: def(visitor):
         node = this
         return visitor._visit(node, def():
-            node.argnames.forEach(def(arg):
+            for arg in node.argnames:
                 arg._walk(visitor)
-            )
         )
     ,
 }, AST_Statement)
@@ -512,9 +508,8 @@ AST_Imports = DEFNODE('Imports', 'imports', {
     _walk: def(visitor):
         node = this
         return visitor._visit(node, def():
-            node.imports.forEach(def(imp):
+            for imp in node.imports:
                 imp._walk(visitor)
-            )
         )
     ,
 
@@ -593,9 +588,8 @@ AST_Lambda = DEFNODE("Lambda", "name argnames kwargs uses_arguments decorators g
             if node.name:
                 node.name._walk(visitor)
 
-            node.argnames.forEach(def(arg):
+            for arg in node.argnames:
                 arg._walk(visitor)
-            )
 
             if node.argnames.starargs:
                 node.argnames.starargs._walk(visitor)
@@ -848,9 +842,8 @@ AST_Definitions = DEFNODE("Definitions", "definitions", {
     _walk: def(visitor):
         node = this
         return visitor._visit(node, def():
-            node.definitions.forEach(def(def_):
+            for def_ in node.definitions:
                 def_._walk(visitor)
-            )
         )
 }, AST_Statement)
 
@@ -894,16 +887,15 @@ AST_Call = DEFNODE("Call", "expression", {
         node = this
         return visitor._visit(node, def():
             node.expression._walk(visitor)
-            node.args.forEach(def(arg):
+            for arg in node.args:
                 arg._walk(visitor)
-            )
-            if (node.args.kwargs) node.args.kwargs.forEach(def(arg):
-                arg[0]._walk(visitor)
-                arg[1]._walk(visitor)
-            )
-            if (node.args.kwarg_items) node.args.kwarg_items.forEach(def(arg):
-                arg._walk(visitor)
-            )
+            if node.args.kwargs:
+                for arg in node.args.kwargs:
+                    arg[0]._walk(visitor)
+                    arg[1]._walk(visitor)
+            if node.args.kwarg_items:
+                for arg in node.args.kwarg_items:
+                    arg._walk(visitor)
         )
     ,
     resolveType: def(heap):
@@ -987,16 +979,13 @@ AST_ClassCall = DEFNODE("ClassCall", "class super method static", {
         node = this
         return visitor._visit(node, def():
             if node.expression: node.expression._walk(visitor)
-            node.args.forEach(def(arg):
+            for arg in node.args:
                 arg._walk(visitor)
-            )
-            node.args.kwargs.forEach(def(arg):
+            for arg in node.args.kwargs:
                 arg[0]._walk(visitor)
                 arg[1]._walk(visitor)
-            )
-            node.args.kwarg_items.forEach(def(arg):
+            for arg in node.args.kwarg_items:
                 arg._walk(visitor)
-            )
         )
 }, AST_BaseCall)
 
@@ -1227,9 +1216,8 @@ AST_Array = DEFNODE("Array", "elements", {
     _walk: def(visitor):
         node = this
         return visitor._visit(node, def():
-            node.elements.forEach(def(el):
+            for el in node.elements:
                 el._walk(visitor)
-            )
         )
     ,
     resolveType: def(heap):
@@ -1253,9 +1241,8 @@ AST_TupleUnpack = DEFNODE("TupleUnpack", "elements right", {
     _walk: def(visitor):
         node = this
         return visitor._visit(node, def():
-            node.elements.forEach(def(el):
+            for el in node.elements:
                 el._walk(visitor)
-            )
             node.right._walk(visitor)
         )
 })
@@ -1268,9 +1255,8 @@ AST_Object = DEFNODE("Object", "properties", {
     _walk: def(visitor):
         node = this
         return visitor._visit(node, def():
-            node.properties.forEach(def(prop):
+            for prop in node.properties:
                 prop._walk(visitor)
-            )
         )
     ,
     resolveType: def(heap):

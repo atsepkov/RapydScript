@@ -874,13 +874,12 @@ def parse($TEXT, options):
             statements: [],
             decorators: (def():
                 d = []
-                S.decorators.forEach(def(decorator):
+                for decorator in S.decorators:
                     if decorator is 'kwargs':
                         BASELIB['kwargs'] = True
                     d.push(new AST_Decorator({
                         expression: decorator
                     }))
-                )
                 S.decorators = []
                 return d
             )(),
@@ -1107,11 +1106,10 @@ def parse($TEXT, options):
             )([]),
             decorators: (def():
                 d = []
-                S.decorators.forEach(def(decorator):
+                for decorator in S.decorators:
                     d.push(new AST_Decorator({
                         expression: decorator
                     }))
-                )
                 S.decorators = []
                 return d
             )(),
@@ -2391,10 +2389,9 @@ def parse($TEXT, options):
         assignments = Object.keys(S.in_scope[-1].vars)
         callables = scan_for_top_level_callables(toplevel.body).filter(uniq)
         toplevel.localvars = []
-        assignments.forEach(def(item):
+        for item in assignments:
             if item not in toplevel.nonlocalvars:
                 toplevel.localvars.push(new_symbol(AST_SymbolVar, item))
-        )
         toplevel.exports = toplevel.localvars.concat(callables).filter(uniq)
         toplevel.submodules = []
         toplevel.classes = CLASS_MAP
