@@ -1360,6 +1360,20 @@ rapydscript file.pyj --dd dev.utest --di dev
 ### Browser Compatibility
 By default, RapydScript compiles your logic such that it will work on modern browsers running HTML5. Previously I generated code that was compatible with older versions of IE, but have since decided that it wasn't worth it. It prevented me from making use of sensible JavaScript features many developers take for granted (setters, getters, strict mode, etc.), forced special cases on me, and required overly verbose JavaScript with unnecessary polyfill. RapydScript no longer supports versions of IE before 9, but you can easily bring that support back into RapydScript with the help of a tool like `Modernizr` or `Babel`.
 
+### Easter Eggs
+While working with RapydScript, and interesting idea to try came to me:
+
+```python
+array = [i**2 for i in [1 to 100]] # just an array, initialized whichever way you want
+
+@array.forEach
+def f(e, i):
+	print('lolz ' + e)
+```
+The above logic will do exactly what it looks like. It will auto-trigger on function creation, and repeat the action for each element in the array.
+This wasn't intentional addition to the language, more of a side-effect of how decorators are implemented, but I can assure you it's not going anywhere
+in case you want to make use of it for something of value.
+
 ### Code Conventions
 It's not hard to see that RapydScript is a cleaner language than JavaScript. However, like with all dynamically-typed languages (including Python), it's still easy to shoot yourself in the foot if you don't follow some sort of code conventions. Needless to say, they're called `conventions` for a reason, feel free to ignore them if you already have a set of conventions you follow or if you disagree with some.
 
