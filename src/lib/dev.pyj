@@ -21,9 +21,15 @@ Usage:
 """
 
 
+# admittedly a hack, whose main purpose is to facilitate convenient setup/teardown logic while giving the user
+# an intuitive way of calling it
+container = {}
+
 def _out(test, result):
     # takes result and pretty-prints it
-    if result.expected:
+    if result.error:
+        print(test + ": " + result.error)
+    elif result.expected:
         print(test + ": expected: " + JSON.stringify(result.expected) + ", actual: " + JSON.stringify(result.actual))
     elif result.expectedError or result.actualError:
 
@@ -56,9 +62,25 @@ def utest(hash):
     return def(f):
         # run the test case
         if root and root.UTEST:
-            name = f.name + '(' + hash.input.toString() + ')'
+            args = hash.setup ? 'self object' : hash.input.toString()
+            name = f.name + '(' + args + ')'
+
+            # setup, if any
+            if hash.setup:
+                container[name] = {}
+                hash.setup(container[name])
+
+            # main test
             try:
-                result = f(*hash.input)
+                if hash.setup:
+                    if JS('typeof hash.input') is 'function':
+                        result = f(*hash.input(container[name]))
+                    else:
+                        _out(name, {
+                            error: 'with setup block, input must be a function'
+                        })
+                else:
+                    result = f(*hash.input)
             except as error:
                 if hash.error and hash.error.test(error):
                     _out(name, {})
@@ -80,6 +102,10 @@ def utest(hash):
                         expected: hash.output,
                         actual: result
                     })
+
+            # teardown, if any
+            if hash.setup and hash.teardown:
+                hash.teardown(container[name])
 
         # return the same undecorated function
         return f

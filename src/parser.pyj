@@ -970,16 +970,17 @@ def parse($TEXT, options):
         function_args = {}          # hash of arguments this function sees
         return_annotation = None    # return annotation for the function, if any
 
-        # special decorators are decorators that have special meaning to the compiler
-        has_special_decorator = def(name): return has_simple_decorator(S.decorators, name)
+        if not S.in_decorator: # prevents this logic from firing in a function that exists within the decorator call
+            # special decorators are decorators that have special meaning to the compiler
+            has_special_decorator = def(name): return has_simple_decorator(S.decorators, name)
 
-        if in_class:
-            if has_special_decorator("staticmethod"):
-                S.in_scope[-2].classes[in_class].static.push(name.name)
-                staticmethod = True
-            if has_special_decorator("bind") or name.name is not "__init__" and options.auto_bind:
-                BASELIB["bind"] = True
-                S.in_scope[-2].classes[in_class].bound[name.name] = True
+            if in_class:
+                if has_special_decorator("staticmethod"):
+                    S.in_scope[-2].classes[in_class].static.push(name.name)
+                    staticmethod = True
+                if has_special_decorator("bind") or name.name is not "__init__" and options.auto_bind:
+                    BASELIB["bind"] = True
+                    S.in_scope[-2].classes[in_class].bound[name.name] = True
 
         expect("(")
         if not ctor:
@@ -1104,7 +1105,7 @@ def parse($TEXT, options):
                 a.defaults = defaults
                 return a
             )([]),
-            decorators: (def():
+            decorators: S.in_decorator ? [] : (def():
                 d = []
                 for decorator in S.decorators:
                     d.push(new AST_Decorator({
@@ -1610,14 +1611,6 @@ def parse($TEXT, options):
                 BASELIB['range'] = True
                 next()
                 expr.push(expression(False))
-#                ret = subscripts(new AST_Call({
-#                    start: S.token,
-#                    expression: new AST_SymbolRef({
-#                        name: "range"
-#                    }),
-#                    args: expr,
-#                    end: prev()
-#                }), True)
                 ret = new AST_Range({
                     start: S.token,
                     left: expr[0],
@@ -2037,7 +2030,7 @@ def parse($TEXT, options):
                 croak('Nested decorators are not allowed')
             next()
             S.in_decorator = True
-            expr = expression()
+            expr = expression(True)
             S.in_decorator = False
             if keepDecoratorOrImport(expr):
                 S.decorators.push(expr)
