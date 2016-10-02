@@ -16,7 +16,7 @@
     "postversion": "npm publish",
     "build-self": "bin/rapydscript --self"
   },
-  "version": "0.5.31",
+  "version": "0.5.32",
   "license": "BSD-2-Clause",
   "engines": {
     "node": ">=0.12.0"
@@ -39,6 +39,7 @@
   "devDependencies": {
     "benchmark": "^2.1.1",
     "chai": "^3.5.0",
-    "mocha": "^3.0.2"
+    "mocha": "^3.0.2",
+    "zombie": "^4.2.1"
   }
 }
