@@ -1,0 +1,44 @@
+# Performance tests for various native functions. Unlike other modules in
+# this directory these tests are not representative of RapydScript itself,
+# but they're useful to understand when writing new modules or baselib
+# functionality for RapydScript. When possible, replace the slower logic
+# with more performant equivalents. Keep in mind that performance may vary
+# somewhat depending on platform-specific implementation, I would ignore any
+# differences smaller than 20% for that reason.
+# Author: Alexander Tsepkov
+
+hash = {foo: 1, bar: 2, baz: 3, qux: 4, quux: 5}
+arr = [1 to 10]
+arr0 = Array(10)
+arr1 = Int32Array(10)
+arr2 = Int16Array(10)
+string = 'baz'
+
+# array test
+bench.add('typeof string', def():
+    JS('typeof string === "string"')
+)
+bench.add('typeof indexOf', def():
+    JS('typeof arr.indexOf === "function"')
+)
+bench.add('Array.isArray', def():
+    JS('Array.isArray(arr)')
+)
+bench.add('toString()[0] === "["', def():
+    JS('hash.toString()[0] === "["')
+)
+bench.add('Array.prototype.constructor', def():
+    JS('arr.constructor === Array.prototype.constructor')
+)
+bench.add('[].constructor', def():
+    JS('arr.constructor === [].constructor')
+)
+bench.add('"".constructor', def():
+    JS('string.constructor === "".constructor')
+)
+bench.add('Object.prototype.toString.call(x).slice(8, -1)', def():
+    JS('Object.prototype.toString.call(arr).slice(8, -1) === "Array"')
+)
+bench.add('Array.prototype.slice.call(arr).length', def():
+    JS('Array.prototype.slice.call(arr).length')
+)

@@ -100,7 +100,8 @@
 ,
 "enumerate": def enumerate(item):
     arr = []
-    for i in range(len(item)):
+    iter = ՐՏ_Iterable(item)
+    for i in range(iter.length):
         arr[arr.length] = [i, item[i]]
     return arr
 ,
@@ -136,12 +137,19 @@
     return arr.hasOwnProperty(val)
 ,
 "iterable": def ՐՏ_Iterable(iterable):
-    if Array.isArray(iterable) or isinstance(iterable, String) or JS('typeof iterable') is 'string': return iterable
+    # can't use Symbol.iterator yet since it's not supported on all platforms until ES6 (i.e. mobile browsers don't have it)
+    if iterable.constructor is [].constructor
+    or iterable.constructor is ''.constructor
+    or (tmp = Array.prototype.slice.call(iterable)).length:
+        return tmp or iterable
     return Object.keys(iterable)    # so we can use 'for ... in' syntax with hashes
 ,
 "len": def len(obj):
-    # naive assumption that indexOf will only exist on arrays and strings buys us a huge performance boost over the slow isArray check
-    if JS('typeof obj.indexOf') is 'function': return obj.length
+    # can't use Symbol.iterator yet since it's not supported on all platforms until ES6 (i.e. mobile browsers don't have it)
+    if obj.constructor is [].constructor
+    or obj.constructor is ''.constructor
+    or (tmp = Array.prototype.slice.call(obj)).length:
+        return (tmp or obj).length
     return Object.keys(obj).length
 ,
 "map": def map(oper, arr):

@@ -1,0 +1,72 @@
+Browser = require('zombie')
+expect = require('chai').expect
+
+# let compiler know about the nature of Browser
+@external
+class Browser:
+    @staticmethod
+    def localhost(self):
+        pass
+
+# We're going to make requests to http://rapydscript.com/signup
+# Which will be routed to our test server localhost:8081
+Browser.localhost('rapydscript.com', 8081)
+
+describe('RapydScript collections test', def():
+    browser = Browser()
+    before(def():
+        return browser.visit('/index')
+    )
+    nodelist = [
+        'one',
+        'two',
+        'three',
+        'four',
+        'five',
+        'six',
+        'seven',
+        'eight',
+        'nine',
+        'ten',
+    ]
+
+    it('iterate through NodeList', def():
+        count = 0
+        for element in browser.document.querySelectorAll('div'):
+            expect(element.innerHTML).to.equal(nodelist[count])
+            count += 1
+    )
+
+    it('enumerate through NodeList', def():
+        for index, element in enumerate(browser.document.querySelectorAll('div')):
+            expect(element.innerHTML).to.equal(nodelist[index])
+    )
+
+    it('len(NodeList)', def():
+        expect(len(browser.document.querySelectorAll('div'))).to.equal(10)
+    )
+
+    htmlcollection = [
+        'eleven',
+        'twelve',
+        'thirteen',
+        'fourteen',
+        'fifteen',
+    ]
+
+    it('iterate through HTMLCollection', def():
+        count = 0
+        for element in browser.document.forms:
+            expect(element.innerHTML).to.equal(htmlcollection[count])
+            count += 1
+    )
+
+    it('enumerate through HTMLCollection', def():
+        for index, element in enumerate(browser.document.forms):
+            expect(element.innerHTML).to.equal(htmlcollection[index])
+    )
+
+    it('len(HTMLCollection)', def():
+        expect(len(browser.document.forms)).to.equal(5)
+    )
+)

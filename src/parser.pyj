@@ -735,7 +735,7 @@ def parse($TEXT, options):
                         raise
 
         src_code = filename = None
-        modpath = key.replace('.', '/')
+        modpath = key.replace(/\./g, '/')
 
         for location in import_dirs:
             if location:

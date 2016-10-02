@@ -20,26 +20,6 @@ bench.add('==', def():
     JS('1 == 1')
 )
 
-# array test
-bench.add('typeof', def():
-    JS('typeof string === "string"')
-)
-bench.add('typeof indexOf', def():
-    JS('typeof arr.indexOf === "function"')
-)
-bench.add('Array.isArray', def():
-    JS('Array.isArray(arr)')
-)
-bench.add('toString()[0] === "["', def():
-    JS('hash.toString()[0] === "["')
-)
-bench.add('Array.constructor', def():
-    JS('arr.constructor === Array.constructor')
-)
-bench.add('[].constructor', def():
-    JS('arr.constructor === [].constructor')
-)
-
 # hashes
 bench.add('hasOwnProperty', def():
     JS('hash.hasOwnProperty("baz")')
