@@ -525,15 +525,16 @@ def OutputStream(options):
 (def():
     # -----[ utils ]-----
     SPECIAL_METHODS = {
-        bind: "ՐՏ_bind",
-        rebind_all: "ՐՏ_rebindAll",
-        bool: "!!",
+        "bind": "ՐՏ_bind",
+        "rebind_all": "ՐՏ_rebindAll",
+        "bool": "!!",
         "float": "parseFloat",
         "int": "parseInt",
-        mixin: "ՐՏ_mixin",
-        merge: "ՐՏ_merge",
-        print: "ՐՏ_print",
-        eslice: "ՐՏ_eslice",
+        "mixin": "ՐՏ_mixin",
+        "merge": "ՐՏ_merge",
+        "print": "ՐՏ_print",
+        "eslice": "ՐՏ_eslice",
+        "type": "ՐՏ_type",
     }
 
     def unify(output, assign, *args):

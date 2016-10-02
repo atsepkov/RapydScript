@@ -36,9 +36,14 @@ bench.add('[].constructor', def():
 bench.add('"".constructor', def():
     JS('string.constructor === "".constructor')
 )
-bench.add('Object.prototype.toString.call(x).slice(8, -1)', def():
-    JS('Object.prototype.toString.call(arr).slice(8, -1) === "Array"')
-)
 bench.add('Array.prototype.slice.call(arr).length', def():
     JS('Array.prototype.slice.call(arr).length')
+)
+
+# two alternative ways of getting type
+bench.add('Object.prototype.toString.call(x).slice(8, -1)', def():
+    JS('Object.prototype.toString.call(arr).slice(8, -1)')
+)
+bench.add('Object.prototype.toString.call(x).match(/\s([a-z|A-Z]+)/)[1]', def():
+    JS('Object.prototype.toString.call(arr).match(/\\s([a-z|A-Z]+)/)[1]')
 )

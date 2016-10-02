@@ -179,11 +179,11 @@ AST_Node = DEFNODE("Node", "start end", {
                         out(' ' + colored_key + colored(value.TYPE, 'yellow'))
                         if depth > 1:
                             value._dump(depth-1, omit, offset+1, False, compact)
-                elif type(value) is "string":
+                elif JS('typeof value') is "string":
                     out(' ' + colored_key + colored('"' + value + '"', 'green'))
-                elif type(value) is "number":
+                elif JS('typeof value') is "number":
                     out(' ' + colored_key + colored(value, 'green'))
-                elif type(value) is "boolean":
+                elif JS('typeof value') is "boolean":
                     out(' ' + colored_key + colored(value, 'green'))
                 else:
                     # unexpected object

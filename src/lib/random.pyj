@@ -27,10 +27,10 @@ _$rapyd$_get_random_byte = def():
             _$rapyd$_seed_state.key[_$rapyd$_seed_state.key_j]) % 256]
 
 def seed(x=Date().getTime()):
-    if type(x) is 'number':
+    if JS('typeof x') is 'number':
         x = x.toString()
-    elif type(x) is not 'string':
-        raise TypeError("unhashable type: '" + type(x) + "'")
+    elif JS('typeof x') is not 'string':
+        raise TypeError("unhashable type: '" + JS('typeof x') + "'")
     for i in range(256):
         _$rapyd$_seed_state.key[i] = i
     j = 0

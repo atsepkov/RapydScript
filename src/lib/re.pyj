@@ -33,7 +33,7 @@ class MatchObject:
         offset = 0
         remainder = match.input
         i = 0
-        while type(match[i]) != "undefined":
+        while JS('typeof match[i]') != "undefined":
             loc = remainder.search(match[i])
             self._start.push(loc+offset)
             self._end.push(loc+offset+match[i].length-1)
@@ -93,7 +93,7 @@ class RegexObject:
         matches = string.match(RegExp(self.pattern, self._modifiers + 'g'))
         i = 0
         ret = []
-        while type(matches[i]) != "undefined":
+        while JS('typeof matches[i]') != "undefined":
             ret.push(matches[i]) # a hack to avoid including non-array like portions of regex match
             i += 1
         return ret

@@ -74,7 +74,8 @@ r()
 assert.equal(count, 1)
 
 st = "this is a string"
-assert.equal(type(st), JS("typeof st"))
+st1 = String('another string')
+assert.equal(type(st), type(st1))
 
 # testing inlined functions
 inlined = [

@@ -130,6 +130,7 @@ STDLIB = [
     "eq",
     "bind",
     "rebind_all",
+    "type",
 
     # list operations
     "all",
@@ -591,7 +592,7 @@ def parse($TEXT, options):
             body: tmp
         })
 
-    def break_cont(type):
+    def break_cont(type_):
         label = None
         if not can_insert_semicolon():
             label = as_symbol(AST_LabelRef, True)
@@ -606,7 +607,7 @@ def parse($TEXT, options):
             croak(type.TYPE + " not inside a loop or switch")
 
         semicolon()
-        return new type({
+        return new type_({
             label: label
         })
 
@@ -1791,7 +1792,7 @@ def parse($TEXT, options):
 
     def mark_local_assignment(element, value):
         if value:
-            computedType = type(value) is "string" ? value : value.resolveType(S.in_scope)
+            computedType = JS('typeof value') is "string" ? value : value.resolveType(S.in_scope)
         else:
             computedType = "?"
 
@@ -1963,13 +1964,6 @@ def parse($TEXT, options):
                         BASELIB[tmp_] = True
                         # NOTE: there is intentionally no return here, we want these functions to go through regular logic
                         # after they trigger the appropriate baselib flag
-                    elif tmp_ is "type":
-                        return new AST_UnaryPrefix({
-                            start: start,
-                            operator: "typeof",
-                            expression: func_call_list()[0],
-                            end: prev()
-                        })
                     elif tmp_ is "isinstance":
                         args = func_call_list()
                         return new AST_Binary({
@@ -2002,7 +1996,7 @@ def parse($TEXT, options):
                 return stringifyName(expr.expression) + "." + expr.property
             return expr.name
 
-        if type(expr) is 'string':
+        if JS('typeof expr') is 'string':
             # passed in a string
             name = expr
         elif isinstance(expr, AST_SymbolRef):

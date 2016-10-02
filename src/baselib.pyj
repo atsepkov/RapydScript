@@ -107,17 +107,17 @@
 ,
 "eslice": def ՐՏ_eslice(arr, step, start, end):
     arr = arr[:]
-    if type(arr) is 'string' or isinstance(arr, String):
+    if JS('typeof arr') is 'string' or isinstance(arr, String):
         isString = True
         arr = arr.split('')
 
     if step < 0:
         step = -step
         arr.reverse()
-        if type(start) is not "undefined": start = arr.length - start - 1
-        if type(end) is not "undefined": end = arr.length - end - 1
-    if type(start) is "undefined": start = 0
-    if type(end) is "undefined": end = arr.length
+        if JS('typeof start') is not "undefined": start = arr.length - start - 1
+        if JS('typeof end') is not "undefined": end = arr.length - end - 1
+    if JS('typeof start') is "undefined": start = 0
+    if JS('typeof end') is "undefined": end = arr.length
 
     arr = arr.slice(start, end).filter(def(e, i): return i % step is 0;)
     return isString ? arr.join('') : arr
@@ -219,6 +219,9 @@
         start
     )
 ,
+"type": def ՐՏ_type(obj):
+    return Object.prototype.toString.call(obj).slice(8, -1)
+,
 "zip": def zip(a, b):
     return [[a[i], b[i]] for i in range(Math.min(a.length, b.length))]
 ,
@@ -276,7 +279,7 @@
             args = [].slice.call(arguments)
             if args.length:
                 kw = args[-1]
-                if type(kw) is 'object':
+                if JS('typeof kw') is 'object':
                     for i in range(argNames.length):
                         if argNames[i] in dir(kw):
                             args[i] = kw[argNames[i]]
