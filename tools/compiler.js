@@ -58,6 +58,7 @@ exports.parse_baselib = function(src_path, beautify) {
         if (e.code == "ENOENT") {
             throw "Failed to locate baselib module.";
         } else {
+            // something broke processing baselib module
             throw e;
         }
     }

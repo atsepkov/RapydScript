@@ -1,0 +1,26 @@
+# tests for more useful type function
+# this method resolves the type into a name consistent with the type the type annotations expect
+# Author: Alexander Tsepkov
+
+# equal
+assert(type('') is type(String('foo')))
+assert(type([3]) is type(Array(20)))
+assert(type({}) is type(Object()))
+assert(type({}) is type({foo: 1}))
+assert(type(1) is type(Infinity))
+assert(type(/foo/) is type (RegExp('bar')))
+
+# classes
+class Item:
+    def __init__(self):
+        pass
+class SubItem(Item): pass
+a = Item()
+b = SubItem()
+
+assert(type(a) is 'Item')
+assert(type(b) is 'SubItem')
+
+# not equal
+assert(type({}) is not type([]))
+assert(type({}) is not type(a))

@@ -220,7 +220,7 @@
     )
 ,
 "type": def ՐՏ_type(obj):
-    return Object.prototype.toString.call(obj).slice(8, -1)
+    return obj.constructor and obj.constructor.name ? obj.constructor.name : Object.prototype.toString.call(obj).slice(8, -1)
 ,
 "zip": def zip(a, b):
     return [[a[i], b[i]] for i in range(Math.min(a.length, b.length))]

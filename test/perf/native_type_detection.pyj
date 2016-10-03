@@ -47,3 +47,6 @@ bench.add('Object.prototype.toString.call(x).slice(8, -1)', def():
 bench.add('Object.prototype.toString.call(x).match(/\s([a-z|A-Z]+)/)[1]', def():
     JS('Object.prototype.toString.call(arr).match(/\\s([a-z|A-Z]+)/)[1]')
 )
+bench.add('x.constructor.name', def():
+    JS('arr.constructor && arr.constructor.name')
+)
