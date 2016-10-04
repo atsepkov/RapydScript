@@ -173,14 +173,21 @@ assert.equal(m.plus(2, 5), -7)
 assert.equal(m.pi, 3.14)
 
 
-# class arguments
+# class variables
 class C:
-    a = b = 1
-    c = a + b
-    if True:
-        d = 1
-    else:
-        d = 2
+    a = 1
+    b = 1
+    c = 2
+    d = 1
+# previously these were actually instance variables, they are now class vars
+# arithmetic here is no longer supported, I may revisit this later
+#class C:
+#    a = b = 1
+#    c = a + b
+#    if True:
+#        d = 1
+#    else:
+#        d = 2
 c = C()
 assert.deepEqual([c.a, c.b, c.c, c.d], [1, 1, 2, 1])
 

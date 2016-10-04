@@ -1,0 +1,130 @@
+"""
+**********************************************************************
+
+  A RapydScript to JavaScript compiler.
+  https://github.com/atsepkov/RapydScript
+
+  -------------------------------- (C) ---------------------------------
+
+                       Author: Alexander Tsepkov
+                         <atsepkov@pyjeon.com>
+                         http://www.pyjeon.com
+
+  Distributed under BSD license:
+    Copyright 2013 (c) Alexander Tsepkov <atsepkov@pyjeon.com>
+
+ **********************************************************************
+"""
+
+import utils
+import ast
+import tokenizer    # only needed for export
+import parser
+import output
+
+fs = require('fs')
+path = require('path')
+
+ast.Node.warn_function = def(txt): console.error(txt)
+
+def splatBaselib(key, value):
+    # prepare a baselib splat to be injected into the code
+    # this function will be called per baselib entry
+    return ast.Splat({
+        module: ast.SymbolVar({
+            name: key
+        }),
+        body: ast.TopLevel({
+            start: value[0].start,
+            body: value,
+            strict: true,
+            end: value[-1].end
+        })
+    })
+
+exports.parse_baselib = exports.parseBaselib = def(srcPath, beautify):
+    try:
+        baselibPath = path.join(srcPath, 'baselib.pyj')
+        baselibAst = parser.parse(fs.readFileSync(baselibPath, "utf8"), {
+            readfile: fs.readFileSync,  # utility for reading files when dealing with nested imports
+            dropDocstrings: true,       # drop docstrings in the compiler
+            filename: 'baselib.pyj'
+        })
+    except as e:
+        if e.code is "ENOENT":
+            raise "Failed to localte baselib module."
+        else:
+            # something broke while processing the module
+            raise
+
+    # don't dump the baselib yet, process it in pieces and splat as needed
+    hash = baselibAst.body[-1]
+    data = hash.body.properties
+    baselibList = {}
+    for item in data:
+        key = item.key.value
+        value = item.value.name ? [item.value] : item.value.body
+        baselibList[key] = splatBaselib(key, value)
+    return baselibList
+
+exports.get_import_dirs = def(paths_string, ignore_env):
+    paths = []
+    def merge(new_path):
+        if new_path not in paths:
+            paths.push(new_path)
+
+    # TODO: perfect use case for existential operator
+    if not ignore_env and process and process.env and process.env.RAPYDSCRIPT_PATH:
+        process.env.RAPYDSCRIPT_PATH.split(path.delimiter).forEach(merge)
+    if paths_string:
+        paths_string.split(path.delimiter).forEach(merge)
+    return paths
+
+# this is the method you should be calling from outside to generate your compiled code
+# options are shared between input and output and irrelevant options are ignored
+exports.compile = compile = def(code, options):
+    # parse
+    toplevel = parser.parse(code, utils.defaults(options, {
+        toplevel: toplevel,
+        output: {}
+    }))
+
+    # output
+    stream = output.Stream(options)
+    toplevel.print(stream)
+    return stream.toString()
+
+# DEPRECATED
+# leaving minify here for backwards-compatibility
+# there are several grunt/gulp runners on GitHub from other members relying on that name
+# for future projects, you should be using compile instead
+exports.minify = def(files, options):
+    options = utils.defaults(options, {
+        fromString: False,
+        warnings: False,
+    })
+    if JS('typeof files === "string"'):
+        files = [files] # handle single file
+    for file in files:
+        options.filename = options.fromString ? '?' : file
+        code = options.fromString ? file : fs.readFileSync(file, "utf8")
+        retrun {
+            code: compile(code, options)
+        }
+
+
+# allow other processes to intercept individual stages of the compiler
+exports.parse = parser.parse
+exports.output = def(ast, options):
+    stream = output.Stream(options)
+    ast.print(stream)
+    return stream.toString()
+exports.string_template = utils.string_template
+exports.ast = ast
+exports.tokenizer = tokenizer
+exports.NATIVE_CLASSES = parser.NATIVE_CLASSES
+exports.ParseError = utils.ParseError
+exports.ImportError = utils.ImportError
+exports.ALL_KEYWORDS = tokenizer.ALL_KEYWORDS
+exports.IDENTIFIER_PAT = tokenizer.IDENTIFIER_PAT
+exports.colored = utils.colored

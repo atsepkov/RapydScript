@@ -1,0 +1,53 @@
+# script for self-compiling the compiler
+# Author: Alexander Tsepkov
+
+path = require('path')
+fs = require('fs')
+rapydscript = require('../lib/rapydscript')
+
+module.exports = def compile_self(base_path, src_path, lib_path, start_time):
+    compiled = {}
+    baselib = rapydscript.parse_baselib(src_path, true)
+    options = {
+        beautify: true,
+        private_scope: false,
+        omit_baselib: false,
+        write_name: false,
+#        filename: file,
+        readfile: fs.readFileSync,
+        basedir: src_path,
+        dropDocstrings: true,
+        auto_bind: false,
+        libdir: path.join(src_path, 'lib'),
+        baselib: baselib
+    }
+
+    (def():
+        # generate baselib
+        # parse the library
+        src = fs.readFileSync(path.join(src_path, 'baselib.pyj'), "utf8")
+        ast = rapydscript.parse(src, options)
+
+        # manually activate each key
+        for key in baselib:
+            ast.baselib[key] = True
+
+        # dump the code
+        output = rapydscript.output(ast, options)
+        compiled.baselib = output.toString()
+    )()
+
+    def compile(file):
+        filepath = path.join(src_path, file + '.pyj')
+        options.filename = file + '.pyj'
+        compiled[file] = rapydscript.compile(fs.readFileSync(filepath, "utf8"), options)
+
+    # build the compiler itself and its modules
+    for file in ['rapydscript', 'self', 'compile', 'test']:
+        compile(file)
+
+    console.log('Compiling RapydScript succeeded (', (Date().getTime() - start_time)/1000, 'seconds ), writing output...')
+
+    for filename in compiled:
+        fs.writeFileSync(path.join(lib_path, filename + '.js'), compiled[filename], "utf8")
+

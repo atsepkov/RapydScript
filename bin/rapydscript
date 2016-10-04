@@ -14,7 +14,8 @@ function load(mod) {
         if (/Cannot find module/.test(e)) {
             lib = require('../lib/' + mod);
         } else {
-            throw '../tools/' + mod + '.js: ' + e;
+//            throw '../tools/' + mod + '.js: ' + e;
+            throw e
         }
     }
     return lib;

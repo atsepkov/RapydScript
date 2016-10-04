@@ -10,44 +10,18 @@
                          <atsepkov@pyjeon.com>
                          http://www.pyjeon.com
 
-  Distributed under Apache 2.0 license:
+  Distributed under BSD license:
     Copyright 2013 (c) Alexander Tsepkov <atsepkov@pyjeon.com>
-
-  RapydScript source code is originally based on UglifyJS2 (covered
-  by BSD license). UglifyJS2 was written by Mihai Bazon
-  <mihai.bazon@gmail.com>, who is its respective copyright holder.
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions
-    are met:
-
-        * Redistributions of source code must retain the above
-          copyright notice, this list of conditions and the following
-          disclaimer.
-
-        * Redistributions in binary form must reproduce the above
-          copyright notice, this list of conditions and the following
-          disclaimer in the documentation and/or other materials
-          provided with the distribution.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER “AS IS” AND ANY
-    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
-    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
-    OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-    TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-    THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-    SUCH DAMAGE.
 
  **********************************************************************
 """
 
+from utils import makePredicate, noop, defaults, repeat_string, RAPYD_PREFIX
+from tokenizer import is_identifier_char, PRECEDENCE
+import ast
 
-def OutputStream(options):
+
+def Stream(options):
     options = defaults(options, {
         indent_start: 0,
         indent_level: 4,
@@ -57,7 +31,6 @@ def OutputStream(options):
         inline_script: False,
         width: 80,
         max_line_len: 32000,
-        ie_proof: True,
         es6: False,
         beautify: False,
         source_map: None,
@@ -70,7 +43,7 @@ def OutputStream(options):
         private_scope: True,
         auto_bind: False,
         write_name: True
-    }, True)
+    })
     indentation = 0
     current_col = 0
     current_line = 1
@@ -374,7 +347,7 @@ def OutputStream(options):
             if token:
                 options.source_map.add(token.file or "?", current_line, current_col, token.line, token.col, (not name and token.type is "name" ? token.value : name))
         except as ex:
-            AST_Node.warn("Couldn't figure out mapping for {file}:{line},{col} → {cline},{ccol} [{name}]", {
+            ast.Node.warn("Couldn't figure out mapping for {file}:{line},{col} → {cline},{ccol} [{name}]", {
                 file: token.file,
                 line: token.line,
                 col: token.col,
@@ -553,7 +526,7 @@ def OutputStream(options):
                         baseFn()
                         output.comma()
                         for arg in args:
-                            if arg is not None:
+                            if arg not in [None, undefined]:
                                 arg.call(output, tmp)
                                 output.comma()
                         # for safety, output the temp var last, in case the last operation failed to return the object itself
@@ -563,9 +536,9 @@ def OutputStream(options):
             else: return def(): baseFn()
 
     def DEFPRINT(nodetype, generator):
-        nodetype.DEFMETHOD("_codegen", generator)
+        nodetype.prototype._codegen = generator
 
-    AST_Node.DEFMETHOD("print", def(stream, force_parens):
+    ast.Node.prototype.print = def(stream, force_parens):
         self = this
         generator = self._codegen
         stream.push_node(self)
@@ -579,16 +552,15 @@ def OutputStream(options):
             self.add_comments(stream)
             self.add_source_map(stream)
             generator(self, stream)
-
         stream.pop_node()
-    )
-    AST_Node.DEFMETHOD("print_to_string", def(options):
-        s = OutputStream(options)
+
+    ast.Node.prototype.print_to_string = def(options):
+        s = Stream(options)
         this.print(s)
         return s.get()
-    )
+
     # -----[ comments ]-----
-    AST_Node.DEFMETHOD("add_comments", def(output):
+    ast.Node.prototype.add_comments = def(output):
         c = output.option("comments")
         self = this
         if c:
@@ -599,7 +571,7 @@ def OutputStream(options):
                 # XXX: ugly fix for https://github.com/mishoo/RapydScript2/issues/112
                 #      if this node is `return` or `throw`, we cannot allow comments before
                 #      the returned or thrown value.
-                if isinstance(self, AST_Exit) and self.value and self.value.start.comments_before.length > 0:
+                if isinstance(self, ast.Exit) and self.value and self.value.start.comments_before.length > 0:
                     comments = (comments or []).concat(self.value.start.comments_before)
                     self.value.start.comments_before = []
 
@@ -612,7 +584,7 @@ def OutputStream(options):
                         return c(self, comment)
                     )
 
-                comments.forEach(def(c):
+                for c in comments:
                     if c.type is "comment:line":
                         output.print("//" + c.value + "\n")
                         output.indent()
@@ -624,55 +596,50 @@ def OutputStream(options):
                         else:
                             output.space()
 
-
-                )
-
-
-    )
     # -----[ PARENTHESES ]-----
     def PARENS(nodetype, func):
-        nodetype.DEFMETHOD("needs_parens", func)
+        nodetype.prototype.needs_parens = func
 
-    PARENS(AST_Node, def():
+    PARENS(ast.Node, def():
         return False
     )
     # a function expression needs parens around it when it's provably
     # the first token to appear in a statement.
-    PARENS(AST_Function, def(output):
+    PARENS(ast.Function, def(output):
         return first_in_statement(output)
     )
     # same goes for an object literal, because otherwise it would be
     # interpreted as a block of code.
-    PARENS(AST_Object, def(output):
+    PARENS(ast.ObjectLiteral, def(output):
         return first_in_statement(output)
     )
-    PARENS(AST_Unary, def(output):
+    PARENS(ast.Unary, def(output):
         p = output.parent()
-        return isinstance(p, AST_PropAccess) and p.expression is this
+        return isinstance(p, ast.PropAccess) and p.expression is this
     )
-    PARENS(AST_Seq, def(output):
+    PARENS(ast.Seq, def(output):
         p = output.parent()
-        return isinstance(p, AST_Unary) or isinstance(p, AST_VarDef) or isinstance(p, AST_Dot) or isinstance(p, AST_ObjectProperty) or isinstance(p, AST_Conditional)
+        return isinstance(p, ast.Unary) or isinstance(p, ast.VarDef) or isinstance(p, ast.Dot) or isinstance(p, ast.ObjectProperty) or isinstance(p, ast.Conditional)
     )
-    PARENS(AST_Range, def(output):
+    PARENS(ast.Range, def(output):
         return False
     )
-    PARENS(AST_Binary, def(output):
+    PARENS(ast.Binary, def(output):
         p = output.parent()
         # (foo && bar)()
-        if isinstance(p, AST_BaseCall) and p.expression is this:
+        if isinstance(p, ast.BaseCall) and p.expression is this:
             return True
 
         # typeof (foo && bar)
-        if isinstance(p, AST_Unary):
+        if isinstance(p, ast.Unary):
             return True
 
         # (foo && bar)["prop"], (foo && bar).prop
-        if isinstance(p, AST_PropAccess) and p.expression is this:
+        if isinstance(p, ast.PropAccess) and p.expression is this:
             return True
 
         # this deals with precedence: 3 * (2 + 1)
-        if isinstance(p, AST_Binary):
+        if isinstance(p, ast.Binary):
             po = p.operator
             pp = PRECEDENCE[po]
             so = this.operator
@@ -680,9 +647,9 @@ def OutputStream(options):
             if pp > sp or pp is sp and this is p.right and not (so is po and (so is "*" or so is "&&" or so is "||")):
                 return True
     )
-    PARENS(AST_PropAccess, def(output):
+    PARENS(ast.PropAccess, def(output):
         p = output.parent()
-        if isinstance(p, AST_New) and p.expression is this:
+        if isinstance(p, ast.New) and p.expression is this:
             # i.e. new (foo.bar().baz)
             #
             # if there's one call into this subtree, then we need
@@ -690,8 +657,8 @@ def OutputStream(options):
             # interpreted as passing the arguments to the upper New
             # expression.
             try:
-                this.walk(new TreeWalker(def(node):
-                    if isinstance(node, AST_BaseCall):
+                this.walk(ast.TreeWalker(def(node):
+                    if isinstance(node, ast.BaseCall):
                         raise p
                 ))
             except as ex:
@@ -699,57 +666,57 @@ def OutputStream(options):
                     raise ex
                 return True
     )
-    PARENS(AST_BaseCall, def(output):
+    PARENS(ast.BaseCall, def(output):
         p = output.parent()
-        return isinstance(p, AST_New) and p.expression is this
+        return isinstance(p, ast.New) and p.expression is this
     )
-    PARENS(AST_New, def(output):
+    PARENS(ast.New, def(output):
         p = output.parent()
-        if no_constructor_parens(this, output) and (isinstance(p, AST_PropAccess) \
-                or isinstance(p, AST_BaseCall) and p.expression is this):
+        if no_constructor_parens(this, output) and (isinstance(p, ast.PropAccess) \
+                or isinstance(p, ast.BaseCall) and p.expression is this):
             # (new foo)(bar)
             return True
     )
-    PARENS(AST_Number, def(output):
+    PARENS(ast.Number, def(output):
         p = output.parent()
-        if this.getValue() < 0 and isinstance(p, AST_PropAccess) and p.expression is this:
+        if this.getValue() < 0 and isinstance(p, ast.PropAccess) and p.expression is this:
             return True
     )
-    PARENS(AST_NaN, def(output):
+    PARENS(ast.NotANumber, def(output):
         p = output.parent()
-        if isinstance(p, AST_PropAccess) and p.expression is this:
+        if isinstance(p, ast.PropAccess) and p.expression is this:
             return True
     )
     def assign_and_conditional_paren_rules(output):
         p = output.parent()
         # !(a = false) → true
-        if isinstance(p, AST_Unary):
+        if isinstance(p, ast.Unary):
             return True
 
         # 1 + (a = 2) + 3 → 6, side effect setting a = 2
-        if isinstance(p, AST_Binary) and not (isinstance(p, AST_Assign)):
+        if isinstance(p, ast.Binary) and not (isinstance(p, ast.Assign)):
             return True
 
         # (a = func)() —or— new (a = Object)()
-        if isinstance(p, AST_BaseCall) and p.expression is this:
+        if isinstance(p, ast.BaseCall) and p.expression is this:
             return True
 
         # (a = foo) ? bar : baz
-        if isinstance(p, AST_Conditional) and p.condition is this:
+        if isinstance(p, ast.Conditional) and p.condition is this:
             return True
 
         # (a = foo)["prop"] —or— (a = foo).prop
-        if isinstance(p, AST_PropAccess) and p.expression is this:
+        if isinstance(p, ast.PropAccess) and p.expression is this:
             return True
 
-    PARENS(AST_Assign, assign_and_conditional_paren_rules)
-    PARENS(AST_Conditional, assign_and_conditional_paren_rules)
+    PARENS(ast.Assign, assign_and_conditional_paren_rules)
+    PARENS(ast.Conditional, assign_and_conditional_paren_rules)
     # -----[ PRINTERS ]-----
-    DEFPRINT(AST_Directive, def(self, output):
+    DEFPRINT(ast.Directive, def(self, output):
         output.print_string(self.value)
         output.semicolon()
     )
-    DEFPRINT(AST_Debugger, def(self, output):
+    DEFPRINT(ast.Debugger, def(self, output):
         output.print("debugger")
         output.semicolon()
     )
@@ -757,7 +724,7 @@ def OutputStream(options):
     def display_body(body, is_toplevel, output):
         last = body.length - 1
         body.forEach(def(stmt, i):
-            if not (isinstance(stmt, AST_EmptyStatement)) and not (isinstance(stmt, AST_Definitions)):
+            if not (isinstance(stmt, ast.EmptyStatement)) and not (isinstance(stmt, ast.Definitions)):
                 output.indent()
                 stmt.print(output)
                 if not (i is last and is_toplevel):
@@ -827,13 +794,13 @@ def OutputStream(options):
         offset = 0 # argument offset, applies if this is a method of a class
 
         # if this is a method, add 'var self = this'
-        if isinstance(node, AST_Method) and not node.static and not (output.option('es6') and node.name.name is '__init__'):
+        if isinstance(node, ast.Method) and not node.static and not (output.option('es6') and node.name.name is '__init__'):
             output.indent()
             output.spaced("var", node.argnames[0], "=", "this")
             output.end_statement()
             offset += 1
 
-        if isinstance(node, AST_Scope):
+        if isinstance(node, ast.Scope):
             # if function takes any arguments
             if node.argnames:
                 # If *args is set, pass remainder of arguments to it
@@ -877,7 +844,7 @@ def OutputStream(options):
 
             declare_vars(node.localvars, output)
 
-        elif isinstance(node, AST_Except):
+        elif isinstance(node, ast.Except):
             if node.argname:
                 output.indent()
                 output.print("var ")
@@ -930,14 +897,28 @@ def OutputStream(options):
                 output.end_statement()
         )
 
-    AST_StatementWithBody.DEFMETHOD("_do_print_body", def(output):
+    def cacheBubble(operand, output):
+        # helper function for caching expensive function calls and complex operations that may happen inside the comparison
+        if not (isinstance(operand, ast.SymbolRef) or isinstance(operand, ast.SymbolClassRef)):
+            # looks like operand is doing some calculation, let's cache it for performance
+            tmp = output.newTemp()
+            output.with_parens(def():
+                output.spaced(tmp, '=', operand)
+            )
+            return { # a little trick to allow us to call print consistently from outside
+                print: def(output): output.print(tmp)
+            }
+        operand.print(output)
+        return operand
+
+    ast.StatementWithBody.prototype._do_print_body = def(output):
         force_statement(this.body, output)
-    )
-    DEFPRINT(AST_Statement, def(self, output):
+
+    DEFPRINT(ast.Statement, def(self, output):
         self.body.print(output)
         output.semicolon()
     )
-    DEFPRINT(AST_Toplevel, def(self, output):
+    DEFPRINT(ast.TopLevel, def(self, output):
         is_main = output.is_main()
 
         if output.option("private_scope") and is_main:
@@ -1008,13 +989,13 @@ def OutputStream(options):
         output.print("()")
         output.end_statement()
 
-    DEFPRINT(AST_Splat, def(self, output):
+    DEFPRINT(ast.Splat, def(self, output):
         if output.import(self.module.name):
             display_body(self.body.body, True, output)
             output.newline()
     )
 
-    DEFPRINT(AST_Imports, def(container, output):
+    DEFPRINT(ast.Imports, def(container, output):
 
         def add_aname(aname, key, from_import):
             output.assign('var ' + aname)
@@ -1039,13 +1020,13 @@ def OutputStream(options):
                     add_aname(bound_name, bound_name, False)
 
     )
-    DEFPRINT(AST_LabeledStatement, def(self, output):
+    DEFPRINT(ast.LabeledStatement, def(self, output):
         self.label.print(output)
         output.colon()
         self.body.print(output)
     )
-    DEFPRINT(AST_SimpleStatement, def(self, output):
-        if not (isinstance(self.body, AST_EmptyStatement)):
+    DEFPRINT(ast.SimpleStatement, def(self, output):
+        if not (isinstance(self.body, ast.EmptyStatement)):
             self.body.print(output)
             output.semicolon()
     )
@@ -1060,15 +1041,15 @@ def OutputStream(options):
         else:
             output.print("{}")
 
-    DEFPRINT(AST_BlockStatement, def(self, output):
+    DEFPRINT(ast.BlockStatement, def(self, output):
         print_bracketed(self, output)
     )
 
-    DEFPRINT(AST_EmptyStatement, def(self, output):
+    DEFPRINT(ast.EmptyStatement, def(self, output):
         pass
     )
 
-    DEFPRINT(AST_Do, def(self, output):
+    DEFPRINT(ast.Do, def(self, output):
         output.print("do")
         output.space()
         self._do_print_body(output)
@@ -1081,7 +1062,7 @@ def OutputStream(options):
         output.semicolon()
     )
 
-    DEFPRINT(AST_While, def(self, output):
+    DEFPRINT(ast.While, def(self, output):
         output.print("while")
         output.space()
         output.with_parens(def():
@@ -1093,30 +1074,30 @@ def OutputStream(options):
 
     def is_simple_for_in(self):
         # return true if this loop can be simplified into a basic for (i in j) loop
-        if isinstance(self.object, AST_BaseCall)
-        and isinstance(self.object.expression, AST_SymbolRef)
+        if isinstance(self.object, ast.BaseCall)
+        and isinstance(self.object.expression, ast.SymbolRef)
         and self.object.expression.name is "dir" and self.object.args.length is 1:
             return True
         return False
 
     def is_simple_for(self):
         # returns true if this loop can be simplified into a basic for(i=n;i<h;i++) loop
-        if isinstance(self.object, AST_BaseCall)
-        and isinstance(self.object.expression, AST_SymbolRef)
+        if isinstance(self.object, ast.BaseCall)
+        and isinstance(self.object.expression, ast.SymbolRef)
         and self.object.expression.name is "range"
-        and not (isinstance(self.init, AST_Array))
+        and not (isinstance(self.init, ast.Array))
         and (
             self.object.args.length < 3 or (
-                isinstance(self.object.args[-1][0], AST_Number)
-                or isinstance(self.object.args[-1][0], AST_Unary)
+                isinstance(self.object.args[-1][0], ast.Number)
+                or isinstance(self.object.args[-1][0], ast.Unary)
                     and self.object.args[-1][0].operator is "-"
-                    and isinstance(self.object.args[-1][0].expression, AST_Number)
+                    and isinstance(self.object.args[-1][0].expression, ast.Number)
             )
         ):
             return True
         return False
 
-    AST_ForIn.DEFMETHOD("_do_print_body", def(output):
+    ast.ForIn.prototype._do_print_body = def(output):
         self = this
         output.with_block(def():
             if not (is_simple_for(self) or is_simple_for_in(self)):
@@ -1124,7 +1105,7 @@ def OutputStream(options):
                 output.indent()
                 iterator = output.prevTemp('itr') # declared in DEFPRINT
                 index = output.prevTemp('idx')    # declared in DEFPRINT
-                if isinstance(self.init, AST_Array):
+                if isinstance(self.init, ast.Array):
                     if output.option('es6'):
                         output.with_square(def():
                             self.init.elements.forEach(def(element, index):
@@ -1154,9 +1135,8 @@ def OutputStream(options):
                 output.newline()
             )
         )
-    )
 
-    DEFPRINT(AST_ForIn, def(self, output):
+    DEFPRINT(ast.ForIn, def(self, output):
         if is_simple_for(self):
             # optimize range() into a simple for loop
             increment = None
@@ -1182,21 +1162,21 @@ def OutputStream(options):
                 output.space()
                 self.init.print(output)
                 output.space()
-                isinstance(increment, AST_Unary) ? output.print(">") : output.print("<")
+                isinstance(increment, ast.Unary) ? output.print(">") : output.print("<")
                 output.space()
                 end.print(output)
                 output.semicolon()
                 output.space()
                 self.init.print(output)
-                if increment and (not (isinstance(increment, AST_Unary)) or increment.expression.value is not "1"):
-                    if isinstance(increment, AST_Unary):
+                if increment and (not (isinstance(increment, ast.Unary)) or increment.expression.value is not "1"):
+                    if isinstance(increment, ast.Unary):
                         output.print("-=")
                         increment.expression.print(output)
                     else:
                         output.print("+=")
                         increment.print(output)
                 else:
-                    if isinstance(increment, AST_Unary):
+                    if isinstance(increment, ast.Unary):
                         output.print("--")
                     else:
                         output.print("++")
@@ -1238,7 +1218,7 @@ def OutputStream(options):
         self._do_print_body(output)
     )
 
-    AST_ForJS.DEFMETHOD("_do_print_body", def(output):
+    ast.ForJS.prototype._do_print_body = def(output):
         self = this
         output.with_block(def():
             self.body.body.forEach(def(stmt, i):
@@ -1247,9 +1227,8 @@ def OutputStream(options):
                 output.newline()
             )
         )
-    )
 
-    DEFPRINT(AST_ForJS, def(self, output):
+    DEFPRINT(ast.ForJS, def(self, output):
         output.print("for")
         output.space()
         output.with_parens(def():
@@ -1258,13 +1237,13 @@ def OutputStream(options):
         output.space()
         self._do_print_body(output)
     )
-    DEFPRINT(AST_ListComprehension, def(self, output):
+    DEFPRINT(ast.ListComprehension, def(self, output):
         # this logic is shares by list and dict comprehensions, since the difference in output
         # isn't big
         constructor = {
-            'ListComprehension': '[]',
-            'DictComprehension': '{}'
-        }[self.TYPE]
+            ListComprehension: '[]',
+            DictComprehension: '{}'
+        }[type(self)]
 
         # create temp vars, but tell the output that we'll manage their declaration ourselves
         # technically we could have the compiler handle it by creating a new buffer, but it isn't worth the overhead
@@ -1272,7 +1251,7 @@ def OutputStream(options):
         index = output.newTemp("idx", False)
         result = RAPYD_PREFIX + "res"
 
-        if isinstance(self, AST_DictComprehension):
+        if isinstance(self, ast.DictComprehension):
             add_entry = def():
                 output.indent()
                 output.print(result)
@@ -1311,7 +1290,7 @@ def OutputStream(options):
                 output.assign(result)
                 output.print(constructor)
                 # make sure to locally scope loop variables
-                if isinstance(self.init, AST_Array):
+                if isinstance(self.init, ast.Array):
                     self.init.elements.forEach(def(i):
                         output.comma()
                         i.print(output)
@@ -1339,7 +1318,7 @@ def OutputStream(options):
                 output.space()
                 output.with_block(def():
                     output.indent()
-                    if isinstance(self.init, AST_Array):
+                    if isinstance(self.init, ast.Array):
                         if output.option('es6'):
                             output.with_square(def():
                                 self.left.elements.forEach(def(element, index):
@@ -1384,7 +1363,7 @@ def OutputStream(options):
         )
         output.print("()")
     )
-    DEFPRINT(AST_With, def(self, output):
+    DEFPRINT(ast.With, def(self, output):
         output.print("with")
         output.space()
         output.with_parens(def():
@@ -1417,7 +1396,7 @@ def OutputStream(options):
             return def():
                 decorate(decorators, output, baseFn)
 
-    AST_Lambda.DEFMETHOD("_do_print", def(output, nokeyword):
+    ast.Lambda.prototype._do_print = def(output, nokeyword):
         self = this
 
         def addDecorators():
@@ -1473,16 +1452,15 @@ def OutputStream(options):
             )
             output.space()
             print_bracketed(self, output, True)
-
         internalsub()
-    )
-    DEFPRINT(AST_Lambda, def(self, output):
+
+    DEFPRINT(ast.Lambda, def(self, output):
         self._do_print(output)
     )
 
 
     # -----[ classes ]-----
-    AST_Class.DEFMETHOD("_do_print", def(output):
+    ast.Class.prototype._do_print = def(output):
         self = this
         if self.external:
             return
@@ -1504,14 +1482,14 @@ def OutputStream(options):
             # if first_in_statement(output):
             #     name = 'var ' + name
 
-        if output.option('es6'):
+        def outputEs6():
             def addClassVariables():
                 # these were somehow omitted from ES6 standard, so we'll have to handle them ourselves, the messy way
                 properties = {}
                 if self.docstring:
                     properties['__doc__'] = def(output): output.print_string(self.docstring)
                 self.body.forEach(def(stmt, i):
-                    if isinstance(stmt, AST_SimpleStatement) and isinstance(stmt.body, AST_Assign) and stmt.body.operator is '=':
+                    if isinstance(stmt, ast.SimpleStatement) and isinstance(stmt.body, ast.Assign) and stmt.body.operator is '=':
                         # naively assume left side will not be an expression
                         properties[stmt.body.left.name] = def(output):
                             stmt.body.right.print(output)
@@ -1552,7 +1530,7 @@ def OutputStream(options):
                     # TODO: for now assume everything we see in class body is a method, we'll handle class variables later
                     # in a special way since ES6 dropped the ball on their support
                     self.body.forEach(def(stmt, i):
-                        if isinstance(stmt, AST_Lambda):
+                        if isinstance(stmt, ast.Lambda):
                             output.indent()
                             if stmt.static:
                                 output.print('static')
@@ -1560,9 +1538,9 @@ def OutputStream(options):
                             if stmt.name.name is '__init__':
                                 output.print('constructor')
                             else:
-                                if isinstance(stmt, AST_ObjectGetter):
+                                if isinstance(stmt, ast.ObjectGetter):
                                     output.print('get ')
-                                elif isinstance(stmt, AST_ObjectSetter):
+                                elif isinstance(stmt, ast.ObjectSetter):
                                     output.print('set ')
                                 stmt.name.print(output)
                             output.space()
@@ -1587,8 +1565,9 @@ def OutputStream(options):
                             output.newline()
                     )
                 )
+            return generateClass
 
-        else:
+        def outputEs5():
             # original ES5 class generation logic
             def define_method(stmt):
                 return def(output):
@@ -1636,35 +1615,41 @@ def OutputStream(options):
                 return None
 
             def addMethods():
-                # actual methods
-                methods = {}
-                static = {}
+                # actual methods, and class variables
+                methodsAndVars = {}
+                staticMethods = {}
                 if self.docstring:
-                    methods['__doc__'] = def(output): output.print_string(self.docstring)
+                    methodsAndVars['__doc__'] = def(output): output.print_string(self.docstring)
                 self.body.forEach(def(stmt, i):
-                    if isinstance(stmt, AST_Method):
+                    if isinstance(stmt, ast.Method):
                         if stmt.static:
-                            static[stmt.name.name] = define_method(stmt)
+                            # static method
+                            staticMethods[stmt.name.name] = define_method(stmt)
                         else:
-                            methods[stmt.name.name] = define_method(stmt)
+                            # regular method
+                            methodsAndVars[stmt.name.name] = define_method(stmt)
+                    elif isinstance(stmt, ast.SimpleStatement) and isinstance(stmt.body, ast.Assign) and stmt.body.operator is '=':
+                        # class variable
+                        methodsAndVars[stmt.body.left.name] = def(output):
+                            stmt.body.right.print(output)
 
-                    elif isinstance(stmt, AST_Class):
+                    elif isinstance(stmt, ast.Class):
                         console.error('Nested classes aren\'t supported yet')
                 )
 
-                methodOutput = None
-                if Object.keys(methods).length:
-                    methodOutput = output.addProperties('prototype', methods)
+                methodAndOutput = None
+                if Object.keys(methodsAndVars).length:
+                    methodAndVarOutput = output.addProperties('prototype', methodsAndVars)
 
                 staticMethodOutput = None
-                if Object.keys(static).length:
-                    staticMethodOutput = output.addProperties(None, static)
+                if Object.keys(staticMethods).length:
+                    staticMethodOutput = output.addProperties(None, staticMethods)
 
-                return methodOutput, staticMethodOutput
-            methods, staticmethods = addMethods()
+                return methodAndVarOutput, staticMethodOutput
+            methodsAndVars, staticmethods = addMethods()
 
             # generate constructor
-            @unify(output, name, addInheritance(), addDecorators(), methods, staticmethods)
+            @unify(output, name, addInheritance(), addDecorators(), methodsAndVars, staticmethods)
             def generateClass():
                 if self.init or self.parent or self.statements.length:
                     output.print("function")
@@ -1675,13 +1660,6 @@ def OutputStream(options):
                     output.with_block(def():
 
                         bind_methods(self.bound, output)
-
-                        # class variables and statements
-                        self.statements.forEach(def(stmt):
-                            output.indent()
-                            stmt.print(output)
-                            output.newline()
-                        )
 
                         # constructor
                         if self.init or self.parent:
@@ -1706,52 +1684,55 @@ def OutputStream(options):
                     output.with_block(def():
                         bind_methods(self.bound, output)
                     )
+            return generateClass
 
+        if output.option('es6'):
+            generateClass = outputEs6()
+        else:
+            generateClass = outputEs5()
         # ignition
         generateClass()
-    )
-    DEFPRINT(AST_Class, def(self, output):
+
+    DEFPRINT(ast.Class, def(self, output):
         self._do_print(output)
     )
 
-    DEFPRINT(AST_SymbolClassRef, def(self, output):
+    DEFPRINT(ast.SymbolClassRef, def(self, output):
         self.class.print(output)
         output.print('.prototype.' + self.name)
     )
 
     # -----[ exits ]-----
-    AST_Exit.DEFMETHOD("_do_print", def(output, kind):
+    ast.Exit.prototype._do_print = def(output, kind):
         self = this
         output.print(kind)
         if self.value:
             output.space()
             self.value.print(output)
-
         output.semicolon()
-    )
-    DEFPRINT(AST_Return, def(self, output):
+
+    DEFPRINT(ast.Return, def(self, output):
         self._do_print(output, "return")
     )
-    DEFPRINT(AST_Yield, def(self, output):
+    DEFPRINT(ast.Yield, def(self, output):
         self._do_print(output, "yield")
     )
-    DEFPRINT(AST_Throw, def(self, output):
+    DEFPRINT(ast.Throw, def(self, output):
         self._do_print(output, "throw")
     )
 
     # -----[ loop control ]-----
-    AST_LoopControl.DEFMETHOD("_do_print", def(output, kind):
+    ast.LoopControl.prototype._do_print = def(output, kind):
         output.print(kind)
         if this.label:
             output.space()
             this.label.print(output)
-
         output.semicolon()
-    )
-    DEFPRINT(AST_Break, def(self, output):
+
+    DEFPRINT(ast.Break, def(self, output):
         self._do_print(output, "break")
     )
-    DEFPRINT(AST_Continue, def(self, output):
+    DEFPRINT(ast.Continue, def(self, output):
         self._do_print(output, "continue")
     )
 
@@ -1771,30 +1752,22 @@ def OutputStream(options):
         if not self.body:
             return output.force_semicolon()
 
-        if isinstance(self.body, AST_Do) and output.option("ie_proof"):
-            # https://github.com/mishoo/RapydScript/issues/#issue/57 IE
-            # croaks with "syntax error" on code like this: if (foo)
-            # do ... while(cond); else ...  we need block brackets
-            # around do/while
-            make_block(self.body, output)
-            return
-
         body = self.body
         while True:
-            if isinstance(body, AST_If):
+            if isinstance(body, ast.If):
                 if not body.alternative:
                     make_block(self.body, output)
                     return
 
                 body = body.alternative
-            elif isinstance(body, AST_StatementWithBody):
+            elif isinstance(body, ast.StatementWithBody):
                 body = body.body
             else:
                 break
 
         force_statement(self.body, output)
 
-    DEFPRINT(AST_If, def(self, output):
+    DEFPRINT(ast.If, def(self, output):
         output.print("if")
         output.space()
         output.with_parens(def():
@@ -1813,7 +1786,7 @@ def OutputStream(options):
     )
 
     # -----[ switch ]-----
-    DEFPRINT(AST_Switch, def(self, output):
+    DEFPRINT(ast.Switch, def(self, output):
         output.print("switch")
         output.space()
         output.with_parens(def():
@@ -1833,7 +1806,7 @@ def OutputStream(options):
         else:
             output.print("{}")
     )
-    AST_SwitchBranch.DEFMETHOD("_do_print_body", def(output):
+    ast.SwitchBranch.prototype._do_print_body = def(output):
         if this.body.length > 0:
             output.newline()
             this.body.forEach(def(stmt):
@@ -1841,12 +1814,12 @@ def OutputStream(options):
                 stmt.print(output)
                 output.newline()
             )
-    )
-    DEFPRINT(AST_Default, def(self, output):
+
+    DEFPRINT(ast.Default, def(self, output):
         output.print("default:")
         self._do_print_body(output)
     )
-    DEFPRINT(AST_Case, def(self, output):
+    DEFPRINT(ast.Case, def(self, output):
         output.print("case")
         output.space()
         self.expression.print(output)
@@ -1855,7 +1828,7 @@ def OutputStream(options):
     )
 
     # -----[ exceptions ]-----
-    DEFPRINT(AST_Try, def(self, output):
+    DEFPRINT(ast.Try, def(self, output):
         output.print("try")
         output.space()
         print_bracketed(self, output)
@@ -1867,7 +1840,7 @@ def OutputStream(options):
             output.space()
             self.bfinally.print(output)
     )
-    DEFPRINT(AST_Catch, def(self, output):
+    DEFPRINT(ast.Catch, def(self, output):
         output.print("catch")
         output.space()
         output.with_parens(def():
@@ -1915,14 +1888,14 @@ def OutputStream(options):
         else:
             print_bracketed(self.body[0], output, True)
     )
-    DEFPRINT(AST_Finally, def(self, output):
+    DEFPRINT(ast.Finally, def(self, output):
         output.print("finally")
         output.space()
         print_bracketed(self, output)
     )
 
     # -----[ var/const ]-----
-    AST_Definitions.DEFMETHOD("_do_print", def(output, kind):
+    ast.Definitions.prototype._do_print = def(output, kind):
         output.print(kind)
         output.space()
         this.definitions.forEach(def(def_, i):
@@ -1931,15 +1904,15 @@ def OutputStream(options):
             def_.print(output)
         )
         p = output.parent()
-        in_for = isinstance(p, AST_ForIn)
+        in_for = isinstance(p, ast.ForIn)
         avoid_semicolon = in_for and p.init is this
         if not avoid_semicolon:
             output.semicolon()
-    )
-    DEFPRINT(AST_Var, def(self, output):
+
+    DEFPRINT(ast.Var, def(self, output):
         self._do_print(output, "var")
     )
-    DEFPRINT(AST_Const, def(self, output):
+    DEFPRINT(ast.Const, def(self, output):
         self._do_print(output, "const")
     )
     def parenthesize_for_noin(node, output, noin):
@@ -1948,8 +1921,8 @@ def OutputStream(options):
         else:
             try:
                 # need to take some precautions here:
-                node.walk(new TreeWalker(def(node):
-                    if isinstance(node, AST_Binary) and node.operator is "in":
+                node.walk(ast.TreeWalker(def(node):
+                    if isinstance(node, ast.Binary) and node.operator is "in":
                         raise output
                 ))
                 node.print(output)
@@ -1958,27 +1931,27 @@ def OutputStream(options):
                     raise ex
                 node.print(output, True)
 
-    DEFPRINT(AST_VarDef, def(self, output):
+    DEFPRINT(ast.VarDef, def(self, output):
         self.name.print(output)
         if self.value:
             output.assign("")
-            parenthesize_for_noin(self.value, output, isinstance(output.parent(1), AST_ForIn))
+            parenthesize_for_noin(self.value, output, isinstance(output.parent(1), ast.ForIn))
     )
 
     # -----[ other expressions ]-----
     CREATION = [] # FIXME: a hack, tracks variables that class is being assigned to for handling
                   # kwargs on constructor gracefully, a better approach is to split this function
-                  # into AST_Call (normal functions), AST_ClassCall (class functions), and
-                  # AST_New (constructors), remove DEFPRINT for AST_BaseCall altogether, add
-                  # 'obj' property to AST_New and have it track the object it's assigned to. Then
+                  # into ast.Call (normal functions), ast.ClassCall (class functions), and
+                  # ast.New (constructors), remove DEFPRINT for ast.BaseCall altogether, add
+                  # 'obj' property to ast.New and have it track the object it's assigned to. Then
                   # use that property instead of this global stack. This would also have the benefit
                   # of minimizing clutter that this function is currently dealing with.
-    DEFPRINT(AST_BaseCall, def(self, output):
+    DEFPRINT(ast.BaseCall, def(self, output):
 
         # logic for defining the format of a function call (class, static, normal, decorated)
         selfArg = None
         def call_format():
-            if isinstance(self, AST_ClassCall):
+            if isinstance(self, ast.ClassCall):
                 # class methods are called through the prototype unless static
                 if self.static:
                     self.class.print(output)
@@ -2000,7 +1973,7 @@ def OutputStream(options):
                 else:
                     self.expression.print(output)
 
-        if isinstance(self, AST_New):
+        if isinstance(self, ast.New):
             # FIXME: a hack to avoid building a new type of AST object for the
             # special case of kwargs-based constructor
             object = CREATION.pop()
@@ -2015,7 +1988,7 @@ def OutputStream(options):
         has_kwargs = has_kwarg_items or has_kwarg_formals
 
         if self.args.starargs or has_kwargs:
-            obj = isinstance(self, AST_New) ? object : (self.expression.expression ? self.expression.expression : new AST_This())
+            obj = isinstance(self, ast.New) ? object : (self.expression.expression ? self.expression.expression : ast.This())
             if output.option('es6'):
                 # starargs in ES6 work very similar to Python, the only complication is kwargs
                 if has_kwargs:
@@ -2026,7 +1999,7 @@ def OutputStream(options):
                     # *args, format doesn't change
                     call_format()
             else:
-                if isinstance(self, AST_New):
+                if isinstance(self, ast.New):
                     # class constructor
                     # we need to declare the class a bit differently with *args and **kwargs
                     call_format()
@@ -2126,7 +2099,7 @@ def OutputStream(options):
                         output_kwargs()
                     )
             )
-        elif has_kwargs and (isinstance(self, AST_New) or self.expression and self.expression.expression):
+        elif has_kwargs and (isinstance(self, ast.New) or self.expression and self.expression.expression):
             # **kwargs for class methods require .call() notation since currying loses track of the context
             output.print('.call')
             output.with_parens(def():
@@ -2153,17 +2126,17 @@ def OutputStream(options):
                     output_kwargs()
             )
 
-        if output.option('es6') and isinstance(self, AST_ClassCall) and self.super:
+        if output.option('es6') and isinstance(self, ast.ClassCall) and self.super:
             output.end_statement()
             output.indent()
             output.spaced("var", selfArg, "=", "this")
     )
-    DEFPRINT(AST_New, def(self, output):
+    DEFPRINT(ast.New, def(self, output):
         output.print("new")
         output.space()
-        AST_BaseCall.prototype._codegen(self, output)
+        ast.BaseCall.prototype._codegen(self, output)
     )
-    AST_Seq.DEFMETHOD("_do_print", def(output):
+    ast.Seq.prototype._do_print = def(output):
         self = this
         p = output.parent()
         print_seq = def():
@@ -2176,22 +2149,22 @@ def OutputStream(options):
                 self.cdr.print(output)
 
         # this will effectively convert tuples to arrays
-        if isinstance(p, AST_Binary)
-        or isinstance(p, AST_Return)
-        or isinstance(p, AST_Array)
-        or isinstance(p, AST_BaseCall)
-        or isinstance(p, AST_SimpleStatement):
+        if isinstance(p, ast.Binary)
+        or isinstance(p, ast.Return)
+        or isinstance(p, ast.Array)
+        or isinstance(p, ast.BaseCall)
+        or isinstance(p, ast.SimpleStatement):
             output.with_square(print_seq)
         else:
             print_seq()
-    )
-    DEFPRINT(AST_Seq, def(self, output):
+
+    DEFPRINT(ast.Seq, def(self, output):
         self._do_print(output)
     )
-    DEFPRINT(AST_Dot, def(self, output):
+    DEFPRINT(ast.Dot, def(self, output):
         expr = self.expression
         expr.print(output)
-        if isinstance(expr, AST_Number) and expr.getValue() >= 0:
+        if isinstance(expr, ast.Number) and expr.getValue() >= 0:
             if not /[xa-f.]/i.test(output.last()):
                 output.print(".")
         output.print(".")
@@ -2199,26 +2172,26 @@ def OutputStream(options):
         output.add_mapping(self.end)
         output.print_name(self.property)
     )
-    DEFPRINT(AST_Sub, def(self, output):
+    DEFPRINT(ast.Sub, def(self, output):
         self.expression.print(output)
         output.print("[")
         # parse negative constants into len-constant
-        if isinstance(self.property, AST_Unary) and self.property.operator is "-"
-        and isinstance(self.property.expression, AST_Number):
+        if isinstance(self.property, ast.Unary) and self.property.operator is "-"
+        and isinstance(self.property.expression, ast.Number):
             # TODO: this might parse incorrectly if expression is a
             # function call that might not return the same result
             # when called repeatedly. We might eventually want to
             # save the return to a temporary variable and use that
             # instead if expression is a function. Or we could just
             # throw an error if negative indices are used with a
-            # type that's not AST_SymbolVar
+            # type that's not ast.SymbolVar
             self.expression.print(output)
             output.print(".length")
 
         self.property.print(output)
         output.print("]")
     )
-    DEFPRINT(AST_Slice, def(self, output):
+    DEFPRINT(ast.Slice, def(self, output):
         # splice assignment via pythonic array[start:end]
         output.print('[].splice.apply')
         output.with_parens(def():
@@ -2237,7 +2210,7 @@ def OutputStream(options):
             )
         )
     )
-    DEFPRINT(AST_UnaryPrefix, def(self, output):
+    DEFPRINT(ast.UnaryPrefix, def(self, output):
         op = self.operator
         if op is "*": op = "..."
         output.print(op)
@@ -2245,11 +2218,11 @@ def OutputStream(options):
             output.space()
         self.expression.print(output)
     )
-    DEFPRINT(AST_UnaryPostfix, def(self, output):
+    DEFPRINT(ast.UnaryPostfix, def(self, output):
         self.expression.print(output)
         output.print(self.operator)
     )
-    DEFPRINT(AST_Binary, def(self, output):
+    DEFPRINT(ast.Binary, def(self, output):
         comparators = {
             "<": True,
             ">": True,
@@ -2284,10 +2257,10 @@ def OutputStream(options):
                     output.comma()
                 self.right.print(output)
             )
-        elif comparators[self.operator] and isinstance(self.left, AST_Binary) and comparators[self.left.operator]:
+        elif comparators[self.operator] and isinstance(self.left, ast.Binary) and comparators[self.left.operator]:
             operator = normalize(self.operator)
 
-            if isinstance(self.left.right, AST_Symbol):
+            if isinstance(self.left.right, ast.Symbol):
                 # left side compares against a regular variable,
                 # no caching needed
                 self.left.print(output)
@@ -2311,7 +2284,7 @@ def OutputStream(options):
             output.spaced(self.left, normalize(self.operator), self.right)
     )
 
-    DEFPRINT(AST_DeepEquality, def(self, output):
+    DEFPRINT(ast.DeepEquality, def(self, output):
         # a fast implementation of deep equality
         # TODO: this does not handle comparators logic yet
 
@@ -2324,28 +2297,14 @@ def OutputStream(options):
             output.space()
             self.right.print(output)
         else:
-            def cacheBubble(operand):
-                # helper function for caching expensive function calls and complex operations that may happen inside the comparison
-                if not (isinstance(operand, AST_SymbolRef) or isinstance(operand, AST_SymbolClassRef)):
-                    # looks like operand is doing some calculation, let's cache it for performance
-                    tmp = output.newTemp()
-                    output.with_parens(def():
-                        output.spaced(tmp, '=', operand)
-                    )
-                    return { # a little trick to allow us to call print consistently from outside
-                        print: def(output): output.print(tmp)
-                    }
-                operand.print(output)
-                return operand
-
             output.with_parens(def():
-                left = cacheBubble(self.left)
+                left = cacheBubble(self.left, output)
                 if self.operator is '==':
                     # positive case, eliminate truthy immutable comparisons
                     output.space()
                     output.spaced('===')
                     output.space()
-                    right = cacheBubble(self.right)
+                    right = cacheBubble(self.right, output)
                     output.space()
 
                     # negative case, eliminate falsy immutable comparisons
@@ -2366,7 +2325,7 @@ def OutputStream(options):
                     output.space()
                     output.spaced('!==')
                     output.space()
-                    right = cacheBubble(self.right)
+                    right = cacheBubble(self.right, output)
                     output.space()
 
                     # negative case, eliminate falsy immutable comparisons
@@ -2388,8 +2347,8 @@ def OutputStream(options):
                     )
             )
     )
-    DEFPRINT(AST_Assign, def(self, output):
-        if isinstance(self.right, AST_Number) and self.right.value is 1 and self.operator in ["+=", "-="]:
+    DEFPRINT(ast.Assign, def(self, output):
+        if isinstance(self.right, ast.Number) and self.right.value is 1 and self.operator in ["+=", "-="]:
             # optimization
             # NOTE: it's important that we use the prefix, not the suffix which returns pre-increment value
             output.print(self.operator is "+=" ? "++" : "--")
@@ -2406,7 +2365,7 @@ def OutputStream(options):
                     self.right.print(output)
                 )
                 return
-            if isinstance(self.left, AST_Array):
+            if isinstance(self.left, ast.Array):
                 if output.option('es6'):
                     output.with_square(def():
                         self.left.elements.forEach(def(element, index):
@@ -2422,16 +2381,16 @@ def OutputStream(options):
             output.space()
             output.print(self.operator)
             output.space()
-            if isinstance(self.right, AST_New):
+            if isinstance(self.right, ast.New):
                 # FIXME: a hack, see declaration for full explanation
                 CREATION.push(self.left)
             self.right.print(output)
-            if isinstance(self.left, AST_Array):
+            if isinstance(self.left, ast.Array):
                 if not output.option('es6'):
                     output.end_statement()
                     unpack_tuple(self.left, output, True)
     )
-    DEFPRINT(AST_Conditional, def(self, output):
+    DEFPRINT(ast.Conditional, def(self, output):
         self.condition.print(output)
         output.space()
         output.print("?")
@@ -2443,7 +2402,7 @@ def OutputStream(options):
     )
 
     # -----[ literals ]-----
-    DEFPRINT(AST_Array, def(self, output):
+    DEFPRINT(ast.Array, def(self, output):
         output.with_square(def():
             array = self.elements
             len_ = array.length
@@ -2458,13 +2417,13 @@ def OutputStream(options):
                 output.space()
         )
     )
-    DEFPRINT(AST_Range, def(self, output):
+    DEFPRINT(ast.Range, def(self, output):
         # FIXME: make use of computedValue which we'll add later
         indexes = []
         for element in [self.left, self.right]:
-            if isinstance(element, AST_UnaryPrefix) and element.operator is '-' and isinstance(element.expression, AST_Number):
+            if isinstance(element, ast.UnaryPrefix) and element.operator is '-' and isinstance(element.expression, ast.Number):
                 indexes.push(parseFloat('-' + element.expression.value))
-            elif isinstance(element, AST_Number):
+            elif isinstance(element, ast.Number):
                 indexes.push(parseFloat(element.value))
             else:
                 indexes.push(None)
@@ -2493,7 +2452,7 @@ def OutputStream(options):
                 output.spaced(self.left, '<', self.right, '?', '1', ':', '-1')
             )
     )
-    DEFPRINT(AST_Object, def(self, output):
+    DEFPRINT(ast.ObjectLiteral, def(self, output):
         if self.properties.length > 0:
             output.with_block(def():
                 self.properties.forEach(def(prop, i):
@@ -2508,11 +2467,11 @@ def OutputStream(options):
         else:
             output.print("{}")
     )
-    DEFPRINT(AST_ObjectKeyVal, def(self, output):
-        if isinstance(self.key, AST_Identifier)
-        or isinstance(self.key, AST_String)
-        or isinstance(self.key, AST_Number)
-        or isinstance(self.key, AST_Boolean):
+    DEFPRINT(ast.ObjectKeyVal, def(self, output):
+        if isinstance(self.key, ast.Identifier)
+        or isinstance(self.key, ast.String)
+        or isinstance(self.key, ast.Number)
+        or isinstance(self.key, ast.Boolean):
             # default key
             self.key.print(output)
         else:
@@ -2523,30 +2482,30 @@ def OutputStream(options):
         output.colon()
         self.value.print(output)
     )
-    AST_Symbol.DEFMETHOD("definition", def():
-        return this.thedef
-    )
-    DEFPRINT(AST_Symbol, def(self, output):
+
+    ast.Symbol.prototype.definition = def(): return this.thedef
+
+    DEFPRINT(ast.Symbol, def(self, output):
         def_ = self.definition()
         output.print_name((def_ ? def_.mangled_name or def_.name : self.name))
     )
-    DEFPRINT(AST_Undefined, def(self, output):
+    DEFPRINT(ast.Undefined, def(self, output):
         output.print("void 0")
     )
-    DEFPRINT(AST_Hole, noop)
-    DEFPRINT(AST_Infinity, def(self, output):
+    DEFPRINT(ast.Hole, noop)
+    DEFPRINT(ast.Infinity, def(self, output):
         output.print("1/0")
     )
-    DEFPRINT(AST_NaN, def(self, output):
+    DEFPRINT(ast.NotANumber, def(self, output):
         output.print("0/0")
     )
-    DEFPRINT(AST_This, def(self, output):
+    DEFPRINT(ast.This, def(self, output):
         output.print("this")
     )
-    DEFPRINT(AST_Constant, def(self, output):
+    DEFPRINT(ast.Constant, def(self, output):
         output.print(self.getValue())
     )
-    DEFPRINT(AST_String, def(self, output):
+    DEFPRINT(ast.String, def(self, output):
         if self.modifier in 'fF':
             # string template, ES6
             output.print('`')
@@ -2556,28 +2515,28 @@ def OutputStream(options):
             # regular string
             output.print_string(self.getValue())
     )
-    DEFPRINT(AST_Verbatim, def(self, output):
+    DEFPRINT(ast.Verbatim, def(self, output):
         output.print(self.getValue())
     )
-    DEFPRINT(AST_Number, def(self, output):
+    DEFPRINT(ast.Number, def(self, output):
         output.print(make_num(self.getValue()))
     )
-    DEFPRINT(AST_RegExp, def(self, output):
+    DEFPRINT(ast.RegExp, def(self, output):
         str_ = self.getValue().toString()
         if output.option("ascii_only"):
             str_ = output.to_ascii(str_)
         output.print(str_)
         p = output.parent()
-        if isinstance(p, AST_Binary) and /^in/.test(p.operator) and p.left is self:
+        if isinstance(p, ast.Binary) and /^in/.test(p.operator) and p.left is self:
             output.print(" ")
     )
 
     def force_statement(stat, output):
         # print a statement even if there is nothing to print, forcing an appropriate "empty" indicator
         if output.option("bracketize"):
-            if not stat or isinstance(stat, AST_EmptyStatement):
+            if not stat or isinstance(stat, ast.EmptyStatement):
                 output.print("{}")
-            elif isinstance(stat, AST_BlockStatement):
+            elif isinstance(stat, ast.BlockStatement):
                 stat.print(output)
             else:
                 output.with_block(def():
@@ -2586,7 +2545,7 @@ def OutputStream(options):
                     output.newline()
                 )
         else:
-            if not stat or isinstance(stat, AST_EmptyStatement):
+            if not stat or isinstance(stat, ast.EmptyStatement):
                 output.force_semicolon()
             else:
                 stat.print(output)
@@ -2600,22 +2559,22 @@ def OutputStream(options):
         node = processed[i -= 1]
         prev = processed[i -= 1]
         while i > 0:
-            if isinstance(prev, AST_Statement) and prev.body is node:
+            if isinstance(prev, ast.Statement) and prev.body is node:
                 return True
-            if isinstance(prev, AST_Seq) and prev.car is node
-            or isinstance(prev, AST_BaseCall) and prev.expression is node
-            or isinstance(prev, AST_Dot) and prev.expression is node
-            or isinstance(prev, AST_Sub) and prev.expression is node
-            or isinstance(prev, AST_Conditional) and prev.condition is node
-            or isinstance(prev, AST_Binary) and prev.left is node
-            or isinstance(prev, AST_UnaryPostfix) and prev.expression is node:
+            if isinstance(prev, ast.Seq) and prev.car is node
+            or isinstance(prev, ast.BaseCall) and prev.expression is node
+            or isinstance(prev, ast.Dot) and prev.expression is node
+            or isinstance(prev, ast.Sub) and prev.expression is node
+            or isinstance(prev, ast.Conditional) and prev.condition is node
+            or isinstance(prev, ast.Binary) and prev.left is node
+            or isinstance(prev, ast.UnaryPostfix) and prev.expression is node:
                 node = prev
                 prev = processed[i -= 1]
             else:
                 return False
 
     def no_constructor_parens(self, output):
-        # self should be AST_New, decide if we want to show parens or not.
+        # self should be ast.New, decide if we want to show parens or not.
         return self.args.length is 0 and not output.option("beautify")
 
     def best_of(choices):
@@ -2650,7 +2609,7 @@ def OutputStream(options):
         return best_of(choices)
 
     def make_block(stmt, output):
-        if isinstance(stmt, AST_BlockStatement):
+        if isinstance(stmt, ast.BlockStatement):
             stmt.print(output)
             return
 
@@ -2662,37 +2621,35 @@ def OutputStream(options):
 
     # -----[ source map generators ]-----
     def DEFMAP(nodetype, generator):
-        nodetype.DEFMETHOD("add_source_map", def(stream):
-            generator(this, stream)
-        )
+        nodetype.prototype.add_source_map = def(stream): generator(this, stream)
 
     # We could easily add info for ALL nodes, but it seems to me that
     # would be quite wasteful, hence this noop in the base class.
-    DEFMAP(AST_Node, noop)
+    DEFMAP(ast.Node, noop)
     def basic_sourcemap_gen(self, output):
         output.add_mapping(self.start)
 
     # XXX: I'm not exactly sure if we need it for all of these nodes,
     # or if we should add even more.
-    DEFMAP(AST_Directive, basic_sourcemap_gen)
-    DEFMAP(AST_Debugger, basic_sourcemap_gen)
-    DEFMAP(AST_Symbol, basic_sourcemap_gen)
-    DEFMAP(AST_Jump, basic_sourcemap_gen)
-    DEFMAP(AST_StatementWithBody, basic_sourcemap_gen)
-    DEFMAP(AST_LabeledStatement, noop)
+    DEFMAP(ast.Directive, basic_sourcemap_gen)
+    DEFMAP(ast.Debugger, basic_sourcemap_gen)
+    DEFMAP(ast.Symbol, basic_sourcemap_gen)
+    DEFMAP(ast.Jump, basic_sourcemap_gen)
+    DEFMAP(ast.StatementWithBody, basic_sourcemap_gen)
+    DEFMAP(ast.LabeledStatement, noop)
     # since the label symbol will mark it
-    DEFMAP(AST_Lambda, basic_sourcemap_gen)
-    DEFMAP(AST_Switch, basic_sourcemap_gen)
-    DEFMAP(AST_SwitchBranch, basic_sourcemap_gen)
-    DEFMAP(AST_BlockStatement, basic_sourcemap_gen)
-    DEFMAP(AST_Toplevel, noop)
-    DEFMAP(AST_New, basic_sourcemap_gen)
-    DEFMAP(AST_Try, basic_sourcemap_gen)
-    DEFMAP(AST_Catch, basic_sourcemap_gen)
-    DEFMAP(AST_Finally, basic_sourcemap_gen)
-    DEFMAP(AST_Definitions, basic_sourcemap_gen)
-    DEFMAP(AST_Constant, basic_sourcemap_gen)
-    DEFMAP(AST_ObjectProperty, def(self, output):
+    DEFMAP(ast.Lambda, basic_sourcemap_gen)
+    DEFMAP(ast.Switch, basic_sourcemap_gen)
+    DEFMAP(ast.SwitchBranch, basic_sourcemap_gen)
+    DEFMAP(ast.BlockStatement, basic_sourcemap_gen)
+    DEFMAP(ast.TopLevel, noop)
+    DEFMAP(ast.New, basic_sourcemap_gen)
+    DEFMAP(ast.Try, basic_sourcemap_gen)
+    DEFMAP(ast.Catch, basic_sourcemap_gen)
+    DEFMAP(ast.Finally, basic_sourcemap_gen)
+    DEFMAP(ast.Definitions, basic_sourcemap_gen)
+    DEFMAP(ast.Constant, basic_sourcemap_gen)
+    DEFMAP(ast.ObjectProperty, def(self, output):
         output.add_mapping(self.start, self.key)
     )
 )()

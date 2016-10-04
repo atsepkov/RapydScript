@@ -7,8 +7,8 @@
 "use strict;";
 
 var fs = require('fs');
-var RapydScript = require("../tools/compiler");
 var path = require('path');
+var rapydscript = require("../lib/rapydscript");
 
 var WARN = 1, ERROR = 2;
 var MESSAGES = {
@@ -73,10 +73,10 @@ if (!String.prototype.startsWith) {
 }
 
 // Append native JavaScript classes
-Object.keys(RapydScript.NATIVE_CLASSES).forEach(function (name) { BUILTINS[name] = true; });
+Object.keys(rapydscript.NATIVE_CLASSES).forEach(function (name) { BUILTINS[name] = true; });
 
 // Append baselib
-Object.keys(RapydScript.parse_baselib(
+Object.keys(rapydscript.parse_baselib(
     path.normalize(path.join(path.dirname(module.filename), '../src'))
 )).forEach(function (name) { BUILTINS[name] = true; });
 
@@ -84,19 +84,9 @@ function cmp(a, b) {
     return (a < b) ? -1 : ((a > b) ? 1 : 0);
 }
 
-function parse_file(code, filename) {
-    return RapydScript.parse(code, {
-        filename: filename,
-        basedir: path.dirname(filename),
-        libdir: path.dirname(filename),
-        es6: ARGV.ecmascript6,
-        for_linting: true,
-    });
-}
-
 function msg_from_node(filename, ident, name, node, level, line) {
     name = name || ((node.name) ? ((node.name.name) ? node.name.name : node.name) : '');
-    if (node instanceof RapydScript.AST_Lambda && node.name) name = node.name.name;
+    if (node instanceof rapydscript.ast.Lambda && node.name) name = node.name.name;
     var msg = MESSAGES[ident].replace('{name}', name || '').replace('{line}', line || '');
     return {
         filename: filename, 
@@ -273,10 +263,10 @@ function Linter(toplevel, filename, code) {
         var node = this.current_node;
         var options = {
             is_toplevel: scope.is_toplevel,
-            is_import: (node instanceof RapydScript.AST_Import || node instanceof RapydScript.AST_ImportedVar),
-            is_function: (node instanceof RapydScript.AST_Lambda),
-            is_class: (node instanceof RapydScript.AST_Class),
-            is_func_arg: (node instanceof RapydScript.AST_SymbolFunarg),
+            is_import: (node instanceof rapydscript.ast.Import || node instanceof rapydscript.ast.ImportedVar),
+            is_function: (node instanceof rapydscript.ast.Lambda),
+            is_class: (node instanceof rapydscript.ast.Class),
+            is_func_arg: (node instanceof rapydscript.ast.SymbolFunarg),
         };
         return scope.add_binding(name, (binding_node || node), options);
     };
@@ -318,7 +308,7 @@ function Linter(toplevel, filename, code) {
         if (name) {
             // FIXME this triggers a false positive in cases when user decides to name a function that's being passed in as an argument
             // or used as a hash value. A potential way to address that would be to track how the current node gets used by its parent.
-            if (node instanceof RapydScript.AST_Method) {
+            if (node instanceof rapydscript.ast.Method) {
                 scope.methods[name] = true;
                 if (scope.seen_method_names.hasOwnProperty(name)) {
                     if (!node.is_setter) this.messages.push(msg_from_node(filename, 'dup-method', node.name, node, WARN, scope.seen_method_names[name]));
@@ -330,7 +320,7 @@ function Linter(toplevel, filename, code) {
     this.handle_assign = function() {
         var node = this.current_node;
 
-        if (node.left instanceof RapydScript.AST_SymbolRef) {
+        if (node.left instanceof rapydscript.ast.SymbolRef) {
             node.left.lint_visited = node.operator === '=';  // Could be compound assignment like: +=
             if (node.operator === '=') {
                 // Only create a binding if the operator is not 
@@ -339,11 +329,11 @@ function Linter(toplevel, filename, code) {
                 this.add_binding(node.left.name);
                 this.current_node = node;
             }
-        } else if (node.left instanceof RapydScript.AST_Array) {
+        } else if (node.left instanceof rapydscript.ast.Array) {
             // destructuring assignment: a, b = 1, 2
             for (var i = 0; i < node.left.elements.length; i++) {
                 var cnode = node.left.elements[i];
-                if (cnode instanceof RapydScript.AST_SymbolRef) {
+                if (cnode instanceof rapydscript.ast.SymbolRef) {
                     this.current_node = cnode;
                     cnode.lint_visited = true;
                     this.add_binding(cnode.name);
@@ -357,7 +347,7 @@ function Linter(toplevel, filename, code) {
     this.handle_vardef = function() {
         var node = this.current_node;
         if (node.value) this.current_node = node.value;
-        if (node.name instanceof RapydScript.AST_SymbolNonlocal) {
+        if (node.name instanceof rapydscript.ast.SymbolNonlocal) {
             this.add_nonlocal(node.name.name);
         } else {
             this.add_binding(node.name.name, node.name);
@@ -377,7 +367,7 @@ function Linter(toplevel, filename, code) {
 
     this.handle_scope = function() {
         var node = this.current_node;
-        var nscope = new Scope(node instanceof RapydScript.AST_Toplevel, this.scopes[this.scopes.length - 1], filename);
+        var nscope = new Scope(node instanceof rapydscript.ast.TopLevel, this.scopes[this.scopes.length - 1], filename);
         if (this.scopes.length) this.scopes[this.scopes.length - 1].children.push(nscope);
         this.scopes.push(nscope);
     };
@@ -395,14 +385,14 @@ function Linter(toplevel, filename, code) {
 
     this.handle_for_in = function() {
         var node = this.current_node;
-        if (node.init instanceof RapydScript.AST_SymbolRef) {
+        if (node.init instanceof rapydscript.ast.SymbolRef) {
             this.add_binding(node.init.name).is_loop = true;
             node.init.lint_visited = true;
-        } else if (node.init instanceof RapydScript.AST_Array) {
+        } else if (node.init instanceof rapydscript.ast.Array) {
             // destructuring assignment: for a, b in []
             for (var i = 0; i < node.init.elements.length; i++) {
                 var cnode = node.init.elements[i];
-                if (cnode instanceof RapydScript.AST_SymbolRef) {
+                if (cnode instanceof rapydscript.ast.SymbolRef) {
                     this.current_node = cnode;
                     cnode.lint_visited = true;
                     this.add_binding(cnode.name).is_loop = true;
@@ -458,7 +448,7 @@ function Linter(toplevel, filename, code) {
         var node = this.current_node;
         var seen = {};
         (node.properties || []).forEach(function (prop) {
-            if (prop.key instanceof RapydScript.AST_Constant) {
+            if (prop.key instanceof rapydscript.ast.Constant) {
                 var val = prop.key.getValue();
                 if (seen.hasOwnProperty(val)) {
                     this.messages.push(msg_from_node(filename, 'dup-key', val, prop));
@@ -478,49 +468,48 @@ function Linter(toplevel, filename, code) {
         this.current_node = node;
         var scope_count = this.scopes.length;
         var branch_count = this.branches.length;
-        if (node instanceof RapydScript.AST_If || node instanceof RapydScript.AST_Switch || node instanceof RapydScript.AST_Try || node instanceof RapydScript.AST_Catch || node instanceof RapydScript.AST_Except) {
+        if (node instanceof rapydscript.ast.If || node instanceof rapydscript.ast.Switch || node instanceof rapydscript.ast.Try || node instanceof rapydscript.ast.Catch || node instanceof rapydscript.ast.Except) {
             this.branches.push(1);
         }
 
-        if (node instanceof RapydScript.AST_Lambda) {
+        if (node instanceof rapydscript.ast.Lambda) {
             this.handle_lambda();
-        } else if (node instanceof RapydScript.AST_Import) {
+        } else if (node instanceof rapydscript.ast.Import) {
             this.handle_import();
-        } else if (node instanceof RapydScript.AST_ImportedVar) {
+        } else if (node instanceof rapydscript.ast.ImportedVar) {
             this.handle_imported_var();
-        } else if (node instanceof RapydScript.AST_Class) {
+        } else if (node instanceof rapydscript.ast.Class) {
             this.handle_class();
-        } else if (node instanceof RapydScript.AST_BaseCall) {
+        } else if (node instanceof rapydscript.ast.BaseCall) {
             this.handle_call();
-        } else if (node instanceof RapydScript.AST_Assign) {
+        } else if (node instanceof rapydscript.ast.Assign) {
             this.handle_assign();
-        } else if (node instanceof RapydScript.AST_VarDef) {
+        } else if (node instanceof rapydscript.ast.VarDef) {
             this.handle_vardef();
-        } else if (node instanceof RapydScript.AST_SymbolRef) {
+        } else if (node instanceof rapydscript.ast.SymbolRef) {
             this.handle_symbol_ref();
-        } else if (node instanceof RapydScript.AST_Decorator) {
+        } else if (node instanceof rapydscript.ast.Decorator) {
             this.handle_decorator();
-        } else if (node instanceof RapydScript.AST_SymbolFunarg) {
+        } else if (node instanceof rapydscript.ast.SymbolFunarg) {
             this.handle_symbol_funarg();
-        } else if (node instanceof RapydScript.AST_ListComprehension) {
+        } else if (node instanceof rapydscript.ast.ListComprehension) {
             this.handle_comprehension();
-        } else if (node instanceof RapydScript.AST_ForIn) {
+        } else if (node instanceof rapydscript.ast.ForIn) {
             this.handle_for_in();
-        } else if (node instanceof RapydScript.AST_ForJS) {
+        } else if (node instanceof rapydscript.ast.ForJS) {
             this.handle_for_js();
-        } else if (node instanceof RapydScript.AST_Except) {
+        } else if (node instanceof rapydscript.ast.Except) {
             this.handle_except();
-        } else if (node instanceof RapydScript.AST_EmptyStatement) {
+        } else if (node instanceof rapydscript.ast.EmptyStatement) {
             this.handle_empty_statement();
-        } else if (node instanceof RapydScript.AST_Object) {
+        } else if (node instanceof rapydscript.ast.ObjectLiteral) {
             this.handle_object_literal();
         }
 
-        if (node instanceof RapydScript.AST_Scope) {
+        if (node instanceof rapydscript.ast.Scope) {
             this.handle_scope();
         } 
 
-        // console.log(node.TYPE);
         if (cont !== undefined) cont();
 
         if (this.scopes.length > scope_count) {
@@ -575,12 +564,18 @@ function lint_code(code, options) {
     var filename = options.filename || '<eval>';
     var toplevel, messages;
     var lines = code.split('\n');  // Can be used (in the future) to display extract from code corresponding to error location
-    RapydScript.AST_Node.warn_function = function() {};
+    rapydscript.ast.Node.warn_function = function() {};
 
     try {
-        toplevel = parse_file(code, filename);
+        toplevel = rapydscript.parse(code, {
+            filename: filename,
+            basedir: path.dirname(filename),
+            libdir: path.dirname(filename),
+            es6: ARGV.ecmascript6,
+            for_linting: true,
+        });
     } catch(e) {
-        if (e instanceof RapydScript.ParseError) {
+        if (e instanceof rapydscript.ParseError) {
             messages = [{
                 filename: filename,
                 start_line: e.line,
@@ -589,7 +584,7 @@ function lint_code(code, options) {
                 ident: 'syntax-err',
                 message: e.message
             }];
-        } else if (e instanceof RapydScript.ImportError) {
+        } else if (e instanceof rapydscript.ImportError) {
             messages = [{
                 filename: filename,
                 start_line: e.line,

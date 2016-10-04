@@ -15,8 +15,8 @@ var path = require('path');
 var vm = require('vm');
 var readline = require('readline');
 var util = require('util');
-var RapydScript = require('./compiler');
-var colored = RapydScript.colored;
+var rapydscript = require('../lib/rapydscript');
+var colored = rapydscript.colored;
 
 function create_ctx(baselib, show_js, console) {
 
@@ -29,7 +29,7 @@ function create_ctx(baselib, show_js, console) {
     var ctx = vm.createContext({
         'root': typeof window === 'object' ? window : global,
         'console': console,
-        'RapydScript': RapydScript,
+        'rapydscript': rapydscript,
         'require': require,
         'repl': replOptions,
         'quit': function() { process.exit(0); }
@@ -39,13 +39,13 @@ function create_ctx(baselib, show_js, console) {
 
     // load baselib
     vm.runInContext(baselib, ctx, {'filename': 'baselib.js'});
-    RapydScript.AST_Node.warn_function = function() {};
+    rapydscript.ast.Node.warn_function = function() {};
     return ctx;
 }
 
 var homedir = process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'];
 var cachedir = expanduser(process.env.XDG_CACHE_HOME || '~/.cache');
-var all_keywords = RapydScript.ALL_KEYWORDS.split(' ');
+var all_keywords = rapydscript.ALL_KEYWORDS.split(' ');
 var enum_global = "var global = Function('return this')(); Object.getOwnPropertyNames(global);";
 
 function expanduser(x) {
@@ -165,7 +165,7 @@ function prefix_matches(prefix, items) {
 
 function find_completions(line, ctx, options) {
     try {
-        t = RapydScript.tokenizer(line, '<repl>');
+        t = rapydscript.tokenizer(line, '<repl>');
     } catch(e) { return []; }
     var tokens = [], token;
     while (true) {
@@ -182,7 +182,7 @@ function find_completions(line, ctx, options) {
         return [global_names(ctx, options), ''];
     }
     var last_tok = tokens[tokens.length - 1];
-    if (last_tok.value === '.' || (last_tok.type === 'name' && RapydScript.IDENTIFIER_PAT.test(last_tok.value))) {
+    if (last_tok.value === '.' || (last_tok.type === 'name' && rapydscript.IDENTIFIER_PAT.test(last_tok.value))) {
         last_tok = last_tok.value;
         if (last_tok === '.') {
             tokens.push({'value':''});
@@ -340,13 +340,13 @@ module.exports = function(options) {
     function compile_source(source, output_options) {
         var classes = (toplevel) ? toplevel.classes : undefined;
         try {
-            toplevel = RapydScript.parse(source, {
+            toplevel = rapydscript.parse(source, {
                 'filename':'<repl>',
                 'readfile': fs.readFileSync,
                 'basedir': process.cwd(),
                 'libdir': options.import_path,
                 'es6': options.es6,
-                'import_dirs': RapydScript.get_import_dirs(),
+                'import_dirs': rapydscript.get_import_dirs(),
                 'classes': classes
             });
         } catch(e) {
@@ -360,10 +360,8 @@ module.exports = function(options) {
             }
             return false;
         }
-        var output = RapydScript.OutputStream(output_options);
         toplevel.strict = true;
-        toplevel.print(output);
-        output = output.toString();
+        var output = rapydscript.output(toplevel, output_options);
         if (classes) {
             var exports = {};
             toplevel.exports.forEach(function (name) { exports[name] = true; });

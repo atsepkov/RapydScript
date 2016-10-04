@@ -267,6 +267,11 @@ drop them in production. This option can be
 used together with drop_decorators.
 */});
 
+opt("drop_docstrings", "ds", 'bool', '', function(){/*
+If set, will drop all docstrings from the compilation,
+useful for producing a smaller compilation.
+*/});
+
 opt("comments", undefined, 'string', '', function(){/*
 Preserve copyright comments in the output.
 By default this works like Google Closure, keeping 

@@ -10,54 +10,16 @@
                          <atsepkov@pyjeon.com>
                          http://www.pyjeon.com
 
-  Distributed under Apache 2.0 license:
+  Distributed under BSD license:
     Copyright 2013 (c) Alexander Tsepkov <atsepkov@pyjeon.com>
-
-  RapydScript source code is originally based on UglifyJS2 (covered
-  by BSD license). UglifyJS2 was written by Mihai Bazon
-  <mihai.bazon@gmail.com>, who is its respective copyright holder.
-
-    Redistribution and use in source and binary forms, with or without
-    modification, are permitted provided that the following conditions
-    are met:
-
-        * Redistributions of source code must retain the above
-          copyright notice, this list of conditions and the following
-          disclaimer.
-
-        * Redistributions in binary form must reproduce the above
-          copyright notice, this list of conditions and the following
-          disclaimer in the documentation and/or other materials
-          provided with the distribution.
-
-    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER “AS IS” AND ANY
-    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-    PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE
-    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
-    OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-    PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-    PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR
-    TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-    THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
-    SUCH DAMAGE.
 
  **********************************************************************
 """
 
-
-def array_to_hash(a):
-    ret = Object.create(None)
-    for i in range(len(a)):
-        ret[a[i]] = True
-    return ret
+RAPYD_PREFIX = "ՐՏ"     # previously _$rapyd$_
 
 def slice(a, start):
     return Array.prototype.slice.call(a, start or 0)
-
-def characters(str_):
-    return str_.split("")
 
 def member(name, array):
     for i in range(array.length-1, -1, -1):
@@ -124,7 +86,7 @@ def merge(obj, ext):
 
 def noop(): pass
 
-MAP = def():
+MAP = (def():
     def MAP(a, f, backwards):
         ret = []
         top = []
@@ -183,7 +145,7 @@ MAP = def():
         this.v = val
 
     return MAP
-.call(this)
+)()
 
 def push_uniq(array, el):
     # push el into array if it doesn't already exist there
