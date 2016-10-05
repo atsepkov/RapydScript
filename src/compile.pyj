@@ -42,7 +42,6 @@ module.exports = def(start_time, argv, base_path, src_path, lib_path):
     dropImports = argv.drop_imports.split(/\s*,\s*/)
     parseOpts = {
         filename: '?',
-        toplevel: toplevel,
         readfile: fs.readFileSync,
         auto_bind: argv.auto_bind,
         es6: argv.ecmascript6,
@@ -98,6 +97,7 @@ module.exports = def(start_time, argv, base_path, src_path, lib_path):
         return ret
 
     def compile_single_file(err, code):
+        nonlocal files
         if err:
             console.error("ERROR: can't read file: " + files[0])
             process.exit(1)
@@ -121,7 +121,7 @@ module.exports = def(start_time, argv, base_path, src_path, lib_path):
             output = rapydscript.compile(code, parseOpts)
         write_output(output)
 
-        files = files.slice(1)
+        files = files[1:]
         if files.length:
             setImmediate(read_whole_file, files[0], compile_single_file)
             return

@@ -94,7 +94,7 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
             code = fs.readFileSync(filepath, "utf-8").split('\n')
             ok = true
             code.forEach(def(line):
-                if line[0] is '#' or !line.trim().length:
+                if line[0] is '#' or not line.trim().length:
                     return # blank line, no test here
                 try:
                     ast
@@ -168,6 +168,6 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
             ).run()
         )
 
-    if (!all_ok) console.log('There were some test failures!')
+    if not all_ok: console.log('There were some test failures!')
     process.exit((all_ok) ? 0 : 1)
 
