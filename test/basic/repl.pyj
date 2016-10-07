@@ -41,7 +41,7 @@ class FakeReadline:
     def send_line(self, text):
         self.listeners['line'](text)
 
-repl = require('./repl');
+repl = require('../tools/repl')
 rl = FakeReadline()
 
 send_line = bind(rl.send_line, rl)

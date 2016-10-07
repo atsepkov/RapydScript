@@ -165,7 +165,7 @@ function prefix_matches(prefix, items) {
 
 function find_completions(line, ctx, options) {
     try {
-        t = rapydscript.tokenizer(line, '<repl>');
+        t = rapydscript.tokenizer.tokenizer(line, '<repl>');
     } catch(e) { return []; }
     var tokens = [], token;
     while (true) {
