@@ -77,7 +77,7 @@ module.exports = def(start_time, argv, base_path, src_path, lib_path):
                 console.log('\n------------ Compilation -------------\n')
                 console.log(output)
                 console.log('\n------------ Execution -------------\n')
-            vm.runInNewContext(output, {
+            require('vm').runInNewContext(output, {
                 'console': console,
                 'process': process,
                 'require': require,
