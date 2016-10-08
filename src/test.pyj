@@ -31,6 +31,7 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
             return
         else:
             console.log('Still fixing some ES6 bugs, tests disabled for now')
+            return
 
     # this function is the actual transcompiler, the rest of the code in this module is
     # just a test harness
