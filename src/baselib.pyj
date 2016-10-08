@@ -141,14 +141,14 @@
     for JS('var i in source'):
         # instance variables
         if source.hasOwnProperty(i) and (overwrite or JS('typeof target[i]') is 'undefined'): target[i] = source[i]
-    for JS('var i in source.prototype'):
+    for prop in Object.getOwnPropertyNames(source.prototype):
         # methods
-        if source.prototype.hasOwnProperty(i) and (overwrite or JS('typeof target.prototype[i]') is 'undefined'): target.prototype[i] = source.prototype[i]
+        if overwrite or JS('typeof target.prototype[prop]') is 'undefined': target.prototype[prop] = source.prototype[prop]
 ,
 "mixin": def ՐՏ_mixin(*classes):
     return def(baseClass):
         for cls in classes:
-            for key in Object.keys(cls.prototype):
+            for key in Object.getOwnPropertyNames(cls.prototype):
                 if key not in baseClass.prototype:
                     baseClass.prototype[key] = cls.prototype[key]
         return baseClass
@@ -255,7 +255,14 @@
                             args[i] = kw[argNames[i]]
                 else:
                     args.push(kw)
-            return f.apply(this, args)
+
+            # This logic is very fragile and very subtle, it needs to work both in ES6 and ES5, don't try to optimize the
+            # apply away into *args because having it in this format ensures correct 'this' context, otherwise the function
+            # ends up unbound. Similarly, the fallthrough to except handles class creation in ES6.
+            try:
+                return f.apply(this, args)
+            except as e:
+                return new f(*args)
     kwargs.memo = {}
 ,
 

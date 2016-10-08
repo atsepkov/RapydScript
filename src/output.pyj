@@ -1482,12 +1482,21 @@ def Stream(options):
             return
 
         def addDecorators():
-            # decorate the class
+            # decorate the class with class decorators
             if self.decorators and self.decorators.length:
                 return def(obj):
                     output = this
                     output.assign(obj)
                     decorate(self.decorators, output, def(): output.print(obj);)
+
+                    # in ES6 we can't decorate function at build time, we have to do it after the fact
+                    if output.option('es6'):
+                        for stmt in self.body:
+                            if isinstance(stmt, ast.Lambda) and stmt.decorators and stmt.decorators.length:
+                                funcName = obj + '.prototype.' + stmt.name.name
+                                output.comma()
+                                output.assign(funcName)
+                                decorate(stmt.decorators, output, def(): output.print(funcName);)
             return None
 
         # label the variable correctly depending on context
@@ -2014,7 +2023,9 @@ def Stream(options):
                 if has_kwargs:
                     # **kwargs requires currying
                     output.print('kwargs')
-                    output.with_parens(def(): call_format();)
+                    output.with_parens(def():
+                        call_format()
+                    )
                 else:
                     # *args, format doesn't change
                     call_format()
