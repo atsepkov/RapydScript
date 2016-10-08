@@ -9,4 +9,9 @@ node_js:
 
 before_script: "npm run-script build-self"
 
-script: "npm run-script test && npm run-script test6"
+script:
+  npm run-script test
+  nv=${$(node -v)//./ };
+  if [[ ${nv[1]} -ge 6 ]] ; then
+    npm run-script test6;
+  fi
