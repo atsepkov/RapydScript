@@ -794,7 +794,8 @@ def Stream(options):
         offset = 0 # argument offset, applies if this is a method of a class
 
         # if this is a method, add 'var self = this'
-        if isinstance(node, ast.Method) and not node.static and not (output.option('es6') and node.name.name is '__init__'):
+        # delay self = this in ES6 constructor until super() call, if parent
+        if isinstance(node, ast.Method) and not node.static and not (output.option('es6') and isinstance(node, ast.Constructor) and node.parent):
             output.indent()
             output.spaced("var", node.argnames[0], "=", "this")
             output.end_statement()
@@ -1321,14 +1322,14 @@ def Stream(options):
                     if isinstance(self.init, ast.Array):
                         if output.option('es6'):
                             output.with_square(def():
-                                self.left.elements.forEach(def(element, index):
+                                self.init.elements.forEach(def(element, index):
                                     if (index) output.comma()
                                     element.print(output)
                                 )
                             )
-                            output.comma()
+                            output.space()
                             output.print('=')
-                            output.comma()
+                            output.space()
                         else:
                             output.assign(output.newTemp('upk'))
                         output.print(iterator + "[" + index + "];")
@@ -2127,6 +2128,7 @@ def Stream(options):
             )
 
         if output.option('es6') and isinstance(self, ast.ClassCall) and self.super:
+            # in ES6, move "self = this" definition after the super() call
             output.end_statement()
             output.indent()
             output.spaced("var", selfArg, "=", "this")

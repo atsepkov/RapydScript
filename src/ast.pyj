@@ -16,7 +16,7 @@
  **********************************************************************
 """
 
-from utils import noop, string_template
+from utils import noop, string_template, colored
 
 def memoized(f):
     return def(x):
@@ -497,7 +497,7 @@ class Class(Scope):
         name: "[SymbolDeclaration?] the name of this class",
         init: "[Function] constructor for the class",
         parent: "[Class?] parent class this class inherits from",
-        "static": "[string*] list of static methods",
+        static: "[string*] list of static methods",
         external: "[boolean] true if class is declared elsewhere, but will be within current scope at runtime",
         bound: "[string*] hash of methods that need to be bound to behave correctly (function pointers)",
         decorators: "[Decorator*] function decorators, if any",
@@ -527,7 +527,13 @@ class Module(Scope):
 class Method(Lambda):
     "A class method definition"
     properties = {
-        "static": "[boolean] true if method is static"
+        static: "[boolean] true if method is static"
+    }
+
+class Constructor(Method):
+    "Constructor definition"
+    properties = {
+        parent: "[string?] parent class this class inherits from"
     }
 
 # -----[ JUMPS ]-----
@@ -771,10 +777,10 @@ class Call(BaseCall):
 class ClassCall(BaseCall):
     "A function call expression"
     properties = {
-        "class": "[string] name of the class method belongs to",
-        "super": "[boolean] this call can be replaced with a super() call",
-        "method": "[string] class method being called",
-        "static": "[boolean] defines whether the method is static"
+        class: "[string] name of the class method belongs to",
+        super: "[boolean] this call can be replaced with a super() call",
+        method: "[string] class method being called",
+        static: "[boolean] defines whether the method is static"
     }
     def _walk(self, visitor):
         return visitor._visit(self, def():
