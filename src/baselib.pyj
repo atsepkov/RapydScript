@@ -262,7 +262,9 @@
             try:
                 return f.apply(this, args)
             except as e:
-                return new f(*args)
+                if /Class constructor \w+ cannot be invoked without 'new'/.test(e):
+                    return new f(*args)
+                raise
     kwargs.memo = {}
 ,
 

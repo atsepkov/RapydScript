@@ -2244,7 +2244,13 @@ def Stream(options):
     )
     DEFPRINT(ast.UnaryPrefix, def(self, output):
         op = self.operator
-        if op is "*": op = "..."
+        if op is "*":
+            if output.option('es6'):
+                op = "..."
+            else:
+                # FIXME: we're technically printing incorrect thing in ES5 but only kwargs code relies on this anyway and
+                # that portion doesn't activate in ES5
+                op = ''
         output.print(op)
         if /^[a-z]/i.test(op):
             output.space()
