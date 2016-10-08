@@ -952,6 +952,7 @@ def parse($TEXT, options):
             ctor = in_class ? name.name is '__init__' ? ast.Constructor : ast.Method : ast.Function
 
         docstring = None
+        callsSuper = None
         definition = new ctor({
             start: start,
             name: name,
@@ -1101,9 +1102,10 @@ def parse($TEXT, options):
                 a = block_()
 
                 # these transform variables that are used by other keys, hence the somewhat ugly use of nonlocal
-                nonlocal generator, localvars, docstring
+                nonlocal generator, localvars, docstring, callsSuper
                 generator = S.in_scope[-1].generator
                 docstring = S.in_scope[-1].docstring
+                callsSuper = S.in_scope[-1].callsSuper
 
                 # FIXME: debug logic
                 if generator:
@@ -1132,6 +1134,7 @@ def parse($TEXT, options):
         if in_class and not staticmethod:
             if ctor is ast.Constructor:
                 definition.parent = S.in_scope[-1].parent
+                definition.callsSuper = callsSuper
             if definition.argnames.length < 1:
                 croak("Class methods require at least one argument (self)", start.line, start.col, start.pos)
             elif ctor is ast.ObjectGetter and definition.argnames.length is not 1:
@@ -1910,20 +1913,21 @@ def parse($TEXT, options):
                 }), True)
             else:
                 if isinstance(expr, ast.Dot):
-                    cls = get_class_in_scope(expr.expression)
+                    className = get_class_in_scope(expr.expression)
 
-                if cls:
+                if className:
                     # generate class call
                     funcname = expr
                     if funcname.property is "__init__":
                         funcname.property = "constructor"
 
+                    S.in_scope[-1].callsSuper = S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and expr.expression.name is S.in_scope[-2].parent
                     return validateCallArgs(subscripts(ast.ClassCall({
                         start: start,
                         class: expr.expression,
                         method: funcname.property,
-                        super: S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and expr.expression.name is S.in_scope[-2].parent,
-                        static: is_static_method(cls, funcname.property),
+                        super: S.in_scope[-1].callsSuper,
+                        static: is_static_method(className, funcname.property),
                         args: func_call_list(),
                         end: prev()
                     }), True))
@@ -1945,6 +1949,8 @@ def parse($TEXT, options):
                             right: args[1],
                             end: prev()
                         })
+                    elif tmp_ is "super":
+                        S.in_scope[-1].callsSuper = True
 
                 # fall-through to basic function call
                 return validateCallArgs(subscripts(ast.Call({

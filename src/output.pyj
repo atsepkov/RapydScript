@@ -795,7 +795,19 @@ def Stream(options):
 
         # if this is a method, add 'var self = this'
         # delay self = this in ES6 constructor until super() call, if parent
-        if isinstance(node, ast.Method) and not node.static and not (output.option('es6') and isinstance(node, ast.Constructor) and node.parent):
+        # if isinstance(node, ast.Method) and not node.static and not (output.option('es6') and isinstance(node, ast.Constructor) and node.callsSuper):
+        needsSuper = False
+        delaySelfAssignment = False
+        if output.option('es6') and isinstance(node, ast.Constructor) and node.parent:
+            if node.callsSuper:
+                delaySelfAssignment = True
+            else:
+                needsSuper = True
+        if isinstance(node, ast.Method) and not node.static and not delaySelfAssignment:
+            if needsSuper:
+                output.indent()
+                output.print('super()')
+                output.end_statement()
             output.indent()
             output.spaced("var", node.argnames[0], "=", "this")
             output.end_statement()
@@ -1321,6 +1333,7 @@ def Stream(options):
                     output.indent()
                     if isinstance(self.init, ast.Array):
                         if output.option('es6'):
+                            # in ES6, unpacking is no longer required
                             output.with_square(def():
                                 self.init.elements.forEach(def(element, index):
                                     if (index) output.comma()
@@ -1331,6 +1344,7 @@ def Stream(options):
                             output.print('=')
                             output.space()
                         else:
+                            # unpacking
                             output.assign(output.newTemp('upk'))
                         output.print(iterator + "[" + index + "];")
                         output.newline()
@@ -1440,6 +1454,7 @@ def Stream(options):
                     if i: output.comma()
                     arg.print(output)
                     if output.option('es6') and self.argnames.defaults[arg.name]:
+                        # in ES6 default arguments can now be part of the argument signature
                         output.print('=')
                         self.argnames.defaults[arg.name].print(output)
                 )
@@ -1553,6 +1568,10 @@ def Stream(options):
                                     if name in self.static: i += 1
                                     if i > 1: output.comma()
                                     if i: arg.print(output)
+                                    if stmt.argnames.defaults[arg.name]:
+                                        # in ES6 default arguments can be part of the signature instead of being in body
+                                        output.print('=')
+                                        stmt.argnames.defaults[arg.name].print(output)
                                 )
 
                                 # handle kwargs hook, if there is a kwargs decorator

@@ -46,10 +46,10 @@ class MatchObject:
     def group(self, g=0):
         return self._groups[g]
 
-    def start(g=0):
+    def start(self, g=0):
         return self._start[g]
 
-    def end(g=0):
+    def end(self, g=0):
         return self._end[g]
 
 class RegexObject:

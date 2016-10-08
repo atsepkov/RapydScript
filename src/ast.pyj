@@ -533,6 +533,7 @@ class Method(Lambda):
 class Constructor(Method):
     "Constructor definition"
     properties = {
+        callsSuper: "[boolean] true if user manually called super or Parent.__init__",
         parent: "[string?] parent class this class inherits from"
     }
 
