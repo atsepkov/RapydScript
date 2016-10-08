@@ -23,7 +23,12 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
     files, ok
 
     # visual indicator of version
-    if (argv.ecmascript6) console.log('Running in ES6 mode!\n')
+    if argv.ecmascript6:
+        console.log('Running in ES6 mode!\n')
+        v8Version = process.versions.v8.split('.')
+        if int(v8Version[0]) < 4 or int(v8Version[0]) <= 4 and int(v8Version[1]) <= 9:
+            console.log("Your V8 engine is too old to support ES6 features, skipping ES6 tests...")
+            return
 
     # this function is the actual transcompiler, the rest of the code in this module is
     # just a test harness
