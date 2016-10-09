@@ -417,7 +417,8 @@ def Stream(options):
                 if i: comma()
                 print_(local)
             )
-            end_statement()
+            force_semicolon()
+            newline()
         BUFFERS[-1].output += localBuffer.output
 
 
