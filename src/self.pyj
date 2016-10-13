@@ -9,7 +9,7 @@ module.exports = def compile_self(base_path, src_path, lib_path, start_time):
     compiled = {}
     baselib = rapydscript.parse_baselib(src_path, true)
     options = {
-        beautify: true,
+        # beautify: true,
         private_scope: false,
         omit_baselib: false,
         write_name: false,
@@ -48,6 +48,9 @@ module.exports = def compile_self(base_path, src_path, lib_path, start_time):
     # build the compiler itself and its modules
     for file in ['rapydscript', 'self', 'compile', 'test']:
         compile(file)
+
+    # clean up
+    fs.unlinkSync(path.join(src_path, '_baselib.pyj'))
 
     console.log('Compiling RapydScript succeeded (', (Date().getTime() - start_time)/1000, 'seconds ), writing output...')
 
