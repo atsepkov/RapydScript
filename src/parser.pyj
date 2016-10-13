@@ -2052,10 +2052,12 @@ def parse($TEXT, options):
             or right is 'String' and op not in ['+', '+=']
         ):
             # make the representations a bit more human-friendly
-            if left[0] is '[': left = 'Array'
-            elif left[0] is '{': left = 'Object'
-            if right[0] is '[': right = 'Array'
-            elif right[0] is '{': right = 'Object'
+            if left:
+                if left[0] is '[': left = 'Array'
+                elif left[0] is '{': left = 'Object'
+            if right:
+                if right[0] is '[': right = 'Array'
+                elif right[0] is '{': right = 'Object'
             raise croak("cannot perform binary '" + op + "' operation on incompatbile elements of type " + left + " and " + right + "")
         return astElement
 
