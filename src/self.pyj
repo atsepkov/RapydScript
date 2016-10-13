@@ -22,21 +22,24 @@ module.exports = def compile_self(base_path, src_path, lib_path, start_time):
         baselib: baselib
     }
 
-    (def():
-        # generate baselib
-        # parse the library
-        src = fs.readFileSync(path.join(src_path, 'baselib.pyj'), "utf8")
-        ast = rapydscript.parse(src, options)
+    # generate baselib
+    # parse the library
+    src = fs.readFileSync(path.join(src_path, 'baselib.pyj'), "utf8")
+    ast = rapydscript.parse(src, options)
 
-        # manually activate each key
-        for key in baselib:
-            ast.baselib[key] = True
+    # manually activate each key
+    for key in baselib:
+        ast.baselib[key] = True
 
-        # dump the code
-        output = rapydscript.output(ast, options)
-        compiled.baselib = output.toString()
-    )()
+    # dump the code
+    output = rapydscript.output(ast, options)
+    compiled.baselib = output.toString()
 
+    # HACK: generate a fake library for importing inside the compiler which the compiler will
+    # use so it doesn't need to require() anything
+    fs.writeFileSync(path.join(src_path, '_baselib.pyj'), "BASELIB = '''" + src.replace(/\\/g, '\\\\') + "'''", "utf8")
+
+    # logic to run on each file we're compiling
     def compile(file):
         filepath = path.join(src_path, file + '.pyj')
         options.filename = file + '.pyj'

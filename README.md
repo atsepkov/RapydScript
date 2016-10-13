@@ -230,7 +230,9 @@ Now simply invoking the file (assuming it has execute permissions on it) should 
 
 Getting Started
 ---------------
-As you read the following sections, I suggest you start a RapydScript shell (by typing `rapydscript` without arguments) and follow along. You'll be able to see both, the generated JavaScript, and the output produced by the given RapydScript command.
+As you read the following sections, I suggest you start a RapydScript shell (by typing `rapydscript` without arguments in your terminal) and follow along. You'll be able to see both, the generated JavaScript, and the output produced by the given RapydScript command.
+
+You can also run the compiler in the browser. Just add a `script` tag linking back to `lib/rapydscript.js` and invoke the compiler as `rapydscript.compile(stringOfCode, options)`.
 
 Like JavaScript, RapydScript can be used to create anything from a quick function to a complex web-app. RapydScript can access anything regular JavaScript can, in the same manner. Let's say we want to write a function that greets us with a "Hello World" pop-up. The following code will do it:
 

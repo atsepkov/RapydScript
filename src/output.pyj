@@ -20,6 +20,10 @@ from utils import makePredicate, noop, defaults, repeat_string, RAPYD_PREFIX
 from tokenizer import is_identifier_char, PRECEDENCE
 import ast
 
+# FIXME: a hack that depends on self's execution
+import _baselib
+import parser
+
 
 def Stream(options):
     options = defaults(options, {
@@ -423,6 +427,7 @@ def Stream(options):
 
 
     stack = []
+    baselib = {}
     return {
         get: get_,
         toString: get_,
@@ -462,8 +467,23 @@ def Stream(options):
         assign: assign_var,
 #        prologue: prologue,
         get_baselib: def(key):
+            # this logic is a duplication of get_baselib with the exception that it will work in the browser
+            # because it uses the embedded baselib string instead of parsing a file
             if not options.omit_baselib:
-                return options.baselib[key]
+                if not Object.keys(baselib).length:
+                    # first call, parse baselib
+                    baselibAst = parser.parse(_baselib.BASELIB, {
+                        readfile: None,
+                        dropDocstrings: true,       # drop docstrings in the compiler
+                        filename: '_baselib.pyj'
+                    })
+                    hash = baselibAst.body[-1]
+                    data = hash.body.properties
+                    for item in data:
+                        key_ = item.key.value
+                        value = item.value.name ? [item.value] : item.value.body
+                        baselib[key_] = splatBaselib(key_, value)
+                return baselib[key]
             return None
         ,
         import: def(key):

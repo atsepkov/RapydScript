@@ -22,8 +22,6 @@ import tokenizer    # only needed for export
 import parser
 import output
 
-fs = require('fs')
-path = require('path')
 
 ast.Node.warn_function = def(txt): console.error(txt)
 
@@ -42,9 +40,14 @@ def splatBaselib(key, value):
         })
     })
 
+if not exports:
+    # browser environment
+    rapydscript = exports = {}
+
 exports.parse_baselib = exports.parseBaselib = def(srcPath, beautify):
     try:
-        baselibPath = path.join(srcPath, 'baselib.pyj')
+        fs = require('fs')
+        baselibPath = require('path').join(srcPath, 'baselib.pyj')
         baselibAst = parser.parse(fs.readFileSync(baselibPath, "utf8"), {
             readfile: fs.readFileSync,  # utility for reading files when dealing with nested imports
             dropDocstrings: true,       # drop docstrings in the compiler
@@ -69,6 +72,8 @@ exports.parse_baselib = exports.parseBaselib = def(srcPath, beautify):
 
 exports.get_import_dirs = def(paths_string, ignore_env):
     paths = []
+    # in browser imports won't work unless you overwrite the import logic
+    path = require('path')
     def merge(new_path):
         if new_path not in paths:
             paths.push(new_path)
@@ -107,7 +112,7 @@ exports.minify = def(files, options):
         files = [files] # handle single file
     for file in files:
         options.filename = options.fromString ? '?' : file
-        code = options.fromString ? file : fs.readFileSync(file, "utf8")
+        code = options.fromString ? file : require('fs').readFileSync(file, "utf8")
         retrun {
             code: compile(code, options)
         }

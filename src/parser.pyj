@@ -2365,6 +2365,11 @@ def parse($TEXT, options):
         toplevel.module_id = module_id
         IMPORTED[module_id] = toplevel
         toplevel.imports = IMPORTED
+        if Object.keys(BASELIB).length:
+            # FIXME: lazy way of making sure that the two most common parts of baselib make it in, mainly because other
+            # methods within baselib rely on them too
+            BASELIB['in'] = True
+            BASELIB['iterable'] = True
         toplevel.baselib = BASELIB
         IMPORTING[module_id] = False
         return toplevel
