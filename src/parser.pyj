@@ -194,7 +194,7 @@ def parse($TEXT, options):
     IMPORTING[module_id] = True
 
     S = {
-        input: (typeof $TEXT is "string" ? tokenizer.tokenizer($TEXT, options.filename) : $TEXT),
+        input: (JS('typeof $TEXT') is "string" ? tokenizer.tokenizer($TEXT, options.filename) : $TEXT),
         token: None,            # current token being scanned
         prev: None,             # previous token
         peeked: None,           # cached version of next token
@@ -928,6 +928,8 @@ def parse($TEXT, options):
         name = (is_("name") ? as_symbol((in_class ? ast.SymbolDefun : (is_accessor ? ast.SymbolAccessor : ast.SymbolLambda))) : (is_accessor and (is_("string") or is_("num")) ? as_atom_node() : None))
         if in_class and not name:
             unexpected()
+        if name and name.name in tokenizer.JS_KEYWORDS:
+            name.name += '_'
 
         generator = False           # whether this function is a generator
         localvars = None            # hash of local vars assigned to within the function
@@ -1008,8 +1010,12 @@ def parse($TEXT, options):
                                 croak("Name expected")
                             return None
 
+                        name = S.token.value
+                        if name in tokenizer.JS_KEYWORDS:
+                            name += '_'
+
                         sym = ast.SymbolFunarg({
-                            'name': S.token.value,
+                            'name': name,
                             'start': S.token,
                             'end': S.token,
                             'annotation': None
@@ -1739,6 +1745,8 @@ def parse($TEXT, options):
             return None
 
         name = token_.value
+        if name in tokenizer.JS_KEYWORDS:
+            token_.value += '_'
         sym = new (name is "this" ? ast.This : type)({
             name: (String)(token_.value),
             start: token_,
@@ -1769,7 +1777,7 @@ def parse($TEXT, options):
         else:
             computedType = "?"
 
-        name = typeof element is "string" ? element : element.name
+        name = JS('typeof element') is "string" ? element : element.name
         if name:
             # not enough information to infer type yet
             # so all types are ? for now, in the future this function will infer type from context
@@ -1951,6 +1959,9 @@ def parse($TEXT, options):
                         })
                     elif tmp_ is "super":
                         S.in_scope[-1].callsSuper = True
+                    elif tmp_ in tokenizer.JS_KEYWORDS:
+                        # avoid collision with reserved javascropt keywords
+                        expr.name += '_'
 
                 # fall-through to basic function call
                 return validateCallArgs(subscripts(ast.Call({

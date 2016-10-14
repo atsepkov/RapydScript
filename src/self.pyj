@@ -9,7 +9,7 @@ module.exports = def compile_self(base_path, src_path, lib_path, start_time):
     compiled = {}
     baselib = rapydscript.parse_baselib(src_path, true)
     options = {
-        # beautify: true,
+        beautify: true,
         private_scope: false,
         omit_baselib: false,
         write_name: false,

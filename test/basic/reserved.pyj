@@ -1,0 +1,13 @@
+# language should rename reserved JS types that carry no significance in RS to avoid broken code
+# Author: Alexander Tsepkov
+
+typeof = def(): return 5
+
+def function(delete, var):
+    return delete + typeof() + var
+
+def instanceof(catch, throw):
+    return True
+
+assert(instanceof('foo', 'bar') == True)
+assert(function(1, 2) == 8)

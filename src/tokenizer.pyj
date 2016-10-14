@@ -24,8 +24,9 @@ def characters(str_): return str_.split("")
 
 ES6_KEYWORDS = "async await yield"
 KEYWORDS = "as break case class const continue debugger default def del do elif else except " +
-"finally for from if import in instanceof is new nonlocal pass raise return switch til to " +
-"try typeof var void while with or and not " + ES6_KEYWORDS
+"finally for from if import in is new nonlocal pass raise return switch til to " +
+"try void while with or and not " + ES6_KEYWORDS
+JS_KEYWORDS = "var function instanceof typeof catch delete throw".split(' ')
 
 
 KEYWORDS_ATOM = "False None True"

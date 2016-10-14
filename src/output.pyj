@@ -376,7 +376,7 @@ def Stream(options):
 
     # generates: '[name] = '
     def assign_var(name):
-        if typeof name is "string":
+        if JS('typeof name') is "string":
             print_(name)
         else:
             name.print(this)
@@ -600,7 +600,7 @@ def Stream(options):
                     comments = comments.filter(def(comment):
                         return c.test(comment.value)
                     )
-                elif typeof c is "function":
+                elif JS('typeof c') is "function":
                     comments = comments.filter(def(comment):
                         return c(self, comment)
                     )
