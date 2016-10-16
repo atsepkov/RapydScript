@@ -1,0 +1,47 @@
+# a preliminary test for operator overloading performance
+# Author: Alexander Tsepkov
+
+
+class Num:
+    def __init__(self, val):
+        self.val = val
+
+    def add(self, n2):
+        return Num(self.val + n2.val)
+
+    def valueOf(self):
+        return self.val
+
+
+a = Num(3)
+b = Num(4)
+d = 3
+e = 4
+
+def add(a, b):
+    if JS('typeof a.add') is 'function':
+        return a.add(b)
+    else:
+        return a + b
+
+
+bench.add('primitive operation', def():
+    c = d + e
+)
+
+bench.add('primitive function call', def():
+    c = add(d, e)
+)
+
+bench.add('dumb/broken operation', def():
+    c = a + b
+)
+
+bench.add('function call', def():
+    c = add(a, b)
+)
+
+bench.add('valueOf hack', def():
+    c = Num(a + b)
+)
+
