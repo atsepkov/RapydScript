@@ -54,7 +54,8 @@ def Stream(options):
     current_pos = 0
     BUFFERS = [{
         vars: [],
-        output: ""
+        output: "",
+        baselib: {}
     }]
     IMPORTED = {}
     def to_ascii(str_, identifier):
@@ -365,14 +366,45 @@ def Stream(options):
         if BUFFERS.len > 1:
             raise Error('Something went wrong, output generator didn\'t exit all of its scopes properly.')
 
-        # a bit of a cheat to reuse the scope-closing logic to dump variables in main scope consistently
+        output = this
+
+        # a cheat to dump baselib
+#        BUFFERS.push({
+#            vars: [],
+#            output: ''
+#        })
+#        for key in BUFFERS[0].baselib:
+#            BUFFERS[0].baselib[key].print(output)
+#        baselib = BUFFERS.pop()
+#        BUFFERS[0].vars.concat(baselib.vars)
+#        BUFFERS[0].output = baselib.output + BUFFERS[0].output
+
+        # another cheat to reuse the scope-closing logic to dump variables in main scope consistently
         if BUFFERS[0].vars.length:
             BUFFERS.unshift({
                 vars: [],
                 output: ''
             })
             endLocalBuffer()
-        return BUFFERS[0].output
+        out = BUFFERS[0].output
+
+        if options.private_scope:
+            output.with_parens(def():
+                output.print("function()")
+                output.with_block(def():
+                    # strict mode is more verbose about errors, and less forgiving about them, similar to Python
+                    output.print('"use strict"')
+                    output.end_statement()
+
+                    output.print(out)
+                )
+            )
+            output.print("();")
+            output.newline()
+        else:
+            output.print(out)
+
+        return BUFFERS[-1].output
 
     # generates: '[name] = '
     def assign_var(name):
@@ -411,7 +443,7 @@ def Stream(options):
             output: ""
         })
 
-    def endLocalBuffer():
+    def endLocalBuffer(baselib=False):
         # flushes local buffer, declaring the requested localvars
         localBuffer = BUFFERS.pop()
         if localBuffer.vars.length:
@@ -423,11 +455,14 @@ def Stream(options):
             )
             force_semicolon()
             newline()
-        BUFFERS[-1].output += localBuffer.output
+        if baselib:
+            BUFFERS[-1].output = localBuffer.output + BUFFERS[-1].output
+        else:
+            BUFFERS[-1].output += localBuffer.output
 
 
     stack = []
-    baselib = {}
+    baselibCache = {}
     return {
         get: get_,
         toString: get_,
@@ -466,11 +501,11 @@ def Stream(options):
         add_mapping: add_mapping,
         assign: assign_var,
 #        prologue: prologue,
-        get_baselib: def(key):
+        print_baselib: def(key):
             # this logic is a duplication of get_baselib with the exception that it will work in the browser
             # because it uses the embedded baselib string instead of parsing a file
             if not options.omit_baselib:
-                if not Object.keys(baselib).length:
+                if not Object.keys(baselibCache).length:
                     # first call, parse baselib
                     baselibAst = parser.parse(_baselib.BASELIB, {
                         readfile: None,
@@ -482,8 +517,8 @@ def Stream(options):
                     for item in data:
                         key_ = item.key.value
                         value = item.value.name ? [item.value] : item.value.body
-                        baselib[key_] = splatBaselib(key_, value)
-                return baselib[key]
+                        baselibCache[key_] = splatBaselib(key_, value)
+                baselibCache[key].print(this)
             return None
         ,
         import: def(key):
@@ -952,48 +987,29 @@ def Stream(options):
         self.body.print(output)
         output.semicolon()
     )
+    BASELIB = {}
     DEFPRINT(ast.TopLevel, def(self, output):
         is_main = output.is_main()
 
+        nonlocal BASELIB
+        BASELIB = self.baselib
+
         if output.option("private_scope") and is_main:
+            write_imports(self, output)
+            output.newline()
             output.with_parens(def():
                 output.print("function()")
                 output.with_block(def():
-                    # strict mode is more verbose about errors, and less forgiving about them
-                    # kind of like Python
-                    output.indent()
-                    output.print('"use strict"')
-                    output.end_statement()
-
-                    Object.keys(self.baselib).filter(def(a): return self.baselib[a] > 0;).forEach(def(key):
-                        splat = output.get_baselib(key)
-                        if splat: splat.print(output)
-                    )
-                    write_imports(self, output)
+                    write_main_name(output)
                     output.newline()
-                    output.indent()
-                    output.with_parens(def():
-                        output.print("function()")
-                        output.with_block(def():
-                            write_main_name(output)
-                            output.newline()
-                            display_complex_body(self, True, output)
-                            output.newline()
-                        )
-                    )
-                    output.print("();")
+                    display_complex_body(self, True, output)
                     output.newline()
                 )
             )
             output.print("();")
-            output.print("")
+            output.newline()
         else:
             if is_main:
-                Object.keys(self.baselib).filter(def(a): return self.baselib[a] > 0;).forEach(def(key):
-                    splat = output.get_baselib(key)
-                    if splat: splat.print(output)
-                )
-#                output.prologue(self)
                 write_imports(self, output)
                 write_main_name(output)
 
@@ -1001,6 +1017,13 @@ def Stream(options):
                 declare_vars(self.localvars, output)
 
             display_body(self.body, True, output)
+
+        if is_main:
+            output.startLocalBuffer()
+            Object.keys(BASELIB).filter(def(a): return self.baselib[a] > 0;).forEach(def(key):
+                output.print_baselib(key)
+            )
+            output.endLocalBuffer(True)
 
     )
     def print_module(self, output):
