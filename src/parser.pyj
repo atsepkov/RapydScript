@@ -86,7 +86,48 @@ COMMON_STATIC = [ "call", "apply", "bind", "toString" ]
 CLASS_MAP = {}      # top-level classes will be populated into here
 
 # detect common python stdlib methods - these will be auto-injected into the code when called
-BASELIB = {}
+BASELIB = { key: 0 for key in [
+    "abs",
+    "all",
+    "any",
+    "bin",
+    "bind",
+    "rebind_all",
+    "cmp",
+    "chr",
+    "dir",
+    "enumerate",
+    "eslice",
+    "extends",
+    "filter",
+    "hex",
+    "in",
+    "iterable",
+    "len",
+    "map",
+    "max",
+    "min",
+    "merge",
+    "mixin",
+    "print",
+    "range",
+    "reduce",
+    "reversed",
+    "sorted",
+    "sum",
+    "type",
+    "zip",
+    "getattr",
+    "setattr",
+    "hasattr",
+    "eq",
+    "kwargs",
+    "AssertionError",
+    "IndexError",
+    "KeyError",
+    "TypeError",
+    "ValueError"
+]}
 STDLIB = [
     "abs",
     "bin",
@@ -437,10 +478,9 @@ def parse($TEXT, options):
             elif tmp_ is "import":
                 return import_(False)
             elif tmp_ is "class":
-                BASELIB["extends"] = True
+                BASELIB["extends"] += 1
                 if options.auto_bind:
-                    BASELIB["rebind_all"] = True
-                    BASELIB["bind"] = True  # used by rebind_all
+                    BASELIB["rebind_all"] += 1
                 return class_()
             elif tmp_ is "def":
                 start = prev()
@@ -621,7 +661,7 @@ def parse($TEXT, options):
                 value = "Number"
             mark_local_assignment(init, value)
 
-        BASELIB["iterable"] = True
+        BASELIB["iterable"] += 1
         if list_comp:
             return {
                 init: init,
@@ -712,7 +752,7 @@ def parse($TEXT, options):
         contents = parse(src_code, {
             filename: filename,
             toplevel: None,
-            readfile: options.readfile,
+            readfile: options.readfile or require('fs').readFileSync,
             basedir: options.basedir,
             libdir: options.libdir,
             module_id: key,
@@ -841,7 +881,7 @@ def parse($TEXT, options):
                 d = []
                 for decorator in S.decorators:
                     if decorator is 'kwargs':
-                        BASELIB['kwargs'] = True
+                        BASELIB['kwargs'] += 1
                     d.push(ast.Decorator({
                         expression: decorator
                     }))
@@ -946,7 +986,7 @@ def parse($TEXT, options):
                     S.in_scope[-2].classes[in_class].static.push(name.name)
                     staticmethod = True
                 if has_special_decorator("bind") or name.name is not "__init__" and options.auto_bind:
-                    BASELIB["bind"] = True
+                    BASELIB["bind"] += 1
                     S.in_scope[-2].classes[in_class].bound[name.name] = True
 
         expect("(")
@@ -1517,7 +1557,7 @@ def parse($TEXT, options):
             for i, arg in enumerate(a):
                 if isinstance(arg, ast.Assign):
                     # arg=val
-                    BASELIB['kwargs'] = True
+                    BASELIB['kwargs'] += 1
                     tmp.kwargs.push([arg.left, arg.right])
                 else:
                     # regular argument
@@ -1549,14 +1589,14 @@ def parse($TEXT, options):
                 a.starargs = True
             elif is_('operator', '**'):
                 # kwargs argument
-                BASELIB['kwargs'] = True
+                BASELIB['kwargs'] += 1
                 next()
                 kwargs.push(as_symbol(ast.SymbolVar, False))
             else:
                 # arg=val assignment
                 arg = expression(False)
                 if isinstance(arg, ast.Assign):
-                    BASELIB['kwargs'] = True
+                    BASELIB['kwargs'] += 1
                     a.kwargs.push([arg.left, arg.right])
                 else:
                     a.push(arg)
@@ -1568,7 +1608,7 @@ def parse($TEXT, options):
         terminator = isinstance(object, ast.DictComprehension) ? '}' : ']'
         expect_token('keyword', 'for')
         forloop = for_(True)
-        BASELIB["iterable"] = True
+        BASELIB["iterable"] += 1
         object.init = forloop.init
         object.name = forloop.name
         object.object = forloop.object
@@ -1588,7 +1628,7 @@ def parse($TEXT, options):
 
             if is_("operator", "til"):
                 # up to but not including upper limit
-                BASELIB['range'] = True
+                BASELIB['range'] += 1
                 next()
                 expr.push(expression(False))
                 ret = ast.Range({
@@ -1602,7 +1642,7 @@ def parse($TEXT, options):
                 return ret
             elif is_("operator", "to"):
                 # now add a tiny number to make sure we include the upper limit
-                BASELIB['range'] = True
+                BASELIB['range'] += 1
                 next()
                 expr.push(expression(False))
                 ret = ast.Range({
@@ -1820,7 +1860,7 @@ def parse($TEXT, options):
 
             if is_("punc", ":"):
                 # slice [n:m:o?]
-                BASELIB["eslice"] = True
+                BASELIB["eslice"] += 1
                 next()
                 if is_("punc", "]"):
                     unexpected()
@@ -1908,10 +1948,10 @@ def parse($TEXT, options):
 
                 # check if this class is part of our standard library
                 if expr.name in STDLIB:
-                    BASELIB[expr.name] = True
+                    BASELIB[expr.name] += 1
                     if /Error$/.test(expr.name):
                         # errors are classes
-                        BASELIB["extends"] = True
+                        BASELIB["extends"] += 1
 
                 return subscripts(ast.New({
                     start: start,
@@ -1943,7 +1983,7 @@ def parse($TEXT, options):
                     tmp_ = expr.name
                     # special functions that trigger addition of extra logic to generated JavaScript
                     if tmp_ in STDLIB:
-                        BASELIB[tmp_] = True
+                        BASELIB[tmp_] += 1
                         # NOTE: there is intentionally no return here, we want these functions to go through regular logic
                         # after they trigger the appropriate baselib flag
                     elif tmp_ is "isinstance":
@@ -2129,7 +2169,7 @@ def parse($TEXT, options):
             if no_in:
                 op = None
             else:
-                BASELIB[op] = True
+                BASELIB[op] += 1
 
         prec = (op is not None ? tokenizer.PRECEDENCE[op] : None)
         if prec is not None and prec > min_prec:
@@ -2140,7 +2180,7 @@ def parse($TEXT, options):
                 # performance (no overhead) as the naive identity operator native to JS, for that
                 # reason it is now the default equality. If you wish to avoid it, use 'is' operator
                 # instead
-                BASELIB["eq"] = True
+                BASELIB["eq"] += 1
                 ret = ast.DeepEquality({
                     start: left.start,
                     left: left,

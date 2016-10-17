@@ -965,8 +965,7 @@ def Stream(options):
                     output.print('"use strict"')
                     output.end_statement()
 
-#                    output.prologue(self)
-                    Object.keys(self.baselib).forEach(def(key):
+                    Object.keys(self.baselib).filter(def(a): return self.baselib[a] > 0;).forEach(def(key):
                         splat = output.get_baselib(key)
                         if splat: splat.print(output)
                     )
@@ -990,7 +989,7 @@ def Stream(options):
             output.print("")
         else:
             if is_main:
-                Object.keys(self.baselib).forEach(def(key):
+                Object.keys(self.baselib).filter(def(a): return self.baselib[a] > 0;).forEach(def(key):
                     splat = output.get_baselib(key)
                     if splat: splat.print(output)
                 )

@@ -29,7 +29,7 @@ module.exports = def compile_self(base_path, src_path, lib_path, start_time):
 
     # manually activate each key
     for key in baselib:
-        ast.baselib[key] = True
+        ast.baselib[key] += 1
 
     # dump the code
     output = rapydscript.output(ast, options)

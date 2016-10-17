@@ -94,6 +94,44 @@ exports.compile = compile = def(code, options):
         output: {}
     }))
 
+    # account for unused baselib methods
+    if not options.omit_baselib:
+        if not toplevel.baselib['AssertionError']:
+            toplevel.baselib['extends'] -= 1
+        if not toplevel.baselib['IndexError']:
+            toplevel.baselib['extends'] -= 1
+        if not toplevel.baselib['KeyError']:
+            toplevel.baselib['extends'] -= 1
+        if not toplevel.baselib['TypeError']:
+            toplevel.baselib['extends'] -= 1
+        if not toplevel.baselib['ValueError']:
+            toplevel.baselib['extends'] -= 1
+        if not toplevel.baselib['kwargs']:
+            toplevel.baselib['in'] -= 1
+            toplevel.baselib['iterator'] -= 1
+            toplevel.baselib['range'] -= 1
+            toplevel.baselib['dir'] -= 1
+        if not toplevel.baselib['eq']:
+            toplevel.baselib['iterator'] -= 2
+            toplevel.baselib['range'] -= 1
+        if not toplevel.baselib['merge']:
+            toplevel.baselib['iterator'] -= 1
+        if not toplevel.baselib['mixin']:
+            toplevel.baselib['in'] -= 1
+            toplevel.baselib['iterator'] -= 2
+        if not toplevel.baselib['enumerate']:
+            toplevel.baselib['iterator'] -= 1
+            toplevel.baselib['range'] -= 1
+        if not toplevel.baselib['all']:
+            toplevel.baselib['iterator'] -= 1
+        if not toplevel.baselib['any']:
+            toplevel.baselib['iterator'] -= 1
+        if not toplevel.baselib['zip']:
+            toplevel.baselib['iterator'] -= 1
+            toplevel.baselib['range'] -= 1
+        if not toplevel.baselib['rebind_all']:
+            toplevel.baselib['bind'] -= 1
+
     # output
     stream = output.Stream(options)
     toplevel.print(stream)

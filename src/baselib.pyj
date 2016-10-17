@@ -126,16 +126,10 @@
     return arr.map(oper)
 ,
 "max": def max(a):
-    if Array.isArray(a):
-        return Math.max.apply(null, a)
-    else:
-        return Math.max.apply(null, arguments)
+    return Math.max.apply(null, Array.isArray(a) ? a : arguments)
 ,
 "min": def min(a):
-    if Array.isArray(a):
-        return Math.min.apply(null, a)
-    else:
-        return Math.min.apply(null, arguments)
+    return Math.min.apply(null, Array.isArray(a) ? a : arguments)
 ,
 "merge": def ՐՏ_merge(target, source, overwrite):
     for JS('var i in source'):
@@ -224,7 +218,7 @@
 
         if Array.isArray(a):
             # arrays
-            for i in range(len(a)):
+            for i in range(a.length):
                 if not ՐՏ_eq(a[i], b[i]):
                     return False
         else:
