@@ -245,7 +245,7 @@
                 kw = args[-1]
                 if JS('typeof kw') is 'object':
                     for i in range(argNames.length):
-                        if argNames[i] in dir(kw):
+                        if argNames[i] in kw:
                             args[i] = kw[argNames[i]]
                 else:
                     args.push(kw)

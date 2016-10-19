@@ -368,17 +368,6 @@ def Stream(options):
 
         output = this
 
-        # a cheat to dump baselib
-#        BUFFERS.push({
-#            vars: [],
-#            output: ''
-#        })
-#        for key in BUFFERS[0].baselib:
-#            BUFFERS[0].baselib[key].print(output)
-#        baselib = BUFFERS.pop()
-#        BUFFERS[0].vars.concat(baselib.vars)
-#        BUFFERS[0].output = baselib.output + BUFFERS[0].output
-
         # another cheat to reuse the scope-closing logic to dump variables in main scope consistently
         if BUFFERS[0].vars.length:
             BUFFERS.unshift({
@@ -387,6 +376,7 @@ def Stream(options):
             })
             endLocalBuffer()
         out = BUFFERS[0].output
+        BUFFERS[0].output = ''  # clear the buffer since we've copied it to a variable
 
         if options.private_scope:
             output.with_parens(def():

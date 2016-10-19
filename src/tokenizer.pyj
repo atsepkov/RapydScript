@@ -450,7 +450,8 @@ def tokenizer($TEXT, filename):  # {{{
             num = num << 4 | digit
         return num
 
-    read_string = with_eof_error("Unterminated string constant", def(modifier):
+    @with_eof_error("Unterminated string constant")
+    def read_string(modifier):
         token_type = "string"
         if modifier:
             token_type += ":" + modifier
@@ -505,7 +506,6 @@ def tokenizer($TEXT, filename):  # {{{
                 break
             ret += ch
         return token(token_type, ret)
-    )
 
     def read_line_comment(shebang=False):
         if not shebang:
@@ -521,7 +521,8 @@ def tokenizer($TEXT, filename):  # {{{
 
         return token(shebang ? "shebang" : "comment:line", ret, True)
 
-    read_multiline_comment = with_eof_error("Unterminated multiline comment", def():
+    @with_eof_error("Unterminated multiline comment")
+    def read_multiline_comment():
         next()
         i = find("*/", True)
         text = S.text.substring(S.pos, i)
@@ -537,7 +538,6 @@ def tokenizer($TEXT, filename):  # {{{
         S.col += 2
         S.newline_before = S.newline_before or "\n" in text
         return token("comment:multiline", text, True)
-    )
 
     def read_name():
         backslash = False
@@ -573,7 +573,8 @@ def tokenizer($TEXT, filename):  # {{{
             name = "\\u" + "0000".substr(hex.length) + hex + name.slice(1)
         return name
 
-    read_regexp = with_eof_error("Unterminated regular expression", def(regexp):
+    @with_eof_error("Unterminated regular expression")
+    def read_regexp(regexp):
         prev_backslash = False
 
         in_class = False
@@ -626,7 +627,6 @@ def tokenizer($TEXT, filename):  # {{{
 
         mods = read_name()
         return token("regexp", RegExp(regexp, mods))
-    )
 
     def read_operator(prefix):
         def grow(op):
@@ -658,17 +658,22 @@ def tokenizer($TEXT, filename):  # {{{
 
     def read_word():
         word = read_name()
-        return (KEYWORDS_ATOM(word) ? token("atom", word) : (not KEYWORDS(word) ? token("name", word) : (OPERATORS(word) and prevChar() is not "." ? token("operator", word) : token("keyword", word))))
+        return (KEYWORDS_ATOM(word) ? token("atom", word) : (
+            not KEYWORDS(word) ? token("name", word) : (
+                OPERATORS(word) and prevChar() is not "." ? token("operator", word) : token("keyword", word)
+            )
+        ))
 
-    def with_eof_error(eof_error, cont):
-        return def(x):
-            try:
-                return cont(x)
-            except as ex:
-                if ex is EX_EOF:
-                    TokenizerError(eof_error, true)
-                else:
-                    raise
+    def with_eof_error(eof_error):
+        return def(cont):
+            return def(x):
+                try:
+                    return cont(x)
+                except as ex:
+                    if ex is EX_EOF:
+                        TokenizerError(eof_error, true)
+                    else:
+                        raise
 
     def next_token(force_regexp):
         if force_regexp not in (None, undefined):
