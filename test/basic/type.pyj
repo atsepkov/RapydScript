@@ -24,3 +24,7 @@ assert(type(b) is 'SubItem')
 # not equal
 assert(type({}) is not type([]))
 assert(type({}) is not type(a))
+
+# null types
+assert(type(undefined) is 'Undefined')
+assert(type(None) is 'Null')
