@@ -8,7 +8,7 @@
     "language",
     "compiler"
   ],
-  "main": "tools/compiler.js",
+  "main": "lib/rapydscript.js",
   "scripts": {
     "test": "bin/rapydscript --test",
     "test6": "bin/rapydscript --test --es6",
