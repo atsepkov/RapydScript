@@ -2117,7 +2117,7 @@ def parse($TEXT, options):
         element = astElement.expression.resolveType(S.in_scope)
         op = astElement.operator
         if not element:
-            raise croak("cannot perform unary '" + op + "' operation on incompatbile element of type " + element)
+            if op is not '!': raise croak("cannot perform unary '" + op + "' operation on incompatbile element of type " + element)
         elif element not in ['Number', '?'] and op in ['+', '-'] or element[0] not in ['[', '{', '?'] and op is '*':
             # make the representations a bit more human-friendly
             if element[0] is '[': element = 'Array'
