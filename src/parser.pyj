@@ -1176,6 +1176,10 @@ def parse($TEXT, options):
         if name:    # track this function in local scope
             S.in_scope[-1].functions[name.name] = definition.resolveType(S.in_scope)
 
+        # remove arguments from localvars
+        args = [arg.name for arg in definition.argnames]
+        definition.localvars = definition.localvars.filter(def(var): return var.name not in args;)
+
         # do a few extra safety checks on arguments
         if in_class and not staticmethod:
             if ctor is ast.Constructor:
