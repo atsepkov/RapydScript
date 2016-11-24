@@ -151,7 +151,7 @@ exports.minify = def(files, options):
     for file in files:
         options.filename = options.fromString ? '?' : file
         code = options.fromString ? file : require('fs').readFileSync(file, "utf8")
-        retrun {
+        return {
             code: compile(code, options)
         }
 
