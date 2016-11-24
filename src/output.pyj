@@ -617,7 +617,7 @@ def Stream(options):
                 # XXX: ugly fix for https://github.com/mishoo/RapydScript2/issues/112
                 #      if this node is `return` or `throw`, we cannot allow comments before
                 #      the returned or thrown value.
-                if isinstance(self, ast.Exit) and self.value and self.value.start.comments_before.length > 0:
+                if isinstance(self, ast.Exit) and self.value and self.value.start.comments_before and self.value.start.comments_before.length > 0:
                     comments = (comments or []).concat(self.value.start.comments_before)
                     self.value.start.comments_before = []
 
