@@ -177,17 +177,10 @@ assert.equal(m.pi, 3.14)
 class C:
     a = 1
     b = 1
-    c = 2
-    d = 1
-# previously these were actually instance variables, they are now class vars
-# arithmetic here is no longer supported, I may revisit this later
-#class C:
-#    a = b = 1
-#    c = a + b
-#    if True:
-#        d = 1
-#    else:
-#        d = 2
+    #Class variables can reference each other during initialization
+    c = a + b 
+    #but complex logic is not allowed, all statements must be assignments
+    d = (def(): if c > 0:  return 1;)() or 0
 c = C()
 assert.deepEqual([c.a, c.b, c.c, c.d], [1, 1, 2, 1])
 
