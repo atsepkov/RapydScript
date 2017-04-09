@@ -1680,6 +1680,9 @@ def Stream(options):
                 # actual methods, and class variables
                 methodsAndVars = {}
                 staticMethods = {}
+                # class vars should be evaluated before Object.defineProperties(...) 
+                # order of vars is important! so we need an Array of {name: ... , value: ...}
+                class_vars = [] 
                 if self.docstring:
                     methodsAndVars['__doc__'] = def(output): output.print_string(self.docstring)
                 self.body.forEach(def(stmt, i):
@@ -1693,15 +1696,42 @@ def Stream(options):
                     elif isinstance(stmt, ast.SimpleStatement) and isinstance(stmt.body, ast.Assign) and stmt.body.operator is '=':
                         # class variable
                         methodsAndVars[stmt.body.left.name] = def(output):
-                            stmt.body.right.print(output)
-
+                            output.print(stmt.body.left.name)
+                        class_vars.push({   name: stmt.body.left.name, 
+                                            value: def(output): stmt.body.right.print(output);})    
                     elif isinstance(stmt, ast.Class):
                         console.error('Nested classes aren\'t supported yet')
                 )
+                
+                # (function()
+                #       init/eval class vars, so they can refer to each other  
+                #       Object.defineProperties(...) using predefined variables
+                # )()
+                def with_class_vars_init(vars, def_prop):
+                    return def(obj):
+                        output = this
+                        output.with_parens(def():
+                            output.print("function()")
+                            output.with_block(def():
+                                vars.forEach(def(v, i):
+                                    output.indent()
+                                    output.assign('var '+ v.name)
+                                    v.value(output)
+                                    output.end_statement()
+                                )
+                                output.indent()
+                                # def_prop = output.addProperties('prototype', methodsAndVars)
+                                def_prop.call(output, obj) 
+                                output.end_statement()
+                            )
+                        )
+                        output.print("()")
 
                 methodAndOutput = None
                 if Object.keys(methodsAndVars).length:
                     methodAndVarOutput = output.addProperties('prototype', methodsAndVars)
+                    if class_vars.length:
+                        methodAndVarOutput = with_class_vars_init(class_vars, methodAndVarOutput)
 
                 staticMethodOutput = None
                 if Object.keys(staticMethods).length:
