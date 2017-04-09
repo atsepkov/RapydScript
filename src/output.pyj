@@ -342,7 +342,7 @@ def Stream(options):
     # nice to have a wrapper:
     # (function()
     #       init/eval class vars, so they can refer to each other  
-    #       Object.defineProperties(...) - assign prop-values to evaluated vars
+    #       Object.defineProperties(...) - using predefined variables
     # )()
     def with_class_vars_init(vars, def_prop):
         return def(obj):
