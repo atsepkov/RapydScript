@@ -16,7 +16,7 @@
 **********************************************************************
 """
 
-from utils import makePredicate, defaults, ImportError, js_error, RAPYD_PREFIX
+from utils import makePredicate, defaults, ImportError, js_error, RAPYD_PREFIX, find_if
 import ast
 import tokenizer
 
