@@ -47,6 +47,7 @@ class Token(AST):
     """
     properties = {
         'type': 'The type of the token',
+        'subtype': 'The subtype of the token',
         'value': 'The value of the token',
         'line': 'The line number at which the token occurs',
         'col': 'The column number at which the token occurs',
@@ -172,7 +173,7 @@ class Debugger(Statement): "Represents a debugger statement"
 class Directive(Statement):
     'Represents a directive, like "use strict";'
     properties = {
-        value: "[string] The value of this directive as a plain string (it's not an String!)",
+        value: "[string] The value of this directive as a plain string (it's not a String!)",
         scope: "[Scope/S] The scope that this directive affects"
     }
 

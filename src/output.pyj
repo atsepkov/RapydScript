@@ -1574,7 +1574,7 @@ def Stream(options):
                 properties = {}
                 # class vars should be evaluated before Object.defineProperties(...) 
                 # order of vars is important! so we need an Array of {name: ... , value: ...}
-                class_vars = [] 
+                class_vars = []
                 if self.docstring:
                     properties['__doc__'] = def(output): output.print_string(self.docstring)
                 self.body.forEach(def(stmt, i):
@@ -1583,8 +1583,10 @@ def Stream(options):
                         properties[stmt.body.left.name] = def(output):
                             output.print(stmt.body.left.name)
                             output.newline()
-                        class_vars.push({   name: stmt.body.left.name, 
-                                            value: def(output): stmt.body.right.print(output);})        
+                        class_vars.push({
+                            name: stmt.body.left.name,
+                            value: def(output): stmt.body.right.print(output)
+                        })
                 )
 
                 if Object.keys(properties).length:
