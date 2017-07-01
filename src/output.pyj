@@ -1549,11 +1549,11 @@ def Stream(options):
                     output = this
                     output.assign(obj)
                     decorate(self.decorators, output, def(): output.print(obj);)
+
             return None
 
         def addES6MethDecorators():
-            # decorate the class with class decorators
-            # if self.decorators and self.decorators.length:
+            # decorate the class methods
             decorated_methods = []
             for stmt in self.body:
                 if isinstance(stmt, ast.Lambda) and stmt.decorators and stmt.decorators.length:
@@ -1608,7 +1608,7 @@ def Stream(options):
 
             # new ES6 classes
             # @decorated(self.decorators, output)
-            @unify(output, name, addDecorators(),addES6MethDecorators(), addClassVariables())
+            @unify(output, name, addDecorators(), addES6MethDecorators(), addClassVariables())
             def generateClass():
                 output.print('class')
 
