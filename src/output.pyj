@@ -1655,7 +1655,7 @@ def Stream(options):
                             output.with_parens(def():
                                 stmt.argnames.forEach(def(arg, i):
                                     # only strip first argument if the method isn't static
-                                    if name in self.static: i += 1
+                                    if stmt.name.name in self.static: i += 1
                                     if i > 1: output.comma()
                                     if i: arg.print(output)
                                     if stmt.argnames.defaults[arg.name]:
