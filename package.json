@@ -13,10 +13,11 @@
     "test": "bin/rapydscript --test",
     "test6": "bin/rapydscript --test --es6",
     "preversion": "npm test",
-    "postversion": "npm publish",
+    "version": "",
+    "postversion": "git push && npm publish",
     "build-self": "bin/rapydscript --self"
   },
-  "version": "0.5.55",
+  "version": "0.5.58",
   "license": "BSD-2-Clause",
   "engines": {
     "node": ">=0.12.0"

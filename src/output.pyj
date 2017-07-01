@@ -337,6 +337,33 @@ def Stream(options):
         print_("]")
         return ret
 
+    
+    # class vars should be evaluated before Object.defineProperties(...) 
+    # nice to have a wrapper:
+    # (function()
+    #       init/eval class vars, so they can refer to each other  
+    #       Object.defineProperties(...) - using predefined variables
+    # )()
+    def with_class_vars_init(vars, def_prop):
+        return def(obj):
+            output = this
+            output.with_parens(def():
+                output.print("function()")
+                output.with_block(def():
+                    vars.forEach(def(v, i):
+                        output.indent()
+                        output.assign('var '+ v.name)
+                        v.value(output)
+                        output.end_statement()
+                    )
+                    output.indent()
+                    # def_prop = output.addProperties('prototype', methodsAndVars)
+                    def_prop.call(output, obj) 
+                    output.end_statement()
+                )
+            )
+            output.print("()")
+        
     def comma():
         print_(",")
         space()
@@ -481,6 +508,7 @@ def Stream(options):
         with_indent: with_indent,
         with_block: with_block,
         with_parens: with_parens,
+        with_class_vars_init: with_class_vars_init,
         spaced: spaced,
         end_statement: end_statement,
         addProperty: addProperty,
@@ -1544,18 +1572,28 @@ def Stream(options):
             def addClassVariables():
                 # these were somehow omitted from ES6 standard, so we'll have to handle them ourselves, the messy way
                 properties = {}
+                # class vars should be evaluated before Object.defineProperties(...) 
+                # order of vars is important! so we need an Array of {name: ... , value: ...}
+                class_vars = []
                 if self.docstring:
                     properties['__doc__'] = def(output): output.print_string(self.docstring)
                 self.body.forEach(def(stmt, i):
                     if isinstance(stmt, ast.SimpleStatement) and isinstance(stmt.body, ast.Assign) and stmt.body.operator is '=':
                         # naively assume left side will not be an expression
                         properties[stmt.body.left.name] = def(output):
-                            stmt.body.right.print(output)
+                            output.print(stmt.body.left.name)
                             output.newline()
+                        class_vars.push({
+                            name: stmt.body.left.name,
+                            value: def(output): stmt.body.right.print(output)
+                        })
                 )
 
                 if Object.keys(properties).length:
-                    return output.addProperties('prototype', properties)
+                    def_class_vars = output.addProperties('prototype', properties)
+                    if class_vars.length:
+                        def_class_vars = output.with_class_vars_init(class_vars, def_class_vars)
+                    return def_class_vars
                 return None
 
             # new ES6 classes
@@ -1680,6 +1718,9 @@ def Stream(options):
                 # actual methods, and class variables
                 methodsAndVars = {}
                 staticMethods = {}
+                # class vars should be evaluated before Object.defineProperties(...) 
+                # order of vars is important! so we need an Array of {name: ... , value: ...}
+                class_vars = [] 
                 if self.docstring:
                     methodsAndVars['__doc__'] = def(output): output.print_string(self.docstring)
                 self.body.forEach(def(stmt, i):
@@ -1693,15 +1734,18 @@ def Stream(options):
                     elif isinstance(stmt, ast.SimpleStatement) and isinstance(stmt.body, ast.Assign) and stmt.body.operator is '=':
                         # class variable
                         methodsAndVars[stmt.body.left.name] = def(output):
-                            stmt.body.right.print(output)
-
+                            output.print(stmt.body.left.name)
+                        class_vars.push({   name: stmt.body.left.name, 
+                                            value: def(output): stmt.body.right.print(output);})    
                     elif isinstance(stmt, ast.Class):
                         console.error('Nested classes aren\'t supported yet')
                 )
-
+                
                 methodAndOutput = None
                 if Object.keys(methodsAndVars).length:
                     methodAndVarOutput = output.addProperties('prototype', methodsAndVars)
+                    if class_vars.length:
+                        methodAndVarOutput = output.with_class_vars_init(class_vars, methodAndVarOutput)
 
                 staticMethodOutput = None
                 if Object.keys(staticMethods).length:

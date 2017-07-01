@@ -16,7 +16,7 @@
 **********************************************************************
 """
 
-from utils import makePredicate, defaults, ImportError, js_error, RAPYD_PREFIX
+from utils import makePredicate, defaults, ImportError, js_error, RAPYD_PREFIX, find_if
 import ast
 import tokenizer
 
@@ -42,6 +42,10 @@ NATIVE_CLASSES = {
             "defineProperties",
             "getPrototypeOf",       # ES6
             "setPrototypeOf",       # ES6
+
+            # experimental
+            "values",
+            "entries"
         ]
     },
     'String': {
@@ -58,7 +62,9 @@ NATIVE_CLASSES = {
         static: [ "UTC", "now", "parse" ]
     },
     'Boolean': {},
-    'ArrayBuffer': {},
+    'ArrayBuffer': {
+        static: [ "isView", "transfer" ]
+    },
     'DataView': {},
     'Float32Array': {},
     'Float64Array': {},
@@ -73,6 +79,14 @@ NATIVE_CLASSES = {
     'WeakMap': {},  # ES6
     'Set': {},      # ES6
     'WeakSet': {},  # ES6
+    'Promise': {    # ES6
+        static: [
+            "all",
+            "race",
+            "reject",
+            "resolve"
+        ]
+    },
 
     # baselib
     "AssertionError": {},
@@ -2113,7 +2127,7 @@ def parse($TEXT, options):
             if right:
                 if right[0] is '[': right = 'Array'
                 elif right[0] is '{': right = 'Object'
-            raise croak("cannot perform binary '" + op + "' operation on incompatbile elements of type " + left + " and " + right + "")
+            raise croak("cannot perform binary '" + op + "' operation on incompatible elements of type " + left + " and " + right + "")
         return astElement
 
     def validateUnary(astElement):
@@ -2121,12 +2135,12 @@ def parse($TEXT, options):
         element = astElement.expression.resolveType(S.in_scope)
         op = astElement.operator
         if not element:
-            if op is not '!': raise croak("cannot perform unary '" + op + "' operation on incompatbile element of type " + element)
+            if op is not '!': raise croak("cannot perform unary '" + op + "' operation on incompatible element of type " + element)
         elif element not in ['Number', '?'] and op in ['+', '-'] or element[0] not in ['[', '{', '?'] and op is '*':
             # make the representations a bit more human-friendly
             if element[0] is '[': element = 'Array'
             elif element[0] is '{': element = 'Object'
-            raise croak("cannot perform unary '" + op + "' operation on incompatbile element of type " + element)
+            raise croak("cannot perform unary '" + op + "' operation on incompatible element of type " + element)
         return astElement
 
     def validateCallArgs(astElement):
