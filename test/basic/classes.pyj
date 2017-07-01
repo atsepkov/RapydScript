@@ -172,6 +172,17 @@ assert.equal(m.concatSum("foo", 1, 2, 5), "foo8")
 assert.equal(m.plus(2, 5), -7)
 assert.equal(m.pi, 3.14)
 
+#decorate only method
+class Plus:
+    def minus(s, a, b):
+        return a-b
+    @negate
+    def plus(s, a, b):
+        return a+b
+
+p = Plus()
+assert.equal(p.plus(2, 5), -7)
+assert.equal(p.minus(2, 5), -3)
 
 # class variables
 class C:
