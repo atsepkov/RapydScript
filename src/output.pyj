@@ -1550,16 +1550,26 @@ def Stream(options):
                     output.assign(obj)
                     decorate(self.decorators, output, def(): output.print(obj);)
 
-                    # in ES6 we can't decorate function at build time, we have to do it after the fact
-                    if output.option('es6'):
-                        for stmt in self.body:
-                            if isinstance(stmt, ast.Lambda) and stmt.decorators and stmt.decorators.length:
-                                funcName = obj + '.prototype.' + stmt.name.name
-                                output.comma()
-                                output.assign(funcName)
-                                decorate(stmt.decorators, output, def(): output.print(funcName);)
             return None
 
+        def addES6MethDecorators():
+            # decorate the class methods
+            decorated_methods = []
+            for stmt in self.body:
+                if isinstance(stmt, ast.Lambda) and stmt.decorators and stmt.decorators.length:
+                    decorated_methods.push(stmt)
+            if decorated_methods.length:
+                return def(obj):
+                    output = this
+                    # in ES6 we can't decorate function at build time, we have to do it after the fact
+                    print_comma = False
+                    for stmt in decorated_methods:
+                        funcName = obj + '.prototype.' + stmt.name.name
+                        if print_comma: output.comma()
+                        else: print_comma = True
+                        output.assign(funcName)
+                        decorate(stmt.decorators, output, def(): output.print(funcName);)
+            return None
         # label the variable correctly depending on context
         # FIXME: this is bug-prone, need var to be conditional on whether this is a standalone statement
         name = None
@@ -1598,7 +1608,7 @@ def Stream(options):
 
             # new ES6 classes
             # @decorated(self.decorators, output)
-            @unify(output, name, addDecorators(), addClassVariables())
+            @unify(output, name, addDecorators(), addES6MethDecorators(), addClassVariables())
             def generateClass():
                 output.print('class')
 
