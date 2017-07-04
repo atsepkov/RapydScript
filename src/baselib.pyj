@@ -110,9 +110,11 @@
     # can't use Symbol.iterator yet since it's not supported on all platforms until ES6 (i.e. mobile browsers don't have it)
     if iterable.constructor is [].constructor
     or iterable.constructor is ''.constructor
-    or (tmp = Array.prototype.slice.call(iterable)).length:
+    or (tmp = Array.prototype.slice.call(iterable)).length 
+    or (tmp = Object.keys(iterable)).length:
         return tmp or iterable
-    return Object.keys(iterable)    # so we can use 'for ... in' syntax with hashes
+    return Object.getOwnPropertyNames ? Object.getOwnPropertyNames(iterable) : [] 
+    # so we can use 'for ... in' syntax with hashes, objects and classes
 ,
 "len": def len(obj):
     # can't use Symbol.iterator yet since it's not supported on all platforms until ES6 (i.e. mobile browsers don't have it)
