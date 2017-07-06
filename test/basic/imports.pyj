@@ -28,7 +28,7 @@ assert.equal(tl2.a, 'x')
 class ExtTopLevel(_import_one.TopLevel):
     def __init__(self, v):
         _import_one.TopLevel.__init__(self, v)
-        self.b='b'
+        self.b = 'b'
 extl = ExtTopLevel('1')
 assert.equal(extl.a, '1')
 assert.equal(extl.b, 'b')
