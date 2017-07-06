@@ -180,7 +180,7 @@ assert.equal(m.concatSum("foo", 1, 2, 5), "foo8")
 assert.equal(m.plus(2, 5), -7)
 assert.equal(m.pi, 3.14)
 
-#decorate only method
+#decorate only method/staticmethod
 class Plus:
     def minus(s, a, b):
         return a-b
@@ -188,6 +188,12 @@ class Plus:
     def plus(s, a, b):
         return a+b
 
+    @negate
+    @staticmethod
+    def mul(a, b):
+        return a*b
+
+assert.equal(Plus.mul(2, 5), -10)
 p = Plus()
 assert.equal(p.plus(2, 5), -7)
 assert.equal(p.minus(2, 5), -3)
