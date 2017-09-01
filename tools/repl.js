@@ -51,7 +51,7 @@ var enum_global = "var global = Function('return this')(); Object.getOwnProperty
 function expanduser(x) {
   if (!x) return x;
   if (x === '~') return homedir;
-  if (x.slice(0, 2) != '~/') return path;
+  if (x.slice(0, 2) != '~/') return x;
   return path.join(homedir, x.slice(2));
 }
 

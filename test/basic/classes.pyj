@@ -16,6 +16,13 @@ class Human():
     def getTypicalWeight():
         return "150"
 
+    @staticmethod # with args
+    def getLastName(FirstName):
+        LastNames = {   'Bart' : 'Simpson',
+                        'Leela' : 'Turanga',
+                        'James' : 'Bond'}
+        return LastNames[FirstName]
+
 
 # don't have to declare __init__, it either gets inherited or stays empty
 # isinstance correctly sees inheritance
@@ -40,6 +47,7 @@ bob = Human("Bob")
 assert.equal(bob.greet(), "Hello, I'm Bob")
 assert.equal(Human.greet(bob), "Hello, I'm Bob")
 assert.equal(Human.getTypicalWeight(), "150") # static method recognition
+assert.equal(Human.getLastName("James"), "Bond") # static method with args - check args processing  
 
 joe = Friend("Joe")
 assert.equal(joe.greet(), "Yo, it's me, Joe")
@@ -172,6 +180,23 @@ assert.equal(m.concatSum("foo", 1, 2, 5), "foo8")
 assert.equal(m.plus(2, 5), -7)
 assert.equal(m.pi, 3.14)
 
+#decorate only method/staticmethod
+class Plus:
+    def minus(s, a, b):
+        return a-b
+    @negate
+    def plus(s, a, b):
+        return a+b
+
+    @negate
+    @staticmethod
+    def mul(a, b):
+        return a*b
+
+assert.equal(Plus.mul(2, 5), -10)
+p = Plus()
+assert.equal(p.plus(2, 5), -7)
+assert.equal(p.minus(2, 5), -3)
 
 # class variables
 class C:

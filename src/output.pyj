@@ -1564,7 +1564,8 @@ def Stream(options):
                     # in ES6 we can't decorate function at build time, we have to do it after the fact
                     print_comma = False
                     for stmt in decorated_methods:
-                        funcName = obj + '.prototype.' + stmt.name.name
+                        # in ES6 'static' means access just via class-dot-meth    
+                        funcName = obj + (stmt.static ? '.' : '.prototype.') + stmt.name.name
                         if print_comma: output.comma()
                         else: print_comma = True
                         output.assign(funcName)
@@ -1655,7 +1656,7 @@ def Stream(options):
                             output.with_parens(def():
                                 stmt.argnames.forEach(def(arg, i):
                                     # only strip first argument if the method isn't static
-                                    if name in self.static: i += 1
+                                    if stmt.name.name in self.static: i += 1
                                     if i > 1: output.comma()
                                     if i: arg.print(output)
                                     if stmt.argnames.defaults[arg.name]:
