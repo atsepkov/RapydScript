@@ -884,7 +884,8 @@ def Stream(options):
                 delaySelfAssignment = True
             else:
                 needsSuper = True
-        if isinstance(node, ast.Method) and not node.static and not delaySelfAssignment:
+        if (isinstance(node, ast.Method) or isinstance(node, ast.ObjectGetter) or isinstance(node, ast.ObjectSetter)) \
+              and not node.static and not delaySelfAssignment:
             if needsSuper:
                 output.indent()
                 output.print('super()')
