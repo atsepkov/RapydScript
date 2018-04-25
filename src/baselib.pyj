@@ -104,6 +104,7 @@
 ,
 "in": def ՐՏ_in(val, arr):
     if JS('typeof arr.indexOf') is 'function': return arr.indexOf(val) is not -1
+    elif JS('typeof arr.has') is 'function': return arr.has(val)
     return arr.hasOwnProperty(val)
 ,
 "iterable": def ՐՏ_Iterable(iterable):
@@ -112,6 +113,8 @@
     or iterable.constructor is ''.constructor
     or (tmp = Array.prototype.slice.call(iterable)).length:
         return tmp or iterable
+    if Set and iterable.constructor is Set:
+        return Array.from(iterable)
     return Object.keys(iterable)    # so we can use 'for ... in' syntax with hashes
 ,
 "len": def len(obj):
@@ -120,6 +123,8 @@
     or obj.constructor is ''.constructor
     or (tmp = Array.prototype.slice.call(obj)).length:
         return (tmp or obj).length
+    if Set and obj.constructor is Set:
+        return obj.size
     return Object.keys(obj).length
 ,
 "map": def map(oper, arr):
