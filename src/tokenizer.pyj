@@ -304,7 +304,7 @@ def tokenizer($TEXT, filename):  # {{{
         if type is "punc":
             if value is ":" and not S.index_or_slice[-1]
             and not S.expect_object_literal_key
-            and (not S.text.substring(S.pos + 1, find("\n")).trim() or not S.text.substring(S.pos + 1, find("#")).trim()):
+            and (not S.text.substring(S.pos, find("\n")).trim() or not S.text.substring(S.pos, find("#")).trim()):
                 S.newblock = True
                 S.indentation_matters.push(True)
 
