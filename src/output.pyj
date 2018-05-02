@@ -279,6 +279,12 @@ def Stream(options):
             output.comma()
             output.with_block(def():
                 Object.keys(props).forEach(def(key, i):
+                    if JS('typeof props[key]')=='function':
+                        prop_value = props[key]
+                        prop_attrs = {'enumerable' : 'true', 'writable' : 'true'}
+                    else: # hash with value and attrs   
+                        prop_value = props[key].value
+                        prop_attrs = props[key].attrs
                     if i:
                         output.print(",")
                         output.newline()
@@ -292,14 +298,15 @@ def Stream(options):
                             output.indent()
                             output.print(attr)
                             output.colon()
-                            output.print('true')
+                            output.print(prop_attrs[attr] or 'true')
                             output.comma()
                             output.newline()
 
                         output.indent()
                         output.print('value')
                         output.colon()
-                        props[key](output)
+                        prop_value(output)
+                        output.newline()
                     )
                 )
                 output.newline()
@@ -877,7 +884,8 @@ def Stream(options):
                 delaySelfAssignment = True
             else:
                 needsSuper = True
-        if isinstance(node, ast.Method) and not node.static and not delaySelfAssignment:
+        if (isinstance(node, ast.Method) or isinstance(node, ast.ObjectGetter) or isinstance(node, ast.ObjectSetter)) \
+              and not node.static and not delaySelfAssignment:
             if needsSuper:
                 output.indent()
                 output.print('super()')
@@ -1552,25 +1560,15 @@ def Stream(options):
 
             return None
 
-        def addES6MethDecorators():
-            # decorate the class methods
+        def getES6DecoratedMethods():
             decorated_methods = []
             for stmt in self.body:
                 if isinstance(stmt, ast.Lambda) and stmt.decorators and stmt.decorators.length:
                     decorated_methods.push(stmt)
             if decorated_methods.length:
-                return def(obj):
-                    output = this
-                    # in ES6 we can't decorate function at build time, we have to do it after the fact
-                    print_comma = False
-                    for stmt in decorated_methods:
-                        # in ES6 'static' means access just via class-dot-meth    
-                        funcName = obj + (stmt.static ? '.' : '.prototype.') + stmt.name.name
-                        if print_comma: output.comma()
-                        else: print_comma = True
-                        output.assign(funcName)
-                        decorate(stmt.decorators, output, def(): output.print(funcName);)
+                return decorated_methods
             return None
+
         # label the variable correctly depending on context
         # FIXME: this is bug-prone, need var to be conditional on whether this is a standalone statement
         name = None
@@ -1580,7 +1578,7 @@ def Stream(options):
             #     name = 'var ' + name
 
         def outputEs6():
-            def addClassVariables():
+            def addClassVariablesAndMethDecorators(decorated_methods):
                 # these were somehow omitted from ES6 standard, so we'll have to handle them ourselves, the messy way
                 properties = {}
                 # class vars should be evaluated before Object.defineProperties(...) 
@@ -1599,17 +1597,39 @@ def Stream(options):
                             value: def(output): stmt.body.right.print(output)
                         })
                 )
-
-                if Object.keys(properties).length:
-                    def_class_vars = output.addProperties('prototype', properties)
-                    if class_vars.length:
-                        def_class_vars = output.with_class_vars_init(class_vars, def_class_vars)
-                    return def_class_vars
+                if Object.keys(properties).length or (decorated_methods and decorated_methods.length):
+                    def_class_vars_and_decorators = def(obj):
+                        output = this
+                        static_decorations = {}
+                        if decorated_methods:
+                            for stmt in decorated_methods:
+                                funcName = obj + (stmt.static ? '.' : '.prototype.') + stmt.name.name
+                                decoration = { 
+                                    'value' : ( def(_stmt, _funcName): 
+                                            return def(output):
+                                                decorate(_stmt.decorators, output, def(): output.print(_funcName););
+                                    )(stmt, funcName),
+                                    'attrs' : {'enumerable': 'false'}
+                                }
+                                if stmt.static:
+                                    static_decorations[stmt.name.name] = decoration
+                                else:    
+                                    properties[stmt.name.name] = decoration 
+                        if Object.keys(properties).length:
+                            output.addProperties('prototype', properties).call(output, obj)
+                            output.end_statement()
+                            output.indent()
+                        if Object.keys(static_decorations).length:
+                            output.addProperties(None, static_decorations).call(output, obj)
+                    def_class_vars_and_decorators= output.with_class_vars_init(class_vars, def_class_vars_and_decorators)
+                    return def_class_vars_and_decorators 
                 return None
+
+            
 
             # new ES6 classes
             # @decorated(self.decorators, output)
-            @unify(output, name, addDecorators(), addES6MethDecorators(), addClassVariables())
+            @unify(output, name, addDecorators(), addClassVariablesAndMethDecorators(getES6DecoratedMethods()))
             def generateClass():
                 output.print('class')
 
