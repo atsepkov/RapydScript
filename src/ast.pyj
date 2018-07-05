@@ -1057,7 +1057,7 @@ class ObjectLiteral(Node):
             spread = self.properties[start].expression.resolveType(heap)
             if "?" in spread: return "{String:?}"
             start += 1
-        
+
         expected = self.properties[start].value.resolveType(heap)
         if not expected: return "{String:?}"
         for element in self.properties[start+1:]:
