@@ -1057,8 +1057,9 @@ class ObjectLiteral(Node):
             spread = self.properties[start].expression.resolveType(heap)
             if "?" in spread: return "{String:?}"
             start += 1
-
+        
         expected = self.properties[start].value.resolveType(heap)
+        if not expected: return "{String:?}"
         for element in self.properties[start+1:]:
             # now loop through remaining properties
             if isinstance(element, UnaryPrefix):
@@ -1075,9 +1076,13 @@ class ObjectLiteral(Node):
             else:
                 # regular element
                 current = element.value.resolveType(heap)
-                if current is not expected:
-                    if expected.indexOf("Function") is 0 and current.indexOf("Function") is 0: return "{String:Function}" # only the signatures don't match
+                if not current: 
                     return "{String:?}"
+                elif current is not expected:
+                    if expected.indexOf("Function") is 0 and current.indexOf("Function") is 0: 
+                        continue # only the signatures don't match
+                    else:    
+                        return "{String:?}"
         result = "{String:" + expected + "}"
         if spread:
             if spread is result: return result
