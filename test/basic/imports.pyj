@@ -27,10 +27,11 @@ assert.equal(tl2.a, 'x')
 # Test extends class via plain import
 class ExtTopLevel(_import_one.TopLevel):
     def __init__(self, v):
-        _import_one.TopLevel.__init__(self, v)
+        a = v+'2'
+        _import_one.TopLevel.__init__(self, a)
         self.b = 'b'
 extl = ExtTopLevel('1')
-assert.equal(extl.a, '1')
+assert.equal(extl.a, '12')
 assert.equal(extl.b, 'b')
 
 # Test access to submodules via plain imports
