@@ -881,7 +881,7 @@ def parse($TEXT, options):
                     atom = expr_atom(False)
                     expect(")")
                     nonlocal parent
-                    parent = atom.name
+                    parent = stringifyName(atom)
                     return atom
                 else:
                     return None
@@ -1987,7 +1987,7 @@ def parse($TEXT, options):
                     if funcname.property is "__init__":
                         funcname.property = "constructor"
 
-                    S.in_scope[-1].callsSuper = S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and expr.expression.name is S.in_scope[-2].parent
+                    S.in_scope[-1].callsSuper = S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and stringifyName(expr.expression) is S.in_scope[-2].parent
                     return validateCallArgs(subscripts(ast.ClassCall({
                         start: start,
                         class: expr.expression,
@@ -2031,17 +2031,17 @@ def parse($TEXT, options):
 
         return expr
 
+    def stringifyName(expr):
+        if isinstance(expr, ast.Dot):
+            return stringifyName(expr.expression) + "." + expr.property
+        return expr.name
+    
     def keepDecoratorOrImport(expr, imp=False):
         # helper function for figuring out whether this decorator should be dropped
         if imp:
             if not options.dropImports.length: return True
         else:
             if not options.dropDecorators.length: return True
-
-        def stringifyName(expr):
-            if isinstance(expr, ast.Dot):
-                return stringifyName(expr.expression) + "." + expr.property
-            return expr.name
 
         if JS('typeof expr') is 'string':
             # passed in a string
