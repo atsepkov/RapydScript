@@ -180,4 +180,3 @@ if  browser_env:
         define([], def(): return exports;)
     else:    
         parent.rapydscript = exports
-
