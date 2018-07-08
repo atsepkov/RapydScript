@@ -40,9 +40,11 @@ def splatBaselib(key, value):
         })
     })
 
+browser_env = False
 if not exports:
     # browser environment
     rapydscript = exports = {}
+    browser_env = True
 
 exports.parse_baselib = exports.parseBaselib = def(srcPath, beautify):
     try:
@@ -171,3 +173,11 @@ exports.ImportError = utils.ImportError
 exports.ALL_KEYWORDS = tokenizer.ALL_KEYWORDS
 exports.IDENTIFIER_PAT = tokenizer.IDENTIFIER_PAT
 exports.colored = utils.colored
+
+# browser environment logic
+if  browser_env:
+    if JS('typeof define == "function"') and define.amd:
+        define([], def(): return exports;)
+    else:    
+        this.rapydscript = exports
+
