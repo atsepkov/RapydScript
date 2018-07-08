@@ -58,7 +58,7 @@
 ,
 "cmp": def cmp(a, b): return a < b ? -1 : a > b ? 1 : 0
 ,
-"chr": def(): chr = String.fromCharCode
+"chr": def(): JS('var chr = String.fromCharCode')
 ,
 "dir": def dir(item):
     # TODO: this isn't really representative of real Python's dir(), nor is it
