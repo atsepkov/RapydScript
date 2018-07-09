@@ -179,5 +179,5 @@ if  browser_env:
     if JS('typeof define == "function"') and define.amd:
         define([], def(): return exports;)
     else:    
-        parent.rapydscript = exports
+        window.rapydscript = exports
 
