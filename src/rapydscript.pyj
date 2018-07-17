@@ -97,7 +97,7 @@ exports.compile = compile = def(code, options):
     }))
 
     # account for unused baselib methods
-    if not options.omit_baselib:
+    if not options.omit_baselib and not browser_env:
         if not toplevel.baselib['AssertionError']:
             toplevel.baselib['extends'] -= 1
         if not toplevel.baselib['IndexError']:
