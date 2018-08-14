@@ -56,7 +56,21 @@ module.exports = def compile_self(base_path, src_path, lib_path, start_time):
 
     for filename in compiled:
         fs.writeFileSync(path.join(lib_path, filename + '.js'), compiled[filename], "utf8")
-
-    # output 'rapydscript.js' wrapped in private scope as 'rapydscript_web.js' for safer use in browser
-    wrapped = '(function(){\n"use strict";\n' + compiled['rapydscript']  +   '\n})();'
-    fs.writeFileSync(path.join(lib_path, 'rapydscript_web.js'), wrapped, "utf8")    
+    
+    # make in-browser version  as 'rapydscript_web.js'
+    # wrap 'rapydscript.js' in the factory function to be able to get an independent clone of the compiler
+    # now we can: compiler_clone = rapydscript.factory()
+    factory =  """
+    function factory(){
+        "use strict";
+        <compiled_rapydscript>
+        exports.factory = factory;
+        return exports;
+    };
+    if ((typeof define == "function") && define.amd) define([], factory)
+    else window.rapydscript = factory();
+    """    
+    factory = factory.replace('<compiled_rapydscript>', compiled['rapydscript'])
+    # wrap all in private scope for safer use in the browser
+    wrapped = '(function(){\n"use strict";\n' + factory  +   '\n})();'
+    fs.writeFileSync(path.join(lib_path, 'rapydscript_web.js'), wrapped, "utf8")
