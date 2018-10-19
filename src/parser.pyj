@@ -819,7 +819,7 @@ def parse($TEXT, options):
 
         for imp in ans['imports']:
             do_import(imp.key)
-            classes = IMPORTED[key].classes
+            classes = IMPORTED[imp.key].classes
             if from_import:
                 expect_token("keyword", "import")
                 imp.argnames = argnames = []
