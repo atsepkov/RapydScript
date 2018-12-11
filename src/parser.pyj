@@ -42,9 +42,10 @@ def init_mod():
                 "create",
                 "defineProperty",
                 "defineProperties",
-                "getPrototypeOf",       # ES6
-                "setPrototypeOf",       # ES6
-
+                "getPrototypeOf",             # ES6
+                "setPrototypeOf",             # ES6
+                "getOwnPropertyDescriptor",   # ES6
+                "getOwnPropertyDescriptors",  # ES6
                 # experimental
                 "values",
                 "entries"
