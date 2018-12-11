@@ -207,7 +207,7 @@ def js_error(message, filename, line, col, pos, is_eof):
         line: line,
         col: col
     })
-    raise ParseError(message, line, col, pos, is_eof)
+    raise ParseError(message, line, col, pos, is_eof, filename)
 
 EX_EOF = {}
 
