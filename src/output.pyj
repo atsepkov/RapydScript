@@ -885,7 +885,7 @@ def Stream(options):
             else:
                 needsSuper = True
         if (isinstance(node, ast.Method) or isinstance(node, ast.ObjectGetter) or isinstance(node, ast.ObjectSetter)) \
-              and not node.static and not delaySelfAssignment:
+                and not node.static and not delaySelfAssignment:
             if needsSuper:
                 output.indent()
                 output.print('super()')
@@ -1557,7 +1557,6 @@ def Stream(options):
                     output = this
                     output.assign(obj)
                     decorate(self.decorators, output, def(): output.print(obj);)
-
             return None
 
         def getES6DecoratedMethods():
@@ -1624,8 +1623,6 @@ def Stream(options):
                     def_class_vars_and_decorators= output.with_class_vars_init(class_vars, def_class_vars_and_decorators)
                     return def_class_vars_and_decorators 
                 return None
-
-            
 
             # new ES6 classes
             # @decorated(self.decorators, output)
@@ -2265,11 +2262,14 @@ def Stream(options):
                     output_kwargs()
             )
 
-        if output.option('es6') and isinstance(self, ast.ClassCall) and self.super:
+        if output.option('es6') and (
+                (isinstance(self, ast.ClassCall) and self.super)
+                or (isinstance(self, ast.Call) and self.expression.name is 'super')
+                ):
             # in ES6, move "self = this" definition after the super() call
             output.end_statement()
             output.indent()
-            output.spaced("var", selfArg, "=", "this")
+            output.spaced("var", selfArg or self.expression.selfArg, "=", "this")
     )
     DEFPRINT(ast.New, def(self, output):
         output.print("new")

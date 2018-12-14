@@ -42,10 +42,11 @@ def init_mod():
                 "create",
                 "defineProperty",
                 "defineProperties",
-                "getPrototypeOf",             # ES6
-                "setPrototypeOf",             # ES6
-                "getOwnPropertyDescriptor",   # ES6
-                "getOwnPropertyDescriptors",  # ES6
+                "getPrototypeOf",       # ES6
+                "setPrototypeOf",       # ES6
+                "getOwnPropertyDescriptor", # ES6
+                "getOwnPropertyDescriptors", # ES6
+
                 # experimental
                 "values",
                 "entries"
@@ -472,7 +473,7 @@ def parse($TEXT, options):
             tmp_ = S.token.value
 
             if tokenizer.ES6_KEYWORDS(tmp_) and not options.es6:
-                token_error(prev(), "«" + tmp_ + "» keyword not supported with ES5 output, use --ecmascript6 compilation flag")
+                token_error(prev() or S.token, "«" + tmp_ + "» keyword not supported with ES5 output, use --ecmascript6 compilation flag")
 
             next()
             if tmp_ is "break":
@@ -1024,6 +1025,7 @@ def parse($TEXT, options):
 
         docstring = None
         callsSuper = None
+        superCall = None
         definition = new ctor({
             start: start,
             name: name,
@@ -1177,10 +1179,11 @@ def parse($TEXT, options):
                 a = block_()
 
                 # these transform variables that are used by other keys, hence the somewhat ugly use of nonlocal
-                nonlocal generator, localvars, docstring, callsSuper
+                nonlocal generator, localvars, docstring, callsSuper, superCall
                 generator = S.in_scope[-1].generator
                 docstring = S.in_scope[-1].docstring
                 callsSuper = S.in_scope[-1].callsSuper
+                superCall = S.in_scope[-1].superCall
 
                 # FIXME: debug logic
                 if generator:
@@ -1214,6 +1217,8 @@ def parse($TEXT, options):
             if ctor is ast.Constructor:
                 definition.parent = S.in_scope[-1].parent
                 definition.callsSuper = callsSuper
+                if superCall:
+                    superCall.selfArg = definition.argnames[0]
             if definition.argnames.length < 1:
                 croak("Class methods require at least one argument (self)", start.line, start.col, start.pos)
             elif ctor is ast.ObjectGetter and definition.argnames.length is not 1:
@@ -2001,13 +2006,16 @@ def parse($TEXT, options):
                     funcname = expr
                     if funcname.property is "__init__":
                         funcname.property = "constructor"
-
-                    S.in_scope[-1].callsSuper = S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and stringifyName(expr.expression) is S.in_scope[-2].parent
+                    
+                    # there are maybe non-super class calls, so
+                    # we have to prevent S.in_scope[-1].callsSuper from being changed if it is already set to True
+                    is_super = S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and stringifyName(expr.expression) is S.in_scope[-2].parent
+                    S.in_scope[-1].callsSuper = S.in_scope[-1].callsSuper or is_super
                     return validateCallArgs(subscripts(ast.ClassCall({
                         start: start,
                         class: expr.expression,
                         method: funcname.property,
-                        super: S.in_scope[-1].callsSuper,
+                        super: is_super,
                         static: is_static_method(className, funcname.property),
                         args: func_call_list(),
                         end: prev()
@@ -2032,6 +2040,7 @@ def parse($TEXT, options):
                         })
                     elif tmp_ is "super":
                         S.in_scope[-1].callsSuper = True
+                        S.in_scope[-1].superCall = expr
                     elif tmp_ in tokenizer.JS_KEYWORDS:
                         # avoid collision with reserved javascropt keywords
                         expr.name += '_'
@@ -2457,4 +2466,3 @@ def parse($TEXT, options):
         IMPORTING[module_id] = False
         return toplevel
     )()
-
