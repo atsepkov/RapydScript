@@ -320,13 +320,13 @@ def parse($TEXT, options):
     def unexpected(token):
         if token is undefined:
             token = S.token
-        token_error(token, "Unexpected token: " + token.type + " «" + token.value + "»")
+        token_error(token, "Unexpected token: " + token.type + " В«" + token.value + "В»")
 
     def expect_token(type, val):
         if is_(type, val):
             return next()
-        token_error(S.token, "Unexpected token " + S.token.type + " «" + S.token.value + "»" +
-                    ", expected " + type + " «" + val + "»")
+        token_error(S.token, "Unexpected token " + S.token.type + " В«" + S.token.value + "В»" +
+                    ", expected " + type + " В«" + val + "В»")
 
     def expect(punc):
         return expect_token("punc", punc)
@@ -459,7 +459,7 @@ def parse($TEXT, options):
             tmp_ = S.token.value
 
             if tokenizer.ES6_KEYWORDS(tmp_) and not options.es6:
-                token_error(prev() or S.token, "«" + tmp_ + "» keyword not supported with ES5 output, use --ecmascript6 compilation flag")
+                token_error(prev() or S.token, "В«" + tmp_ + "В» keyword not supported with ES5 output, use --ecmascript6 compilation flag")
 
             next()
             if tmp_ is "break":
@@ -557,7 +557,7 @@ def parse($TEXT, options):
                 if S.token.newline_before:
                     return ast.Throw({
                         value: ast.SymbolCatch({
-                            name: "ՐՏ_Exception"
+                            name: "ХђХЏ_Exception"
                         })
                     })
 
