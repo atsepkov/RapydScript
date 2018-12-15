@@ -60,6 +60,10 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
                 return /^[^_].*\.pyj$/.test(name)
             )
         for file in files:
+            # omit files that es6 only if not in es6-mode
+            if /^.+?_es6\.pyj$/.test(file) and not argv.ecmascript6:
+                continue
+
             output = compileFile(file)
             code = output.toString()
 
@@ -175,4 +179,3 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
 
     if not all_ok: console.log('There were some test failures!')
     process.exit((all_ok) ? 0 : 1)
-
