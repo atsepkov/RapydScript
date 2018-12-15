@@ -1,0 +1,53 @@
+class Human:
+    def __init__(self, name):
+        self.name = name
+
+    def greet(self):
+        return "Hello, I'm " + self.name
+
+    @staticmethod
+    def getTypicalWeight():
+        return "150"
+
+    @staticmethod
+    def getLastName(FirstName):
+        LastNames = {   'Bart' : 'Simpson',
+                        'Leela' : 'Turanga',
+                        'James' : 'Bond'}
+        return LastNames[FirstName]
+
+# test super
+class Friend(Human):
+    def __init__(self, name, friend_of):
+        super(name)
+        self._friend_of = friend_of
+        # test non-super class call
+        self = {}
+        Object.assign(self, {screaming_name: name.toUpperCase()})
+        # if there is extra `var self = this` the below will fail 
+        assert.notEqual(this, self)
+
+    def greet(self):
+        return "Yo, it's me, " + self.name
+    
+    get friend_of(self):
+        return self._friend_of
+        
+    def nickname(self, name):
+        self.name = name
+
+    @staticmethod
+    def factory(*args):
+        return Friend(*args)
+       
+bob = Human("Bob")
+joe = Friend("Joe", bob)
+
+assert.equal(joe.greet(), "Yo, it's me, Joe")
+assert.equal(joe.friend_of, bob)
+assert.ok(isinstance(joe, Friend))
+assert.ok(isinstance(joe, Human))
+
+angela = Friend.factory("Angela", joe)
+assert.equal(angela.greet(), "Yo, it's me, Angela")
+assert.equal(angela.friend_of, joe)
