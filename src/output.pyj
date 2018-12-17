@@ -2265,11 +2265,13 @@ def Stream(options):
                     output_kwargs()
             )
 
-        if output.option('es6') and isinstance(self, ast.ClassCall) and self.super:
+        if output.option('es6') and (
+                    (isinstance(self, ast.ClassCall) and self.super)
+                 or (isinstance(self, ast.Call)      and self.expression.name is 'super') ):
             # in ES6, move "self = this" definition after the super() call
             output.end_statement()
             output.indent()
-            output.spaced("var", selfArg, "=", "this")
+            output.spaced("var", selfArg or self.expression.selfArg, "=", "this")
     )
     DEFPRINT(ast.New, def(self, output):
         output.print("new")

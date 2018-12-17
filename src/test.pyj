@@ -179,4 +179,3 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
 
     if not all_ok: console.log('There were some test failures!')
     process.exit((all_ok) ? 0 : 1)
-
