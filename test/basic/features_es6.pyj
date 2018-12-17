@@ -1,0 +1,92 @@
+class Human:
+    def __init__(self, name):
+        self.name = name
+
+    def greet(self):
+        return "Hello, I'm " + self.name
+
+    @staticmethod
+    def getTypicalWeight():
+        return "150"
+
+    @staticmethod
+    def getLastName(FirstName):
+        LastNames = {   'Bart' : 'Simpson',
+                        'Leela' : 'Turanga',
+                        'James' : 'Bond'}
+        return LastNames[FirstName]
+
+# test super
+class Friend(Human):
+    def __init__(self, name, friend_of):
+        super(name)
+        self._friend_of = friend_of
+        # test non-super class call
+        self = {}
+        Object.assign(self, {screaming_name: name.toUpperCase()})
+        # if there is extra `var self = this` the below will fail 
+        assert.notEqual(this, self)
+
+    def greet(self):
+        return "Yo, it's me, " + self.name
+    
+    get friend_of(self):
+        return self._friend_of
+        
+    def nickname(self, name):
+        self.name = name
+
+    @staticmethod
+    def factory(*args):
+        return Friend(*args)
+       
+bob = Human("Bob")
+joe = Friend("Joe", bob)
+
+assert.equal(joe.greet(), "Yo, it's me, Joe")
+assert.equal(joe.friend_of, bob)
+assert.ok(isinstance(joe, Friend))
+assert.ok(isinstance(joe, Human))
+
+angela = Friend.factory("Angela", joe)
+assert.equal(angela.greet(), "Yo, it's me, Angela")
+assert.equal(angela.friend_of, joe)
+
+
+# generators
+def gen():
+    def f(a, y):
+        return a+y
+        
+    ten = 10
+    yield 1
+    yield
+    yield ten * 10, 200, 300
+    yield from [11,22]
+    yield def():
+            pass
+    a = yield 5
+    assert.equal(a, 'hi!')
+    a = yield def():
+                pass
+    return f(yield a, yield 'almost done')
+
+g = gen()
+assert.equal(g.next().value, 1)
+assert.equal(g.next().value, undefined)
+assert.ok(g.next().value == [100, 200, 300])
+
+assert.equal(g.next().value, 11)
+assert.equal(g.next().value, 22)
+
+assert.ok(isinstance(g.next('hi!').value, Function))
+assert.equal(g.next().value, 5)
+f = g.next('hi!').value
+assert.ok(isinstance(f, Function))
+assert.equal(g.next(f).value, f)
+assert.equal(g.next('a').value, 'almost done')
+t = g.next('b')
+assert.equal(t.value, 'ab')
+assert.equal(t.done, True)
+
+
