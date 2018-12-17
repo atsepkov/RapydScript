@@ -525,21 +525,20 @@ def parse($TEXT, options):
                     result = yield_()
                 else:
                     ctor = ast.Return
-
-                result = new ctor({
-                    value: (is_("punc", ";") ?
-                        (def():
-                            semicolon()
-                            return None
-                        )() : (can_insert_semicolon() ? None
-                            : (def():
-                                tmp = expression(True)
+                    result = new ctor({
+                        value: (is_("punc", ";") ?
+                            (def():
                                 semicolon()
-                                return tmp
-                            )()
+                                return None
+                            )() : (can_insert_semicolon() ? None
+                                : (def():
+                                    tmp = expression(True)
+                                    semicolon()
+                                    return tmp
+                                )()
+                            )
                         )
-                    )
-                })
+                    })
                 # check if user violated a contract they agreed to follow
                 if (S.in_scope[-1].return_annotation):
                     expectedType = S.in_scope[-1].return_annotation.resolveType(S.in_scope)
