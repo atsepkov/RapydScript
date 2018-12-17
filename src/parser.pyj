@@ -1011,7 +1011,7 @@ def parse($TEXT, options):
 
         docstring = None
         callsSuper = None
-        superCall = None
+        superCall_expr = None
         definition = new ctor({
             start: start,
             name: name,
@@ -1165,11 +1165,11 @@ def parse($TEXT, options):
                 a = block_()
 
                 # these transform variables that are used by other keys, hence the somewhat ugly use of nonlocal
-                nonlocal generator, localvars, docstring, callsSuper, superCall
+                nonlocal generator, localvars, docstring, callsSuper, superCall_expr
                 generator = S.in_scope[-1].generator
                 docstring = S.in_scope[-1].docstring
                 callsSuper = S.in_scope[-1].callsSuper
-                superCall = S.in_scope[-1].superCall
+                superCall_expr = S.in_scope[-1].superCall_expr
 
                 # FIXME: debug logic
                 if generator:
@@ -1203,8 +1203,8 @@ def parse($TEXT, options):
             if ctor is ast.Constructor:
                 definition.parent = S.in_scope[-1].parent
                 definition.callsSuper = callsSuper
-                if superCall:
-                    superCall.selfArg = definition.argnames[0]
+                if superCall_expr:
+                    superCall_expr.selfArg = definition.argnames[0]
             if definition.argnames.length < 1:
                 croak("Class methods require at least one argument (self)", start.line, start.col, start.pos)
             elif ctor is ast.ObjectGetter and definition.argnames.length is not 1:
@@ -2026,7 +2026,7 @@ def parse($TEXT, options):
                         })
                     elif tmp_ is "super":
                         S.in_scope[-1].callsSuper = True
-                        S.in_scope[-1].superCall = expr
+                        S.in_scope[-1].superCall_expr = expr
                     elif tmp_ in tokenizer.JS_KEYWORDS:
                         # avoid collision with reserved javascropt keywords
                         expr.name += '_'
