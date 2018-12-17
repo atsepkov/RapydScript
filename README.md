@@ -1287,6 +1287,15 @@ class Item:
         self._item = val
 ```
 
+It is possible to use `super()`-call to initialize base class:
+
+```python
+class Bar(Foo):
+    def __init__(self):
+        super() # note that there is no "self" argument
+```
+Be aware, that in ES6 derived class it needs to first call super() before using `this`.
+
 Template literals are new type of string in ES6 that auto-interpolates variables for you. Just like Python 3.6, RapydScript uses the `f` prefix for these:
 
 ```python
