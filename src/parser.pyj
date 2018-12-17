@@ -20,6 +20,176 @@ from utils import makePredicate, defaults, ImportError, js_error, RAPYD_PREFIX, 
 import ast
 import tokenizer
 
+NATIVE_CLASSES = None 
+COMMON_STATIC = None 
+CLASS_MAP = None
+BASELIB = None
+STDLIB  = None
+
+def init_mod():
+    nonlocal NATIVE_CLASSES, COMMON_STATIC,  CLASS_MAP,  BASELIB, STDLIB
+    
+    NATIVE_CLASSES = {
+        # javascript
+        'Image': {},
+        'RegExp': {},
+        'Error': {},
+        'Object': {
+            static: [
+                "assign",               # ES6
+                "getOwnPropertyNames",
+                "keys",
+                "create",
+                "defineProperty",
+                "defineProperties",
+                "getPrototypeOf",       # ES6
+                "setPrototypeOf",       # ES6
+                "getOwnPropertyDescriptor", # ES6
+                "getOwnPropertyDescriptors", # ES6
+
+                # experimental
+                "values",
+                "entries"
+            ]
+        },
+        'String': {
+            static: [ "fromCharCode" ]
+        },
+        'Array': {
+            static: [ "isArray", "from", "of" ]
+        },
+        'Number': {
+            static: [ "isFinite", "isNaN" ]
+        },
+        'Function': {},
+        'Date': {
+            static: [ "UTC", "now", "parse" ]
+        },
+        'Boolean': {},
+        'ArrayBuffer': {
+            static: [ "isView", "transfer" ]
+        },
+        'DataView': {},
+        'Float32Array': {},
+        'Float64Array': {},
+        'Int16Array': {},
+        'Int32Array': {},
+        'Int8Array': {},
+        'Uint16Array': {},
+        'Uint32Array': {},
+        'Uint8Array': {},
+        'Uint8ClampedArray': {},
+        'Map': {},      # ES6
+        'WeakMap': {},  # ES6
+        'Set': {},      # ES6
+        'WeakSet': {},  # ES6
+        'Promise': {    # ES6
+            static: [
+                "all",
+                "race",
+                "reject",
+                "resolve"
+            ]
+        },
+
+        # baselib
+        "AssertionError": {},
+        "IndexError": {},
+        "KeyError": {},
+        "TypeError": {},
+        "ValueError": {},
+    }
+    COMMON_STATIC = [ "call", "apply", "bind", "toString" ]
+
+    CLASS_MAP = {}      # top-level classes will be populated into here
+
+    # detect common python stdlib methods - these will be auto-injected into the code when called
+    BASELIB = { key: 0 for key in [
+        "abs",
+        "all",
+        "any",
+        "bin",
+        "bind",
+        "rebind_all",
+        "cmp",
+        "chr",
+        "dir",
+        "enumerate",
+        "eslice",
+        "extends",
+        "filter",
+        "hex",
+        "in",
+        "iterable",
+        "len",
+        "map",
+        "max",
+        "min",
+        "merge",
+        "mixin",
+        "print",
+        "range",
+        "reduce",
+        "reversed",
+        "sorted",
+        "sum",
+        "type",
+        "zip",
+        "getattr",
+        "setattr",
+        "hasattr",
+        "eq",
+        "kwargs",
+        "AssertionError",
+        "IndexError",
+        "KeyError",
+        "TypeError",
+        "ValueError"
+    ]}
+    STDLIB = [
+        "abs",
+        "bin",
+        "cmp",
+        "chr",
+        "dir",
+        "hex",
+        "max",
+        "min",
+        "merge",
+        "mixin",
+        "print",
+        "range",
+        "reduce",
+        "getattr",
+        "setattr",
+        "hasattr",
+
+        # unique to RapydScript
+        "eq",
+        "bind",
+        "rebind_all",
+        "type",
+
+        # list operations
+        "all",
+        "any",
+        "enumerate",
+        "filter",
+        "len",
+        "map",
+        "reversed",
+        "sum",
+        "zip",
+
+        # errors
+        "AssertionError",
+        "IndexError",
+        "KeyError",
+        "TypeError",
+        "ValueError",
+    ]
+
+    
 
 def array_to_hash(a):
     ret = {}
@@ -27,165 +197,6 @@ def array_to_hash(a):
         ret[a[i]] = True
     return ret
 
-NATIVE_CLASSES = {
-    # javascript
-    'Image': {},
-    'RegExp': {},
-    'Error': {},
-    'Object': {
-        static: [
-            "assign",               # ES6
-            "getOwnPropertyNames",
-            "keys",
-            "create",
-            "defineProperty",
-            "defineProperties",
-            "getPrototypeOf",       # ES6
-            "setPrototypeOf",       # ES6
-            "getOwnPropertyDescriptor",   # ES6
-            "getOwnPropertyDescriptors",  # ES6
-
-            # experimental
-            "values",
-            "entries"
-        ]
-    },
-    'String': {
-        static: [ "fromCharCode" ]
-    },
-    'Array': {
-        static: [ "isArray", "from", "of" ]
-    },
-    'Number': {
-        static: [ "isFinite", "isNaN" ]
-    },
-    'Function': {},
-    'Date': {
-        static: [ "UTC", "now", "parse" ]
-    },
-    'Boolean': {},
-    'ArrayBuffer': {
-        static: [ "isView", "transfer" ]
-    },
-    'DataView': {},
-    'Float32Array': {},
-    'Float64Array': {},
-    'Int16Array': {},
-    'Int32Array': {},
-    'Int8Array': {},
-    'Uint16Array': {},
-    'Uint32Array': {},
-    'Uint8Array': {},
-    'Uint8ClampedArray': {},
-    'Map': {},      # ES6
-    'WeakMap': {},  # ES6
-    'Set': {},      # ES6
-    'WeakSet': {},  # ES6
-    'Promise': {    # ES6
-        static: [
-            "all",
-            "race",
-            "reject",
-            "resolve"
-        ]
-    },
-
-    # baselib
-    "AssertionError": {},
-    "IndexError": {},
-    "KeyError": {},
-    "TypeError": {},
-    "ValueError": {},
-}
-COMMON_STATIC = [ "call", "apply", "bind", "toString" ]
-
-CLASS_MAP = {}      # top-level classes will be populated into here
-
-# detect common python stdlib methods - these will be auto-injected into the code when called
-BASELIB = { key: 0 for key in [
-    "abs",
-    "all",
-    "any",
-    "bin",
-    "bind",
-    "rebind_all",
-    "cmp",
-    "chr",
-    "dir",
-    "enumerate",
-    "eslice",
-    "extends",
-    "filter",
-    "hex",
-    "in",
-    "iterable",
-    "len",
-    "map",
-    "max",
-    "min",
-    "merge",
-    "mixin",
-    "print",
-    "range",
-    "reduce",
-    "reversed",
-    "sorted",
-    "sum",
-    "type",
-    "zip",
-    "getattr",
-    "setattr",
-    "hasattr",
-    "eq",
-    "kwargs",
-    "AssertionError",
-    "IndexError",
-    "KeyError",
-    "TypeError",
-    "ValueError"
-]}
-STDLIB = [
-    "abs",
-    "bin",
-    "cmp",
-    "chr",
-    "dir",
-    "hex",
-    "max",
-    "min",
-    "merge",
-    "mixin",
-    "print",
-    "range",
-    "reduce",
-    "getattr",
-    "setattr",
-    "hasattr",
-
-    # unique to RapydScript
-    "eq",
-    "bind",
-    "rebind_all",
-    "type",
-
-    # list operations
-    "all",
-    "any",
-    "enumerate",
-    "filter",
-    "len",
-    "map",
-    "reversed",
-    "sum",
-    "zip",
-
-    # errors
-    "AssertionError",
-    "IndexError",
-    "KeyError",
-    "TypeError",
-    "ValueError",
-]
 
 
 def has_simple_decorator(decorators, name):
@@ -226,6 +237,9 @@ ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ]
 
 # -----[ Parser ]-----
 def parse($TEXT, options):
+    if not NATIVE_CLASSES:
+        init_mod()
+    
     options = defaults(options, {
         strict: False,          # whether to use strict JavaScript mode
         filename: None,         # name of the file being parsed
@@ -522,25 +536,25 @@ def parse($TEXT, options):
                     croak("'return' outside of function")
 
                 if tmp_ is "yield":
-                    S.in_scope[-1].generator = True
-                    ctor = ast.Yield
+                    #S.in_scope[-1].generator = True
+                    #ctor = ast.Yield
+                    result = yield_()
                 else:
                     ctor = ast.Return
-
-                result = new ctor({
-                    value: (is_("punc", ";") ?
-                        (def():
-                            semicolon()
-                            return None
-                        )() : (can_insert_semicolon() ? None
-                            : (def():
-                                tmp = expression(True)
+                    result = new ctor({
+                        value: (is_("punc", ";") ?
+                            (def():
                                 semicolon()
-                                return tmp
-                            )()
+                                return None
+                            )() : (can_insert_semicolon() ? None
+                                : (def():
+                                    tmp = expression(True)
+                                    semicolon()
+                                    return tmp
+                                )()
+                            )
                         )
-                    )
-                })
+                    })
                 # check if user violated a contract they agreed to follow
                 if (S.in_scope[-1].return_annotation):
                     expectedType = S.in_scope[-1].return_annotation.resolveType(S.in_scope)
@@ -1172,8 +1186,8 @@ def parse($TEXT, options):
                 superCall_expr = S.in_scope[-1].superCall_expr
 
                 # FIXME: debug logic
-                if generator:
-                    print(S.in_scope[-1])
+                #if generator:
+                #    print(S.in_scope[-1])
 
                 localvars = [new_symbol(ast.SymbolVar, variable) for variable in Object.keys(S.in_scope[-1].vars) if variable not in S.in_scope[-1].nonlocal]
 
@@ -1432,6 +1446,36 @@ def parse($TEXT, options):
             definitions: vardefs(False, "const"),
             end: prev()
         })
+        
+    def yield_():
+        if S.in_scope[-1].type is not "function":
+            croak("'yield' outside of function")
+        S.in_scope[-1].generator = True
+        value = None
+        yield_from = False
+        if is_("punc", ";"):
+            semicolon()
+        elif not can_insert_semicolon():
+            if S.token.type is 'keyword' and S.token.value is 'from':
+                yield_from = True
+                next()
+            value = expression(True)
+            semicolon()
+        ret =  new ast.Yield({
+            value: value,
+            yield_from: yield_from
+        })
+        return ret
+        
+    def yield_request():
+        start = S.token
+        expect_token("keyword", "yield")
+        ret = yield_()
+        ret.start = start
+        ret.end = prev()
+        ret.computedType = '?'
+        ret.yield_request = True
+        return ret
 
     def new_():
         start = S.token
@@ -1543,6 +1587,9 @@ def parse($TEXT, options):
             func.end = prev()
             return subscripts(func, allow_calls)
 
+        if is_("keyword", "yield"):
+            return yield_request()
+            
         if ATOMIC_START_TOKEN[S.token.type]:
             return subscripts(as_atom_node(), allow_calls)
 
@@ -1992,7 +2039,7 @@ def parse($TEXT, options):
                     funcname = expr
                     if funcname.property is "__init__":
                         funcname.property = "constructor"
-
+                    
                     # there are maybe non-super class calls, so
                     # we have to prevent S.in_scope[-1].callsSuper from being changed if it is already set to True
                     is_super = S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and stringifyName(expr.expression) is S.in_scope[-2].parent
@@ -2045,7 +2092,7 @@ def parse($TEXT, options):
         if isinstance(expr, ast.Dot):
             return stringifyName(expr.expression) + "." + expr.property
         return expr.name
-    
+
     def keepDecoratorOrImport(expr, imp=False):
         # helper function for figuring out whether this decorator should be dropped
         if imp:

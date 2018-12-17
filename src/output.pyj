@@ -1557,7 +1557,6 @@ def Stream(options):
                     output = this
                     output.assign(obj)
                     decorate(self.decorators, output, def(): output.print(obj);)
-
             return None
 
         def getES6DecoratedMethods():
@@ -1624,8 +1623,6 @@ def Stream(options):
                     def_class_vars_and_decorators= output.with_class_vars_init(class_vars, def_class_vars_and_decorators)
                     return def_class_vars_and_decorators 
                 return None
-
-            
 
             # new ES6 classes
             # @decorated(self.decorators, output)
@@ -1846,13 +1843,17 @@ def Stream(options):
         if self.value:
             output.space()
             self.value.print(output)
-        output.semicolon()
+        if not self.yield_request:
+            output.semicolon()
 
     DEFPRINT(ast.Return, def(self, output):
         self._do_print(output, "return")
     )
     DEFPRINT(ast.Yield, def(self, output):
-        self._do_print(output, "yield")
+        kind = "yield"
+        if self.yield_from:
+            kind = "yield*"
+        self._do_print(output, kind)
     )
     DEFPRINT(ast.Throw, def(self, output):
         self._do_print(output, "throw")
@@ -2293,6 +2294,7 @@ def Stream(options):
         # this will effectively convert tuples to arrays
         if isinstance(p, ast.Binary)
         or isinstance(p, ast.Return)
+        or (isinstance(p, ast.Yield) and not p.yield_request)
         or isinstance(p, ast.Array)
         or isinstance(p, ast.BaseCall)
         or isinstance(p, ast.SimpleStatement):
