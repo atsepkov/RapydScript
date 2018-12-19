@@ -522,25 +522,23 @@ def parse($TEXT, options):
                     croak("'return' outside of function")
 
                 if tmp_ is "yield":
-                    S.in_scope[-1].generator = True
-                    ctor = ast.Yield
+                    result = yield_()
                 else:
                     ctor = ast.Return
-
-                result = new ctor({
-                    value: (is_("punc", ";") ?
-                        (def():
-                            semicolon()
-                            return None
-                        )() : (can_insert_semicolon() ? None
-                            : (def():
-                                tmp = expression(True)
+                    result = new ctor({
+                        value: (is_("punc", ";") ?
+                            (def():
                                 semicolon()
-                                return tmp
-                            )()
+                                return None
+                            )() : (can_insert_semicolon() ? None
+                                : (def():
+                                    tmp = expression(True)
+                                    semicolon()
+                                    return tmp
+                                )()
+                            )
                         )
-                    )
-                })
+                    })
                 # check if user violated a contract they agreed to follow
                 if (S.in_scope[-1].return_annotation):
                     expectedType = S.in_scope[-1].return_annotation.resolveType(S.in_scope)
@@ -1432,7 +1430,38 @@ def parse($TEXT, options):
             definitions: vardefs(False, "const"),
             end: prev()
         })
-
+        
+    def yield_():
+        if S.in_scope[-1].type is not "function":
+            croak("'yield' outside of function")
+        S.in_scope[-1].generator = True
+        value = None
+        yield_from = False
+        if is_("punc", ";"):
+            semicolon()
+        elif not can_insert_semicolon():
+            if S.token.type is 'keyword' and S.token.value is 'from':
+                yield_from = True
+                next()
+            value = expression(True)
+            semicolon()
+        ret =  new ast.Yield({
+            value: value,
+            yield_from: yield_from
+        })
+        return ret
+        
+    def yield_request():
+        start = S.token
+        expect_token("keyword", "yield")
+        ret = yield_()
+        ret.start = start
+        ret.end = prev()
+        ret.computedType = '?'
+        ret.yield_request = True
+        return ret
+        
+        
     def new_():
         start = S.token
         expect_token("operator", "new")
@@ -1542,7 +1571,10 @@ def parse($TEXT, options):
             func.start = start
             func.end = prev()
             return subscripts(func, allow_calls)
-
+            
+        if is_("keyword", "yield"):
+            return yield_request()
+            
         if ATOMIC_START_TOKEN[S.token.type]:
             return subscripts(as_atom_node(), allow_calls)
 

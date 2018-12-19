@@ -558,7 +558,12 @@ class Exit(Jump):
         return self.value.resolveType(heap)
 
 class Return(Exit): "A `return` statement"
-class Yield(Exit): "A `yield` statement"
+class Yield(Exit): 
+    "A `yield` statement"
+    properties = {
+        yield_from: "[boolean] true if it is `yield from` i.e. JS `yield*` ",
+        yield_request: "[boolean] true if some value is requested from `yield`: `a = yield` or `f(yield, ...) ` and so on"
+    }
 class Throw(Exit): "A `throw` statement"
 
 class LoopControl(Jump):

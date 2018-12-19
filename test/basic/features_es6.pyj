@@ -51,3 +51,42 @@ assert.ok(isinstance(joe, Human))
 angela = Friend.factory("Angela", joe)
 assert.equal(angela.greet(), "Yo, it's me, Angela")
 assert.equal(angela.friend_of, joe)
+
+
+# generators
+def gen():
+    def f(a, y):
+        return a+y
+        
+    ten = 10
+    yield 1
+    yield
+    yield ten * 10, 200, 300
+    yield from [11,22]
+    yield def():
+            pass
+    a = yield 5
+    assert.equal(a, 'hi!')
+    a = yield def():
+                pass
+    return f(yield a, yield 'almost done')
+
+g = gen()
+assert.equal(g.next().value, 1)
+assert.equal(g.next().value, undefined)
+assert.ok(g.next().value == [100, 200, 300])
+
+assert.equal(g.next().value, 11)
+assert.equal(g.next().value, 22)
+
+assert.ok(isinstance(g.next('hi!').value, Function))
+assert.equal(g.next().value, 5)
+f = g.next('hi!').value
+assert.ok(isinstance(f, Function))
+assert.equal(g.next(f).value, f)
+assert.equal(g.next('a').value, 'almost done')
+t = g.next('b')
+assert.equal(t.value, 'ab')
+assert.equal(t.done, True)
+
+
