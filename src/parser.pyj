@@ -33,7 +33,7 @@ def array_to_hash(a):
     return ret
 
 # it needs for reinitialization between in-browser compilations
-init_mod():
+def init_mod():
     nonlocal NATIVE_CLASSES, COMMON_STATIC,  CLASS_MAP,  BASELIB, STDLIB
     
     NATIVE_CLASSES = {
