@@ -20,6 +20,11 @@ from utils import makePredicate, defaults, ImportError, js_error, RAPYD_PREFIX, 
 import ast
 import tokenizer
 
+NATIVE_CLASSES = None 
+COMMON_STATIC = None 
+CLASS_MAP = None
+BASELIB = None
+STDLIB  = None
 
 def array_to_hash(a):
     ret = {}
@@ -27,165 +32,169 @@ def array_to_hash(a):
         ret[a[i]] = True
     return ret
 
-NATIVE_CLASSES = {
-    # javascript
-    'Image': {},
-    'RegExp': {},
-    'Error': {},
-    'Object': {
-        static: [
-            "assign",               # ES6
-            "getOwnPropertyNames",
-            "keys",
-            "create",
-            "defineProperty",
-            "defineProperties",
-            "getPrototypeOf",       # ES6
-            "setPrototypeOf",       # ES6
-            "getOwnPropertyDescriptor",   # ES6
-            "getOwnPropertyDescriptors",  # ES6
+# it needs for reinitialization between in-browser compilations
+init_mod():
+    nonlocal NATIVE_CLASSES, COMMON_STATIC,  CLASS_MAP,  BASELIB, STDLIB
+    
+    NATIVE_CLASSES = {
+        # javascript
+        'Image': {},
+        'RegExp': {},
+        'Error': {},
+        'Object': {
+            static: [
+                "assign",               # ES6
+                "getOwnPropertyNames",
+                "keys",
+                "create",
+                "defineProperty",
+                "defineProperties",
+                "getPrototypeOf",       # ES6
+                "setPrototypeOf",       # ES6
+                "getOwnPropertyDescriptor",   # ES6
+                "getOwnPropertyDescriptors",  # ES6
 
-            # experimental
-            "values",
-            "entries"
-        ]
-    },
-    'String': {
-        static: [ "fromCharCode" ]
-    },
-    'Array': {
-        static: [ "isArray", "from", "of" ]
-    },
-    'Number': {
-        static: [ "isFinite", "isNaN" ]
-    },
-    'Function': {},
-    'Date': {
-        static: [ "UTC", "now", "parse" ]
-    },
-    'Boolean': {},
-    'ArrayBuffer': {
-        static: [ "isView", "transfer" ]
-    },
-    'DataView': {},
-    'Float32Array': {},
-    'Float64Array': {},
-    'Int16Array': {},
-    'Int32Array': {},
-    'Int8Array': {},
-    'Uint16Array': {},
-    'Uint32Array': {},
-    'Uint8Array': {},
-    'Uint8ClampedArray': {},
-    'Map': {},      # ES6
-    'WeakMap': {},  # ES6
-    'Set': {},      # ES6
-    'WeakSet': {},  # ES6
-    'Promise': {    # ES6
-        static: [
-            "all",
-            "race",
-            "reject",
-            "resolve"
-        ]
-    },
+                # experimental
+                "values",
+                "entries"
+            ]
+        },
+        'String': {
+            static: [ "fromCharCode" ]
+        },
+        'Array': {
+            static: [ "isArray", "from", "of" ]
+        },
+        'Number': {
+            static: [ "isFinite", "isNaN" ]
+        },
+        'Function': {},
+        'Date': {
+            static: [ "UTC", "now", "parse" ]
+        },
+        'Boolean': {},
+        'ArrayBuffer': {
+            static: [ "isView", "transfer" ]
+        },
+        'DataView': {},
+        'Float32Array': {},
+        'Float64Array': {},
+        'Int16Array': {},
+        'Int32Array': {},
+        'Int8Array': {},
+        'Uint16Array': {},
+        'Uint32Array': {},
+        'Uint8Array': {},
+        'Uint8ClampedArray': {},
+        'Map': {},      # ES6
+        'WeakMap': {},  # ES6
+        'Set': {},      # ES6
+        'WeakSet': {},  # ES6
+        'Promise': {    # ES6
+            static: [
+                "all",
+                "race",
+                "reject",
+                "resolve"
+            ]
+        },
 
-    # baselib
-    "AssertionError": {},
-    "IndexError": {},
-    "KeyError": {},
-    "TypeError": {},
-    "ValueError": {},
-}
-COMMON_STATIC = [ "call", "apply", "bind", "toString" ]
+        # baselib
+        "AssertionError": {},
+        "IndexError": {},
+        "KeyError": {},
+        "TypeError": {},
+        "ValueError": {},
+    }
+    COMMON_STATIC = [ "call", "apply", "bind", "toString" ]
 
-CLASS_MAP = {}      # top-level classes will be populated into here
+    CLASS_MAP = {}      # top-level classes will be populated into here
 
-# detect common python stdlib methods - these will be auto-injected into the code when called
-BASELIB = { key: 0 for key in [
-    "abs",
-    "all",
-    "any",
-    "bin",
-    "bind",
-    "rebind_all",
-    "cmp",
-    "chr",
-    "dir",
-    "enumerate",
-    "eslice",
-    "extends",
-    "filter",
-    "hex",
-    "in",
-    "iterable",
-    "len",
-    "map",
-    "max",
-    "min",
-    "merge",
-    "mixin",
-    "print",
-    "range",
-    "reduce",
-    "reversed",
-    "sorted",
-    "sum",
-    "type",
-    "zip",
-    "getattr",
-    "setattr",
-    "hasattr",
-    "eq",
-    "kwargs",
-    "AssertionError",
-    "IndexError",
-    "KeyError",
-    "TypeError",
-    "ValueError"
-]}
-STDLIB = [
-    "abs",
-    "bin",
-    "cmp",
-    "chr",
-    "dir",
-    "hex",
-    "max",
-    "min",
-    "merge",
-    "mixin",
-    "print",
-    "range",
-    "reduce",
-    "getattr",
-    "setattr",
-    "hasattr",
+    # detect common python stdlib methods - these will be auto-injected into the code when called
+    BASELIB = { key: 0 for key in [
+        "abs",
+        "all",
+        "any",
+        "bin",
+        "bind",
+        "rebind_all",
+        "cmp",
+        "chr",
+        "dir",
+        "enumerate",
+        "eslice",
+        "extends",
+        "filter",
+        "hex",
+        "in",
+        "iterable",
+        "len",
+        "map",
+        "max",
+        "min",
+        "merge",
+        "mixin",
+        "print",
+        "range",
+        "reduce",
+        "reversed",
+        "sorted",
+        "sum",
+        "type",
+        "zip",
+        "getattr",
+        "setattr",
+        "hasattr",
+        "eq",
+        "kwargs",
+        "AssertionError",
+        "IndexError",
+        "KeyError",
+        "TypeError",
+        "ValueError"
+    ]}
+    STDLIB = [
+        "abs",
+        "bin",
+        "cmp",
+        "chr",
+        "dir",
+        "hex",
+        "max",
+        "min",
+        "merge",
+        "mixin",
+        "print",
+        "range",
+        "reduce",
+        "getattr",
+        "setattr",
+        "hasattr",
 
-    # unique to RapydScript
-    "eq",
-    "bind",
-    "rebind_all",
-    "type",
+        # unique to RapydScript
+        "eq",
+        "bind",
+        "rebind_all",
+        "type",
 
-    # list operations
-    "all",
-    "any",
-    "enumerate",
-    "filter",
-    "len",
-    "map",
-    "reversed",
-    "sum",
-    "zip",
+        # list operations
+        "all",
+        "any",
+        "enumerate",
+        "filter",
+        "len",
+        "map",
+        "reversed",
+        "sum",
+        "zip",
 
-    # errors
-    "AssertionError",
-    "IndexError",
-    "KeyError",
-    "TypeError",
-    "ValueError",
-]
+        # errors
+        "AssertionError",
+        "IndexError",
+        "KeyError",
+        "TypeError",
+        "ValueError",
+    ]
 
 
 def has_simple_decorator(decorators, name):
@@ -226,6 +235,9 @@ ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ]
 
 # -----[ Parser ]-----
 def parse($TEXT, options):
+    if not NATIVE_CLASSES:
+        init_mod()
+        
     options = defaults(options, {
         strict: False,          # whether to use strict JavaScript mode
         filename: None,         # name of the file being parsed
