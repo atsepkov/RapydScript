@@ -1666,6 +1666,8 @@ def Stream(options):
                                     output.print('get ')
                                 elif isinstance(stmt, ast.ObjectSetter):
                                     output.print('set ')
+                                elif stmt.generator:
+                                    output.print('*')
                                 stmt.name.print(output)
                             output.space()
 
