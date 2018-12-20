@@ -89,4 +89,29 @@ t = g.next('b')
 assert.equal(t.value, 'ab')
 assert.equal(t.done, True)
 
+# generators as class methods
+class Barman(Human):
+    def __init__(self, name):
+        super(name)
+    
+    def gimme_drink(self):
+        wish = yield 'pepsi'
+        wish = yield wish 
+        yield wish
+        return 'go home'
+        
+    @staticmethod
+    def call_barman():
+        # small hack to turn a function into a generator with single return
+        if 0: yield 
+        return Barman('Tom')
+
+assert.ok(Object.getPrototypeOf(Barman.call_barman) is Object.getPrototypeOf(JS('function* () {}')))        
+tom = Barman.call_barman().next().value
+assert.equal(tom.name, 'Tom')
+tom_gimme_drink = tom.gimme_drink()
+assert.equal( tom_gimme_drink.next().value, 'pepsi' )
+assert.equal( tom_gimme_drink.next('beer').value, 'beer' )
+assert.equal( tom_gimme_drink.next('whiskey').value, 'whiskey' )
+assert.equal( tom_gimme_drink.next('more').value, 'go home' )
 
