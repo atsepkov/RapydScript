@@ -235,7 +235,7 @@ ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ]
 
 # -----[ Parser ]-----
 def parse($TEXT, options):
-    if not NATIVE_CLASSES:
+    if not STDLIB:
         init_mod()
         
     options = defaults(options, {
