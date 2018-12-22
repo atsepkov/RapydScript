@@ -758,6 +758,10 @@ def Stream(options):
             # (new foo)(bar)
             return True
     )
+    PARENS(ast.Yield, def(output):
+        # (yield some).a    
+        return this.parens
+    )
     PARENS(ast.Number, def(output):
         p = output.parent()
         if this.getValue() < 0 and isinstance(p, ast.PropAccess) and p.expression is this:
