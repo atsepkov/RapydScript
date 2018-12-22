@@ -115,3 +115,24 @@ assert.equal( tom_gimme_drink.next('beer').value, 'beer' )
 assert.equal( tom_gimme_drink.next('whiskey').value, 'whiskey' )
 assert.equal( tom_gimme_drink.next('more').value, 'go home' )
 
+# yield in parentheses 
+def echo(v):
+    return v
+    
+def yield_in_parens():
+    def concat3(a,b,c):
+        return a+b+c
+        
+    a = (yield 1)('hi')
+    a = (yield a).prop
+    yield echo((yield a).prop)
+    yield concat3('blah-', (yield a).prop, '-blah')
+    
+tmp = yield_in_parens()
+assert.equal(tmp.next().value, 1)
+assert.equal(tmp.next(echo).value, 'hi')
+assert.equal(tmp.next({prop: 'blah'}).value, 'blah')
+assert.equal(tmp.next({prop: 'blah'}).value, 'blah')
+assert.equal(tmp.next({prop: 'blah'}).value, 'blah')
+assert.equal(tmp.next({prop: 'blah'}).value, 'blah-blah-blah')
+
