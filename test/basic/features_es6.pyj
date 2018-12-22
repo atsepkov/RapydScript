@@ -127,6 +127,9 @@ def yield_in_parens():
     a = (yield a).prop
     yield echo((yield a).prop)
     yield concat3('blah-', (yield a).prop, '-blah')
+    yield (yield 5) + 2
+
+    
     
 tmp = yield_in_parens()
 assert.equal(tmp.next().value, 1)
@@ -135,4 +138,7 @@ assert.equal(tmp.next({prop: 'blah'}).value, 'blah')
 assert.equal(tmp.next({prop: 'blah'}).value, 'blah')
 assert.equal(tmp.next({prop: 'blah'}).value, 'blah')
 assert.equal(tmp.next({prop: 'blah'}).value, 'blah-blah-blah')
+assert.equal(tmp.next().value, 5)
+assert.equal(tmp.next(10).value, 12)
+
 
