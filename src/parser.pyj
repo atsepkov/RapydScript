@@ -1547,7 +1547,7 @@ def parse($TEXT, options):
                 ex = expression(True)
                 ex.start = start
                 ex.end = S.token
-                if isinstance(ex, ast.SymbolRef):
+                if isinstance(ex, ast.SymbolRef) or isinstance(ex, ast.Yield):
                     ex.parens = True
                 expect(")")
                 return subscripts(ex, allow_calls)
