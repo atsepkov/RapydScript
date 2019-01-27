@@ -59,11 +59,12 @@ assert.ok(a != h)
 a["two"] = [3, 4, 5]
 assert.notOk(a != h)
 
-
-# CLASSES
+# classes
 class Copy:
     def __init__(self, data):
         self.data = data
+    def __eq__(self, b):
+        return self.data == b.data
 
 assert.ok(Copy(1) == Copy(1))
 assert.ok(Copy(2) != Copy(1))

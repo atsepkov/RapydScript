@@ -7,6 +7,7 @@ assert.equal(math.copysign(-5, 7), 5)
 assert.equal(math.factorial(4), 24)
 assert.equal(math.fmod(-1e-100, 1e100), -1e-100)
 
+# TODO: we should rewrite the floating point equality tests to use an epsilon error threshold to avoid false rounding errors
 d = [0.9999999, 1, 2, 3]
 assert.equal(math.fsum(d), 6.9999999)   # compare this to sum(d), which will output 6.999999900000001
 assert(math.isinf(5) == False)
@@ -29,7 +30,7 @@ assert.equal(math.pow(100, -2), 0.0001)
 assert.equal(math.hypot(3,4), 5)
 assert.equal(math.acosh(2), 1.3169578969248166)
 assert.equal(math.asinh(1), 0.8813735870195429)
-assert.equal(math.atanh(0.5), 0.5493061443340549)
+assert.equal(math.atanh(0.5), 0.5493061443340548)
 assert.equal(math.cosh(1), 1.5430806348152437)
 assert.equal(math.cosh(-1), 1.5430806348152437)
 assert.equal(math.sinh(1), 1.1752011936438014)
