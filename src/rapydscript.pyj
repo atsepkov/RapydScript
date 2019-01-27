@@ -40,11 +40,10 @@ def splatBaselib(key, value):
         })
     })
 
-browser_env = False
-if not exports:
+browser_env = not exports
+if browser_env:
     # browser environment
-    rapydscript = exports = {}
-    browser_env = True
+    rapydscript = exports = {}    
 
 exports.parse_baselib = exports.parseBaselib = def(srcPath, beautify):
     try:
@@ -91,6 +90,12 @@ exports.get_import_dirs = def(paths_string, ignore_env):
 # options are shared between input and output and irrelevant options are ignored
 exports.compile = compile = def(code, options):
     # parse
+    
+    # because of the use of the same Rapydscript instance,
+    # we should re-initialize all static objects between compilations
+    if browser_env:
+        parser.init_mod()
+    
     toplevel = parser.parse(code, utils.defaults(options, {
         toplevel: toplevel,
         output: {}
@@ -174,10 +179,4 @@ exports.ALL_KEYWORDS = tokenizer.ALL_KEYWORDS
 exports.IDENTIFIER_PAT = tokenizer.IDENTIFIER_PAT
 exports.colored = utils.colored
 
-# browser environment logic
-if  browser_env:
-    if JS('typeof define == "function"') and define.amd:
-        define([], def(): return exports;)
-    else:    
-        window.rapydscript = exports
-
+# browser environment logic  -  moved into self.pyj
