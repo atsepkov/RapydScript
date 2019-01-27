@@ -217,6 +217,7 @@
         return True
 
     if a.constructor is not b.constructor:
+        # object type mismatch
         return False
 
     if Array.isArray(a):
@@ -242,7 +243,11 @@
             if not b.has(i):
                 return False
         return True
+    elif (a.constructor is Date):
+        # dates
+        return a.getTime() is b.getTime()
     elif JS('typeof a.__eq__') is 'function':
+        # everything else that implements __eq__ method
         return a.__eq__(b)
     return False
 ,

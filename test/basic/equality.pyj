@@ -59,6 +59,13 @@ assert.ok(a != h)
 a["two"] = [3, 4, 5]
 assert.notOk(a != h)
 
+# dates
+date0 = Date('5/1/2016')
+date1 = Date('5/1/2016')
+date2 = Date('5/2/2016')
+assert.ok(date0 == date1)
+assert.ok(date0 != date2)
+
 # classes
 class Copy:
     def __init__(self, data):
