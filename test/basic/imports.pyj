@@ -61,3 +61,23 @@ assert.equal(b, this)
 
 # Test global symbol declared in other module
 assert.equal(GLOBAL_SYMBOL, 'i am global')
+
+# Test custom error while reading module file
+try:
+    rapydscript.parse(
+        'import abc\n',
+        {
+            readfile: def(fp): raise Error('custom_error');, 
+            basedir: '/' 
+        }
+    )
+except as e: # e is the instance of ImportError that should contain readfile_error
+    assert.ok(isinstance(e, rapydscript.ImportError))
+    assert.ok(e.readfile_error)
+    assert(e.readfile_error.message is 'custom_error')
+
+
+
+
+
+
