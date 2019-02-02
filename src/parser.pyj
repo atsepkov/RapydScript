@@ -746,7 +746,7 @@ def parse($TEXT, options):
     def do_import(key):
         if key in IMPORTED: return  # we'll reuse the original imported code
         if IMPORTING[key]:          # cyclical import
-            raise ImportError('Detected a recursive import of: ' + key + ' while importing: ' + module_id)
+            raise ImportError('Detected a recursive import of: ' + key + ' while importing: ' + module_id, options.filename)
 
         # Ensure that the package containing this module is also imported
         package_module_id = key.split('.')[:-1].join('.')
@@ -761,7 +761,7 @@ def parse($TEXT, options):
                     if e.code is 'ENOENT' or e.code is 'EPERM' or e.code is 'EACCESS':
                         if i is 1:
                             return None, None
-                    if i is 1:
+                    else:
                         raise
 
         src_code = filename = None
@@ -769,12 +769,21 @@ def parse($TEXT, options):
 
         for location in import_dirs:
             if location:
-                data, filename = safe_read(location + '/' + modpath)
+                try:
+                    data, filename = safe_read(location + '/' + modpath)
+                except as e:
+                    if isinstance(e, ImportError):
+                        raise e
+                    msg = "Failed Import: '" + key + "', due to an error: " + e.message
+                    raise ImportError(msg, options.filename, e)
                 if data is not None:
                     src_code = data
                     break
         if src_code is None:
-            raise "Failed Import: '" + key + "' module doesn't exist in any of the import directories: " + import_dirs.join(', ')
+            raise ImportError(
+              "Failed Import: '" + key + "' module doesn't exist in any of the import directories: " + import_dirs.join(', '),
+               options.filename
+            )
         contents = parse(src_code, {
             filename: filename,
             toplevel: None,
