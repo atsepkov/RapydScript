@@ -75,9 +75,3 @@ except as e: # e is the instance of ImportError that should contain readfile_err
     assert.ok(isinstance(e, rapydscript.ImportError))
     assert.ok(e.readfile_error)
     assert(e.readfile_error.message is 'custom_error')
-
-
-
-
-
-
