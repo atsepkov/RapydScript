@@ -48,8 +48,12 @@ def DefaultsError(msg, defs):
     this.defs = defs
 
 class ImportError(Error):
-    def __init__(self, message):
+    def __init__(self, message, filename, readfile_error):
+        # readfile_error - optional container for underlying error while reading module file
+        # it is may be useful when custom `readfile` is used
         self.message = message
+        self.filename = filename
+        self.readfile_error = readfile_error
 
 class ParseError(Error):
     def __init__(self, message, line, col, pos, is_eof, filename):
