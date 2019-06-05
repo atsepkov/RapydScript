@@ -249,7 +249,8 @@ def parse($TEXT, options):
         dropDecorators: [],     # Decorators to omit from compilation
         dropImports: [],        # Imports to omit from compilation
         dropDocstrings: False,  # If true, omit docstrings from compilation
-        classes: None           # Map of class names to ast.Class that are available in the global namespace (used by the REPL)
+        classes: None,          # Map of class names to ast.Class that are available in the global namespace (used by the REPL)
+        readfile: require('fs').readFileSync,  # File reader
     })
     module_id = options.module_id
 
@@ -787,7 +788,7 @@ def parse($TEXT, options):
         contents = parse(src_code, {
             filename: filename,
             toplevel: None,
-            readfile: options.readfile or require('fs').readFileSync,
+            readfile: options.readfile,
             basedir: options.basedir,
             libdir: options.libdir,
             module_id: key,
