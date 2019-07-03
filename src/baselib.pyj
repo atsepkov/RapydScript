@@ -149,7 +149,7 @@
         for cls in classes:
             for key in Object.getOwnPropertyNames(cls.prototype):
                 if key not in baseClass.prototype:
-                    baseClass.prototype[key] = cls.prototype[key]
+                    Object.defineProperty(baseClass.prototype, key, Object.getOwnPropertyDescriptor(cls.prototype, key))
         return baseClass
 
 ,
