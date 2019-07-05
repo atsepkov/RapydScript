@@ -142,14 +142,15 @@
         if source.hasOwnProperty(i) and (overwrite or JS('typeof target[i]') is 'undefined'): target[i] = source[i]
     for prop in Object.getOwnPropertyNames(source.prototype):
         # methods
-        if overwrite or JS('typeof target.prototype[prop]') is 'undefined': target.prototype[prop] = source.prototype[prop]
+        if overwrite or JS('typeof target.prototype[prop]') is 'undefined':
+            Object.defineProperty(target.prototype, prop, Object.getOwnPropertyDescriptor(source.prototype, prop))
 ,
 "mixin": def ՐՏ_mixin(*classes):
     return def(baseClass):
         for cls in classes:
             for key in Object.getOwnPropertyNames(cls.prototype):
                 if key not in baseClass.prototype:
-                    baseClass.prototype[key] = cls.prototype[key]
+                    Object.defineProperty(baseClass.prototype, key, Object.getOwnPropertyDescriptor(cls.prototype, key))
         return baseClass
 
 ,

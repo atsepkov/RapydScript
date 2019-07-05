@@ -16,7 +16,15 @@ class Human:
                         'James' : 'Bond'}
         return LastNames[FirstName]
 
-# test super
+class Friendship:
+    get friend_of(self):
+        return self._friend_of
+    set friend_of(self, v):
+        self._friend_of = v
+
+
+# test super/mixin
+@mixin(Friendship)
 class Friend(Human):
     def __init__(self, name, friend_of):
         super(name)
@@ -29,9 +37,10 @@ class Friend(Human):
 
     def greet(self):
         return "Yo, it's me, " + self.name
-    
-    get friend_of(self):
-        return self._friend_of
+        
+    # should be injected by mixin
+    #get friend_of(self):
+    #    return self._friend_of
         
     def nickname(self, name):
         self.name = name
@@ -41,9 +50,12 @@ class Friend(Human):
         return Friend(*args)
        
 bob = Human("Bob")
-joe = Friend("Joe", bob)
+joe = Friend("Joe", "bob")
 
 assert.equal(joe.greet(), "Yo, it's me, Joe")
+assert.equal(joe.friend_of, 'bob')
+joe.friend_of = bob
+assert.equal(joe._friend_of, bob)
 assert.equal(joe.friend_of, bob)
 assert.ok(isinstance(joe, Friend))
 assert.ok(isinstance(joe, Human))
