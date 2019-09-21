@@ -841,7 +841,9 @@ def parse($TEXT, options):
 
         for imp in ans['imports']:
             do_import(imp.key)
-            classes = IMPORTED[imp.key].classes
+            cur_imported = IMPORTED[imp.key]
+            classes = cur_imported.classes
+            is_init_pyj = /^.+?__init__\.pyj$/.test(cur_imported.filename);
             if from_import:
                 expect_token("keyword", "import")
                 imp.argnames = argnames = []
@@ -850,6 +852,10 @@ def parse($TEXT, options):
                     if is_('keyword', 'as'):
                         next()
                         aname.alias = as_symbol(ast.SymbolAlias)
+                    # may be `from package import module`    
+                    if is_init_pyj \
+                          and not cur_imported.exports.find(def(it): return it.name is aname.name;):
+                        do_import(imp.key + '.' + aname.name)
                     argnames.push(aname)
                     if is_('punc', ','):
                         next()
@@ -2487,7 +2493,8 @@ def parse($TEXT, options):
 
         def uniq(element, index, arr):
             return arr.lastIndexOf(element) is index
-
+            
+        toplevel.filename = options.filename
         toplevel.nonlocalvars = Object.keys(S.in_scope[-1].nonlocal)
         assignments = Object.keys(S.in_scope[-1].vars)
         callables = scan_for_top_level_callables(toplevel.body).filter(uniq)
