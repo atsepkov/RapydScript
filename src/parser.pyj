@@ -803,10 +803,11 @@ def parse($TEXT, options):
             dropDocstrings: options.dropDocstrings,
         })
         if len(package_module_id) > 0:
-            if not IMPORTING[package_module_id]: 
-                IMPORTED[package_module_id].submodules.push(key)
-            else:
-                PRE_IMPORTED[package_module_id].submodules.push(key)
+            subs = not IMPORTING[package_module_id] \ 
+                ? IMPORTED[package_module_id].submodules \
+                : PRE_IMPORTED[package_module_id].submodules
+            if not (key in subs):
+                subs.push(key)
 
     def import_(from_import):
         ans = ast.Imports({'imports':[]})
