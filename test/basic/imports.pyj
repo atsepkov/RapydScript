@@ -1,8 +1,13 @@
 from _import_one import toplevel_var, toplevel_func as tf, TopLevel, true_var, false_var
-from import_two import toplevel_var2, toplevel_func2, TopLevel2 as TL2, run_test
+from import_two import toplevel_var2, toplevel_func2, TopLevel2 as TL2, run_test, sub as imp_two_sub
+
+console.log('imports.pyj ...\n')
 
 # test import into __init__
 run_test()
+
+# test `from package import module`
+assert.equal('sub', imp_two_sub.sub_var)
 
 def AClass(x):
     return this
