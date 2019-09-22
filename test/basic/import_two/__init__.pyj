@@ -1,8 +1,11 @@
 # vim:fileencoding=utf-8
+import import_two.sub
 import .sub
 from .sub import sub_func as func
 
 assert.equal(func(), 'sub')
+assert.equal(sub.sub_func(), 'sub')
+assert.equal(import_two.sub.sub_func(), 'sub')
 
 def toplevel_func2(a):
     return a + 'toplevel2'
