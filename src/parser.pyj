@@ -812,14 +812,21 @@ def parse($TEXT, options):
         ans = ast.Imports({'imports':[]})
         while True:
             package_pref = ''
-            # dot expander: from .module -> from package.module
+            # allow import submodules into __init__.pyj
+            if /^.+?__init__.pyj$/.test(options.filename or ''):
+                package_pref = options.module_id + '.'
+                if not PRE_IMPORTED[options.module_id]:
+                    PRE_IMPORTED[options.module_id] = {submodules : []}
+                    
+            # dot expander: from .module -> from package.module        
             if is_('punc', '.'):
-                if /^.+?__init__.pyj$/.test(options.filename or ''):
-                    package_pref = options.module_id + '.'
-                    PRE_IMPORTED[options.module_id] = {submodules:[]}
-                else:
+                if not package_pref:
                     package_pref = (/^(.+?\.)[^\.]+$/.exec(options.module_id or '') or ['', ''])[1]
+                # FIX: if not package_pref: raise Error        
                 next()
+            else:
+                package_pref = ''
+                
             tmp = name = expression(False)
             key = ''
             while isinstance(tmp, ast.Dot):
