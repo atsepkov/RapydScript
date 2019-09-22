@@ -811,7 +811,7 @@ def parse($TEXT, options):
             package_pref = ''
             # dot expander: from .module -> from package.module
             if is_('punc', '.'):
-                package_pref = (/^(.+?\.)[^\.]+$/.exec(options.module_id || '') || [null, ''])[1]
+                package_pref = (/^(.+?\.)[^\.]+$/.exec(options.module_id or '') or ['', ''])[1]
                 next()
             tmp = name = expression(False)
             key = ''
