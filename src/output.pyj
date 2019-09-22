@@ -835,6 +835,10 @@ def Stream(options):
         for import_id in Object.keys(module_.imports):
             imports.push(module_.imports[import_id])
         imports.sort(def(a, b):
+            if (subs = a.submodules) and b.module_id in subs:
+                return 1
+            if (subs = b.submodules) and a.module_id in subs:
+                return -1
             a, b = a.import_order, b.import_order
             return ((a < b) ? -1 : ((a > b) ? 1 : 0))
         )
