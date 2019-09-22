@@ -1,5 +1,8 @@
 from _import_one import toplevel_var, toplevel_func as tf, TopLevel, true_var, false_var
-from import_two import toplevel_var2, toplevel_func2, TopLevel2 as TL2
+from import_two import toplevel_var2, toplevel_func2, TopLevel2 as TL2, run_test
+
+# test import into __init__
+run_test()
 
 def AClass(x):
     return this
