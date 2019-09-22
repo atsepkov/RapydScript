@@ -1,18 +1,18 @@
 # vim:fileencoding=utf-8
 import import_two.sub
 import .sub
-# below doesn't work, because __init__ runs first, but submodules are still empty object    
-#from .sub import sub_func as func # - 
+from .sub import sub_func as func
 
-#assert.equal(func(), 'sub')
-#assert.equal(sub.sub_func(), 'sub')
-#assert.equal(import_two.sub.sub_func(), 'sub')
+console.log('  test import into __init__ .....')
+assert.equal(func(), 'sub')
+assert.equal(sub.sub_func(), 'sub')
+assert.equal(import_two.sub.sub_func(), 'sub')
+console.log(' ok!\n')
 
 def run_test():
-    console.log('  test import into __init__\n')
+    assert.equal(func(), 'sub')
     assert.equal(sub.sub_func(), 'sub')
     assert.equal(import_two.sub.sub_func(), 'sub')
-    console.log('  ok!\n')
 
 
 def toplevel_func2(a):
