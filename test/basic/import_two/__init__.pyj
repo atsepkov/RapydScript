@@ -1,10 +1,13 @@
 # vim:fileencoding=utf-8
+import .sub
+from .sub import sub_func as func
+
+assert.equal(func(), 'sub')
 
 def toplevel_func2(a):
     return a + 'toplevel2'
 
 class TopLevel2:
-
     def __init__(self, a):
         self.a = a
 
