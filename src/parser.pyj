@@ -258,7 +258,8 @@ def parse($TEXT, options):
     import_dirs = options.import_dirs[:]
     if options.libdir: import_dirs.push(options.libdir)
     if options.basedir: import_dirs.unshift(options.basedir)
-
+    
+    PRE_IMPORTED = {}
     IMPORTED = options.IMPORTED or {}
     IMPORTING = options.IMPORTING or {}
     IMPORTING[module_id] = True
@@ -751,7 +752,7 @@ def parse($TEXT, options):
 
         # Ensure that the package containing this module is also imported
         package_module_id = key.split('.')[:-1].join('.')
-        if len(package_module_id) > 0:
+        if len(package_module_id) > 0 and not IMPORTING[package_module_id]:
             do_import(package_module_id)
 
         def safe_read(base_path):
@@ -802,8 +803,10 @@ def parse($TEXT, options):
             dropDocstrings: options.dropDocstrings,
         })
         if len(package_module_id) > 0:
-            IMPORTED[package_module_id].submodules.push(key)
-
+            if not IMPORTING[package_module_id]: 
+                IMPORTED[package_module_id].submodules.push(key)
+            else:
+                PRE_IMPORTED[package_module_id].submodules.push(key)
 
     def import_(from_import):
         ans = ast.Imports({'imports':[]})
@@ -811,7 +814,11 @@ def parse($TEXT, options):
             package_pref = ''
             # dot expander: from .module -> from package.module
             if is_('punc', '.'):
-                package_pref = (/^(.+?\.)[^\.]+$/.exec(options.module_id or '') or ['', ''])[1]
+                if /^.+?__init__.pyj$/.test(options.filename or ''):
+                    package_pref = options.module_id + '.'
+                    PRE_IMPORTED[options.module_id] = {submodules:[]}
+                else:
+                    package_pref = (/^(.+?\.)[^\.]+$/.exec(options.module_id or '') or ['', ''])[1]
                 next()
             tmp = name = expression(False)
             key = ''
@@ -2520,5 +2527,8 @@ def parse($TEXT, options):
         toplevel.imports = IMPORTED
         toplevel.baselib = BASELIB
         IMPORTING[module_id] = False
+        if PRE_IMPORTED[module_id]:
+            IMPORTED[module_id].submodules = PRE_IMPORTED[module_id].submodules
+            del PRE_IMPORTED[module_id]
         return toplevel
     )()
