@@ -250,7 +250,7 @@ def parse($TEXT, options):
         dropImports: [],        # Imports to omit from compilation
         dropDocstrings: False,  # If true, omit docstrings from compilation
         classes: None,          # Map of class names to ast.Class that are available in the global namespace (used by the REPL)
-        readfile: require('fs').readFileSync,  # File reader
+        readfile: 'JS(typeof require != "undefined")' ? require('fs').readFileSync : None  # File reader
     })
     module_id = options.module_id
 
