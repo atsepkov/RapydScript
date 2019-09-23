@@ -259,7 +259,7 @@ def parse($TEXT, options):
     if options.libdir: import_dirs.push(options.libdir)
     if options.basedir: import_dirs.unshift(options.basedir)
     
-    PRE_IMPORTED = {}
+    PRE_IMPORTED = options.PRE_IMPORTED or {}
     IMPORTED = options.IMPORTED or {}
     IMPORTING = options.IMPORTING or {}
     IMPORTING[module_id] = True
@@ -793,6 +793,7 @@ def parse($TEXT, options):
             basedir: options.basedir,
             libdir: options.libdir,
             module_id: key,
+            PRE_IMPORTED: PRE_IMPORTED,
             IMPORTED: IMPORTED,
             IMPORTING: IMPORTING,
             auto_bind: options.auto_bind,
