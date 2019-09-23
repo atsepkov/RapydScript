@@ -754,6 +754,7 @@ def parse($TEXT, options):
         package_module_id = key.split('.')[:-1].join('.')
         if len(package_module_id) > 0 and not IMPORTING[package_module_id]:
             do_import(package_module_id)
+            if key in IMPORTED: return  # maybe already imported while package is imported
 
         def safe_read(base_path):
             for i, path in enumerate([base_path + '.pyj', base_path + '/__init__.pyj']):
