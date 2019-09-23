@@ -216,6 +216,9 @@
     if a is b:
         # simple object
         return True
+        
+    if a is undefined or b is undefined or a is None or b is None:
+        return False
 
     if a.constructor is not b.constructor:
         # object type mismatch
