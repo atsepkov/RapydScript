@@ -1,0 +1,10 @@
+import .nested_mod
+from .nested_mod import Foo
+
+assert.equal(nested_mod.fun(),'nested_fun')
+assert.equal(nested_mod.NESTED_MOD_VAR,'nested_var')
+assert.equal( nested_mod.Foo().name, 'nested_foo' )
+assert.equal( Foo().name, 'nested_foo' )
+
+def test():
+    return 'ok'

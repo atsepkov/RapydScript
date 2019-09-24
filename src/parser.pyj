@@ -258,7 +258,8 @@ def parse($TEXT, options):
     import_dirs = options.import_dirs[:]
     if options.libdir: import_dirs.push(options.libdir)
     if options.basedir: import_dirs.unshift(options.basedir)
-
+    
+    PRE_IMPORTED = options.PRE_IMPORTED or {}
     IMPORTED = options.IMPORTED or {}
     IMPORTING = options.IMPORTING or {}
     IMPORTING[module_id] = True
@@ -751,8 +752,9 @@ def parse($TEXT, options):
 
         # Ensure that the package containing this module is also imported
         package_module_id = key.split('.')[:-1].join('.')
-        if len(package_module_id) > 0:
+        if len(package_module_id) > 0 and not IMPORTING[package_module_id]:
             do_import(package_module_id)
+            if key in IMPORTED: return  # maybe already imported while package is imported
 
         def safe_read(base_path):
             for i, path in enumerate([base_path + '.pyj', base_path + '/__init__.pyj']):
@@ -792,6 +794,7 @@ def parse($TEXT, options):
             basedir: options.basedir,
             libdir: options.libdir,
             module_id: key,
+            PRE_IMPORTED: PRE_IMPORTED,
             IMPORTED: IMPORTED,
             IMPORTING: IMPORTING,
             auto_bind: options.auto_bind,
@@ -802,27 +805,50 @@ def parse($TEXT, options):
             dropDocstrings: options.dropDocstrings,
         })
         if len(package_module_id) > 0:
-            IMPORTED[package_module_id].submodules.push(key)
-
+            subs = not IMPORTING[package_module_id] \
+                ? IMPORTED[package_module_id].submodules \
+                : PRE_IMPORTED[package_module_id].submodules
+            if not (key in subs):
+                subs.push(key)
 
     def import_(from_import):
         ans = ast.Imports({'imports':[]})
         while True:
+            package_pref = ''
+            # allow import submodules into __init__.pyj
+            if /^.+?__init__.pyj$/.test(options.filename or ''):
+                package_pref = options.module_id + '.'
+                if not PRE_IMPORTED[options.module_id]:
+                    PRE_IMPORTED[options.module_id] = {submodules : []}
+                    
+            # dot expander: from .module -> from package.module        
+            if is_('punc', '.'):
+                if not package_pref:
+                    package_pref = (/^(.+?\.)[^\.]+$/.exec(options.module_id or '') or ['', ''])[1]
+                # FIX: if not package_pref: raise Error        
+                next()
+            else:
+                package_pref = ''
+                
             tmp = name = expression(False)
             key = ''
             while isinstance(tmp, ast.Dot):
                 key = "." + tmp.property + key
                 tmp = tmp.expression
-            key = tmp.name + key
+            key = package_pref + tmp.name + key
             if not keepDecoratorOrImport(key, True):
                 return ast.EmptyStatement({
                     start: prev(),
                     end: prev()
                 })
             alias = None
-            if not from_import and is_('keyword', 'as'):
-                next()
-                alias = as_symbol(ast.SymbolAlias)
+            if not from_import:
+                if is_('keyword', 'as'):
+                    next()
+                    alias = as_symbol(ast.SymbolAlias)
+                # assume `import .module` is shortcut for `import package.module as module`       
+                elif package_pref:
+                    alias = new_symbol(ast.SymbolAlias,  name.name)
             imp = ast.Import({
                 'module': name,
                 'key': key,
@@ -841,7 +867,9 @@ def parse($TEXT, options):
 
         for imp in ans['imports']:
             do_import(imp.key)
-            classes = IMPORTED[imp.key].classes
+            cur_imported = IMPORTED[imp.key]
+            classes = cur_imported.classes
+            is_init_pyj = /^.+?__init__\.pyj$/.test(cur_imported.filename);
             if from_import:
                 expect_token("keyword", "import")
                 imp.argnames = argnames = []
@@ -850,6 +878,10 @@ def parse($TEXT, options):
                     if is_('keyword', 'as'):
                         next()
                         aname.alias = as_symbol(ast.SymbolAlias)
+                    # may be `from package import module`    
+                    if is_init_pyj \
+                          and not cur_imported.exports.find(def(it): return it.name is aname.name;):
+                        do_import(imp.key + '.' + aname.name)
                     argnames.push(aname)
                     if is_('punc', ','):
                         next()
@@ -2487,7 +2519,8 @@ def parse($TEXT, options):
 
         def uniq(element, index, arr):
             return arr.lastIndexOf(element) is index
-
+            
+        toplevel.filename = options.filename
         toplevel.nonlocalvars = Object.keys(S.in_scope[-1].nonlocal)
         assignments = Object.keys(S.in_scope[-1].vars)
         callables = scan_for_top_level_callables(toplevel.body).filter(uniq)
@@ -2504,5 +2537,8 @@ def parse($TEXT, options):
         toplevel.imports = IMPORTED
         toplevel.baselib = BASELIB
         IMPORTING[module_id] = False
+        if PRE_IMPORTED[module_id]:
+            IMPORTED[module_id].submodules = PRE_IMPORTED[module_id].submodules
+            del PRE_IMPORTED[module_id]
         return toplevel
     )()

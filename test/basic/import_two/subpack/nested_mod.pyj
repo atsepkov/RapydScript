@@ -1,0 +1,7 @@
+
+NESTED_MOD_VAR = 'nested_var'
+def fun():
+    return 'nested_fun'
+class Foo:
+    def __init__(self):
+        self.name = 'nested_foo'

@@ -1,10 +1,24 @@
 # vim:fileencoding=utf-8
+import import_two.sub
+import .sub
+from .sub import sub_func as func
+
+console.log('  test import into __init__ .....')
+assert.equal(func(), 'sub')
+assert.equal(sub.sub_func(), 'sub')
+assert.equal(import_two.sub.sub_func(), 'sub')
+console.log(' ok!\n')
+
+def run_test():
+    assert.equal(func(), 'sub')
+    assert.equal(sub.sub_func(), 'sub')
+    assert.equal(import_two.sub.sub_func(), 'sub')
+
 
 def toplevel_func2(a):
     return a + 'toplevel2'
 
 class TopLevel2:
-
     def __init__(self, a):
         self.a = a
 

@@ -1,0 +1,9 @@
+from .bar import test as bar_test
+import .bar
+import .nested_mod
+
+assert.equal(bar_test(), 'ok')
+assert.equal(bar.test(), 'ok')
+assert.equal(nested_mod.Foo().name, 'nested_foo')
+Foo = nested_mod.Foo
+

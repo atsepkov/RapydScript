@@ -835,6 +835,10 @@ def Stream(options):
         for import_id in Object.keys(module_.imports):
             imports.push(module_.imports[import_id])
         imports.sort(def(a, b):
+            if (subs = a.submodules) and b.module_id in subs:
+                return 1
+            if (subs = b.submodules) and a.module_id in subs:
+                return -1
             a, b = a.import_order, b.import_order
             return ((a < b) ? -1 : ((a > b) ? 1 : 0))
         )
@@ -967,23 +971,28 @@ def Stream(options):
             )
             output.end_statement()
 
-    def declare_exports(module_id, exports, submodules, output):
+    def declare_submodules(module_id,  submodules, output):
         seen = {}
-        for symbol in exports:
-            output.newline()
-            output.indent()
-            output.print('ՐՏ_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
-            seen[symbol.name] = True
-            output.end_statement()
         for sub_module_id in submodules:
-            if not seen.hasOwnProperty(module_id):
+            if not seen.hasOwnProperty(sub_module_id):
+                seen[sub_module_id] = True
                 key = sub_module_id.split('.')[-1]
                 output.newline()
                 output.indent()
                 output.print('ՐՏ_modules["' + module_id + '"]["' + key + '"] = ')
                 output.print('ՐՏ_modules["' + sub_module_id + '"]')
                 output.end_statement()
-
+    
+    def declare_exports(module_id, exports, output):
+        seen = {}
+        for symbol in exports:
+            if not seen[symbol.name]:
+                seen[symbol.name] = True
+                output.newline()
+                output.indent()
+                output.print('ՐՏ_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
+                output.end_statement()
+    
     def unpack_tuple(tuple, output, in_statement):
         tuple.elements.forEach(def(elem, i):
             output.indent()
@@ -1067,9 +1076,10 @@ def Stream(options):
                 output.assign('var __name__')
                 output.print('"' + self.module_id + '"')
                 output.end_statement()
+                declare_submodules(self.module_id, self.submodules, output)
                 declare_vars(self.localvars, output)
                 display_body(self.body, True, output)
-                declare_exports(self.module_id, self.exports, self.submodules, output)
+                declare_exports(self.module_id, self.exports, output)
             )
         )
         output.print("()")
