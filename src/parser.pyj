@@ -26,6 +26,13 @@ CLASS_MAP = None
 BASELIB = None
 STDLIB  = None
 
+def array_to_hash(a):
+    ret = {}
+    for i in range(len(a)):
+        ret[a[i]] = True
+    return ret
+
+# it needs for reinitialization between in-browser compilations
 def init_mod():
     nonlocal NATIVE_CLASSES, COMMON_STATIC,  CLASS_MAP,  BASELIB, STDLIB
     
@@ -44,8 +51,8 @@ def init_mod():
                 "defineProperties",
                 "getPrototypeOf",       # ES6
                 "setPrototypeOf",       # ES6
-                "getOwnPropertyDescriptor", # ES6
-                "getOwnPropertyDescriptors", # ES6
+                "getOwnPropertyDescriptor",   # ES6
+                "getOwnPropertyDescriptors",  # ES6
 
                 # experimental
                 "values",
@@ -189,15 +196,6 @@ def init_mod():
         "ValueError",
     ]
 
-    
-
-def array_to_hash(a):
-    ret = {}
-    for i in range(len(a)):
-        ret[a[i]] = True
-    return ret
-
-
 
 def has_simple_decorator(decorators, name):
     remove = []
@@ -237,9 +235,9 @@ ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ]
 
 # -----[ Parser ]-----
 def parse($TEXT, options):
-    if not NATIVE_CLASSES:
+    if not STDLIB:
         init_mod()
-    
+        
     options = defaults(options, {
         strict: False,          # whether to use strict JavaScript mode
         filename: None,         # name of the file being parsed
@@ -251,7 +249,8 @@ def parse($TEXT, options):
         dropDecorators: [],     # Decorators to omit from compilation
         dropImports: [],        # Imports to omit from compilation
         dropDocstrings: False,  # If true, omit docstrings from compilation
-        classes: None           # Map of class names to ast.Class that are available in the global namespace (used by the REPL)
+        classes: None,          # Map of class names to ast.Class that are available in the global namespace (used by the REPL)
+        readfile: JS('typeof require != "undefined"') ? require('fs').readFileSync : None  # File reader
     })
     module_id = options.module_id
 
@@ -259,7 +258,9 @@ def parse($TEXT, options):
     import_dirs = options.import_dirs[:]
     if options.libdir: import_dirs.push(options.libdir)
     if options.basedir: import_dirs.unshift(options.basedir)
-
+    
+    depends_on = {}
+    PRE_IMPORTED = options.PRE_IMPORTED or {}
     IMPORTED = options.IMPORTED or {}
     IMPORTING = options.IMPORTING or {}
     IMPORTING[module_id] = True
@@ -536,25 +537,23 @@ def parse($TEXT, options):
                     croak("'return' outside of function")
 
                 if tmp_ is "yield":
-                    S.in_scope[-1].generator = True
-                    ctor = ast.Yield
+                    result = yield_()
                 else:
                     ctor = ast.Return
-
-                result = new ctor({
-                    value: (is_("punc", ";") ?
-                        (def():
-                            semicolon()
-                            return None
-                        )() : (can_insert_semicolon() ? None
-                            : (def():
-                                tmp = expression(True)
+                    result = new ctor({
+                        value: (is_("punc", ";") ?
+                            (def():
                                 semicolon()
-                                return tmp
-                            )()
+                                return None
+                            )() : (can_insert_semicolon() ? None
+                                : (def():
+                                    tmp = expression(True)
+                                    semicolon()
+                                    return tmp
+                                )()
+                            )
                         )
-                    )
-                })
+                    })
                 # check if user violated a contract they agreed to follow
                 if (S.in_scope[-1].return_annotation):
                     expectedType = S.in_scope[-1].return_annotation.resolveType(S.in_scope)
@@ -750,12 +749,13 @@ def parse($TEXT, options):
     def do_import(key):
         if key in IMPORTED: return  # we'll reuse the original imported code
         if IMPORTING[key]:          # cyclical import
-            raise ImportError('Detected a recursive import of: ' + key + ' while importing: ' + module_id)
+            raise ImportError('Detected a recursive import of: ' + key + ' while importing: ' + module_id, options.filename)
 
         # Ensure that the package containing this module is also imported
         package_module_id = key.split('.')[:-1].join('.')
-        if len(package_module_id) > 0:
+        if len(package_module_id) > 0 and not IMPORTING[package_module_id]:
             do_import(package_module_id)
+            if key in IMPORTED: return  # maybe already imported while package is imported
 
         def safe_read(base_path):
             for i, path in enumerate([base_path + '.pyj', base_path + '/__init__.pyj']):
@@ -765,7 +765,7 @@ def parse($TEXT, options):
                     if e.code is 'ENOENT' or e.code is 'EPERM' or e.code is 'EACCESS':
                         if i is 1:
                             return None, None
-                    if i is 1:
+                    else:
                         raise
 
         src_code = filename = None
@@ -773,19 +773,29 @@ def parse($TEXT, options):
 
         for location in import_dirs:
             if location:
-                data, filename = safe_read(location + '/' + modpath)
+                try:
+                    data, filename = safe_read(location + '/' + modpath)
+                except as e:
+                    if isinstance(e, ImportError):
+                        raise e
+                    msg = "Failed Import: '" + key + "', due to an error: " + e.message
+                    raise ImportError(msg, options.filename, e)
                 if data is not None:
                     src_code = data
                     break
         if src_code is None:
-            raise "Failed Import: '" + key + "' module doesn't exist in any of the import directories: " + import_dirs.join(', ')
+            raise ImportError(
+              "Failed Import: '" + key + "' module doesn't exist in any of the import directories: " + import_dirs.join(', '),
+               options.filename
+            )
         contents = parse(src_code, {
             filename: filename,
             toplevel: None,
-            readfile: options.readfile or require('fs').readFileSync,
+            readfile: options.readfile,
             basedir: options.basedir,
             libdir: options.libdir,
             module_id: key,
+            PRE_IMPORTED: PRE_IMPORTED,
             IMPORTED: IMPORTED,
             IMPORTING: IMPORTING,
             auto_bind: options.auto_bind,
@@ -796,27 +806,50 @@ def parse($TEXT, options):
             dropDocstrings: options.dropDocstrings,
         })
         if len(package_module_id) > 0:
-            IMPORTED[package_module_id].submodules.push(key)
-
+            subs = not IMPORTING[package_module_id] \
+                ? IMPORTED[package_module_id].submodules \
+                : PRE_IMPORTED[package_module_id].submodules
+            if not (key in subs):
+                subs.push(key)
 
     def import_(from_import):
         ans = ast.Imports({'imports':[]})
         while True:
+            package_pref = ''
+            # allow import submodules into __init__.pyj
+            if /^.+?__init__.pyj$/.test(options.filename or ''):
+                package_pref = options.module_id + '.'
+                if not PRE_IMPORTED[options.module_id]:
+                    PRE_IMPORTED[options.module_id] = {submodules : []}
+                    
+            # dot expander: from .module -> from package.module        
+            if is_('punc', '.'):
+                if not package_pref:
+                    package_pref = (/^(.+?\.)[^\.]+$/.exec(options.module_id or '') or ['', ''])[1]
+                # FIX: if not package_pref: raise Error        
+                next()
+            else:
+                package_pref = ''
+                
             tmp = name = expression(False)
             key = ''
             while isinstance(tmp, ast.Dot):
                 key = "." + tmp.property + key
                 tmp = tmp.expression
-            key = tmp.name + key
+            key = package_pref + tmp.name + key
             if not keepDecoratorOrImport(key, True):
                 return ast.EmptyStatement({
                     start: prev(),
                     end: prev()
                 })
             alias = None
-            if not from_import and is_('keyword', 'as'):
-                next()
-                alias = as_symbol(ast.SymbolAlias)
+            if not from_import:
+                if is_('keyword', 'as'):
+                    next()
+                    alias = as_symbol(ast.SymbolAlias)
+                # assume `import .module` is shortcut for `import package.module as module`       
+                elif package_pref:
+                    alias = new_symbol(ast.SymbolAlias,  name.name)
             imp = ast.Import({
                 'module': name,
                 'key': key,
@@ -835,7 +868,10 @@ def parse($TEXT, options):
 
         for imp in ans['imports']:
             do_import(imp.key)
-            classes = IMPORTED[imp.key].classes
+            depends_on[imp.key] = True 
+            cur_imported = IMPORTED[imp.key]
+            classes = cur_imported.classes
+            is_init_pyj = /^.+?__init__\.pyj$/.test(cur_imported.filename);
             if from_import:
                 expect_token("keyword", "import")
                 imp.argnames = argnames = []
@@ -844,6 +880,10 @@ def parse($TEXT, options):
                     if is_('keyword', 'as'):
                         next()
                         aname.alias = as_symbol(ast.SymbolAlias)
+                    # may be `from package import module`    
+                    if is_init_pyj \
+                          and not cur_imported.exports.find(def(it): return it.name is aname.name;):
+                        do_import(imp.key + '.' + aname.name)
                     argnames.push(aname)
                     if is_('punc', ','):
                         next()
@@ -1025,7 +1065,7 @@ def parse($TEXT, options):
 
         docstring = None
         callsSuper = None
-        superCall = None
+        superCall_expr = None
         definition = new ctor({
             start: start,
             name: name,
@@ -1179,11 +1219,11 @@ def parse($TEXT, options):
                 a = block_()
 
                 # these transform variables that are used by other keys, hence the somewhat ugly use of nonlocal
-                nonlocal generator, localvars, docstring, callsSuper, superCall
+                nonlocal generator, localvars, docstring, callsSuper, superCall_expr
                 generator = S.in_scope[-1].generator
                 docstring = S.in_scope[-1].docstring
                 callsSuper = S.in_scope[-1].callsSuper
-                superCall = S.in_scope[-1].superCall
+                superCall_expr = S.in_scope[-1].superCall_expr
 
                 # FIXME: debug logic
                 if generator:
@@ -1217,8 +1257,8 @@ def parse($TEXT, options):
             if ctor is ast.Constructor:
                 definition.parent = S.in_scope[-1].parent
                 definition.callsSuper = callsSuper
-                if superCall:
-                    superCall.selfArg = definition.argnames[0]
+                if superCall_expr:
+                    superCall_expr.selfArg = definition.argnames[0]
             if definition.argnames.length < 1:
                 croak("Class methods require at least one argument (self)", start.line, start.col, start.pos)
             elif ctor is ast.ObjectGetter and definition.argnames.length is not 1:
@@ -1446,7 +1486,38 @@ def parse($TEXT, options):
             definitions: vardefs(False, "const"),
             end: prev()
         })
-
+        
+    def yield_():
+        if S.in_scope[-1].type is not "function":
+            croak("'yield' outside of function")
+        S.in_scope[-1].generator = True
+        value = None
+        yield_from = False
+        if is_("punc", ";"):
+            semicolon()
+        elif not can_insert_semicolon():
+            if S.token.type is 'keyword' and S.token.value is 'from':
+                yield_from = True
+                next()
+            value = expression(True)
+            semicolon()
+        ret =  new ast.Yield({
+            value: value,
+            yield_from: yield_from
+        })
+        return ret
+        
+    def yield_request():
+        start = S.token
+        expect_token("keyword", "yield")
+        ret = yield_()
+        ret.start = start
+        ret.end = prev()
+        ret.computedType = '?'
+        ret.yield_request = True
+        return ret
+        
+        
     def new_():
         start = S.token
         expect_token("operator", "new")
@@ -1532,7 +1603,7 @@ def parse($TEXT, options):
                 ex = expression(True)
                 ex.start = start
                 ex.end = S.token
-                if isinstance(ex, ast.SymbolRef):
+                if isinstance(ex, ast.SymbolRef) or isinstance(ex, ast.Yield):
                     ex.parens = True
                 expect(")")
                 return subscripts(ex, allow_calls)
@@ -1556,7 +1627,10 @@ def parse($TEXT, options):
             func.start = start
             func.end = prev()
             return subscripts(func, allow_calls)
-
+            
+        if is_("keyword", "yield"):
+            return yield_request()
+            
         if ATOMIC_START_TOKEN[S.token.type]:
             return subscripts(as_atom_node(), allow_calls)
 
@@ -2006,7 +2080,7 @@ def parse($TEXT, options):
                     funcname = expr
                     if funcname.property is "__init__":
                         funcname.property = "constructor"
-                    
+
                     # there are maybe non-super class calls, so
                     # we have to prevent S.in_scope[-1].callsSuper from being changed if it is already set to True
                     is_super = S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and stringifyName(expr.expression) is S.in_scope[-2].parent
@@ -2040,7 +2114,7 @@ def parse($TEXT, options):
                         })
                     elif tmp_ is "super":
                         S.in_scope[-1].callsSuper = True
-                        S.in_scope[-1].superCall = expr
+                        S.in_scope[-1].superCall_expr = expr
                     elif tmp_ in tokenizer.JS_KEYWORDS:
                         # avoid collision with reserved javascropt keywords
                         expr.name += '_'
@@ -2059,7 +2133,7 @@ def parse($TEXT, options):
         if isinstance(expr, ast.Dot):
             return stringifyName(expr.expression) + "." + expr.property
         return expr.name
-
+    
     def keepDecoratorOrImport(expr, imp=False):
         # helper function for figuring out whether this decorator should be dropped
         if imp:
@@ -2447,7 +2521,8 @@ def parse($TEXT, options):
 
         def uniq(element, index, arr):
             return arr.lastIndexOf(element) is index
-
+            
+        toplevel.filename = options.filename
         toplevel.nonlocalvars = Object.keys(S.in_scope[-1].nonlocal)
         assignments = Object.keys(S.in_scope[-1].vars)
         callables = scan_for_top_level_callables(toplevel.body).filter(uniq)
@@ -2456,6 +2531,7 @@ def parse($TEXT, options):
             if item not in toplevel.nonlocalvars:
                 toplevel.localvars.push(new_symbol(ast.SymbolVar, item))
         toplevel.exports = toplevel.localvars.concat(callables).filter(uniq)
+        toplevel.depends_on = depends_on
         toplevel.submodules = []
         toplevel.classes = CLASS_MAP
         toplevel.import_order = Object.keys(IMPORTED).length
@@ -2464,5 +2540,8 @@ def parse($TEXT, options):
         toplevel.imports = IMPORTED
         toplevel.baselib = BASELIB
         IMPORTING[module_id] = False
+        if PRE_IMPORTED[module_id]:
+            IMPORTED[module_id].submodules = PRE_IMPORTED[module_id].submodules
+            del PRE_IMPORTED[module_id]
         return toplevel
     )()

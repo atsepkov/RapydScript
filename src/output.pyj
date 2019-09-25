@@ -758,6 +758,10 @@ def Stream(options):
             # (new foo)(bar)
             return True
     )
+    PARENS(ast.Yield, def(output):
+        # (yield some).a    
+        return this.parens
+    )
     PARENS(ast.Number, def(output):
         p = output.parent()
         if this.getValue() < 0 and isinstance(p, ast.PropAccess) and p.expression is this:
@@ -827,13 +831,47 @@ def Stream(options):
             output.end_statement()
 
     def write_imports(module_, output):
-        imports = []
-        for import_id in Object.keys(module_.imports):
-            imports.push(module_.imports[import_id])
-        imports.sort(def(a, b):
-            a, b = a.import_order, b.import_order
-            return ((a < b) ? -1 : ((a > b) ? 1 : 0))
-        )
+
+        def sort_imports(mod, imp_sorted, importing, done):
+            # returns sorted array of  module_ids
+            imp_sorted = imp_sorted  or []
+            importing = importing or  {}
+            done = done or  {}
+            
+            def push_key(k):
+                if not done[k]:
+                    imp_sorted.push(k)
+                    done[k] = True
+
+            def sort_imp(a,b):
+                a = module_.imports[a].import_order
+                b = module_.imports[b].import_order
+                return a < b ? -1 : a > b ? 1 : 0
+
+            if importing[mod.module_id] or done[mod.module_id]: return 
+            importing[mod.module_id] = True
+            # process imports
+            imp_keys = Object.keys(mod.depends_on).sort(sort_imp)
+            imp_keys.forEach(def (mod_id):
+                # if import foo.bar.c -> push all foo submodules first
+                pack_id = mod_id.split('.')[0]
+                sort_imports(module_.imports[pack_id], imp_sorted, importing, done)
+                push_key(mod_id);
+            )
+            # process self submodules
+            if mod.submodules.length:
+                mod.submodules.sort(sort_imp)
+                mod.submodules.forEach(def (sub_key):
+                    sort_imports(module_.imports[sub_key], imp_sorted, importing, done)
+                    push_key(sub_key);
+                )
+                push_key(mod.module_id)
+
+            return imp_sorted
+
+        imports = sort_imports(module_).map(def(mid): return module_.imports[mid];)
+        imports.push(module_.imports['__main__']) 
+
         if imports.length > 1:
             output.indent()
             output.spaced('var ՐՏ_modules', '=', '{};')
@@ -885,7 +923,7 @@ def Stream(options):
             else:
                 needsSuper = True
         if (isinstance(node, ast.Method) or isinstance(node, ast.ObjectGetter) or isinstance(node, ast.ObjectSetter)) \
-                and not node.static and not delaySelfAssignment:
+              and not node.static and not delaySelfAssignment:
             if needsSuper:
                 output.indent()
                 output.print('super()')
@@ -963,23 +1001,28 @@ def Stream(options):
             )
             output.end_statement()
 
-    def declare_exports(module_id, exports, submodules, output):
+    def declare_submodules(module_id,  submodules, output):
         seen = {}
-        for symbol in exports:
-            output.newline()
-            output.indent()
-            output.print('ՐՏ_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
-            seen[symbol.name] = True
-            output.end_statement()
         for sub_module_id in submodules:
-            if not seen.hasOwnProperty(module_id):
+            if not seen.hasOwnProperty(sub_module_id):
+                seen[sub_module_id] = True
                 key = sub_module_id.split('.')[-1]
                 output.newline()
                 output.indent()
                 output.print('ՐՏ_modules["' + module_id + '"]["' + key + '"] = ')
                 output.print('ՐՏ_modules["' + sub_module_id + '"]')
                 output.end_statement()
-
+    
+    def declare_exports(module_id, exports, output):
+        seen = {}
+        for symbol in exports:
+            if not seen[symbol.name]:
+                seen[symbol.name] = True
+                output.newline()
+                output.indent()
+                output.print('ՐՏ_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
+                output.end_statement()
+    
     def unpack_tuple(tuple, output, in_statement):
         tuple.elements.forEach(def(elem, i):
             output.indent()
@@ -1063,9 +1106,10 @@ def Stream(options):
                 output.assign('var __name__')
                 output.print('"' + self.module_id + '"')
                 output.end_statement()
+                declare_submodules(self.module_id, self.submodules, output)
                 declare_vars(self.localvars, output)
                 display_body(self.body, True, output)
-                declare_exports(self.module_id, self.exports, self.submodules, output)
+                declare_exports(self.module_id, self.exports, output)
             )
         )
         output.print("()")
@@ -1666,6 +1710,8 @@ def Stream(options):
                                     output.print('get ')
                                 elif isinstance(stmt, ast.ObjectSetter):
                                     output.print('set ')
+                                elif stmt.generator:
+                                    output.print('*')
                                 stmt.name.print(output)
                             output.space()
 
@@ -1843,13 +1889,17 @@ def Stream(options):
         if self.value:
             output.space()
             self.value.print(output)
-        output.semicolon()
+        if not self.yield_request:
+            output.semicolon()
 
     DEFPRINT(ast.Return, def(self, output):
         self._do_print(output, "return")
     )
     DEFPRINT(ast.Yield, def(self, output):
-        self._do_print(output, "yield")
+        kind = "yield"
+        if self.yield_from:
+            kind = "yield*"
+        self._do_print(output, kind)
     )
     DEFPRINT(ast.Throw, def(self, output):
         self._do_print(output, "throw")
@@ -2263,9 +2313,8 @@ def Stream(options):
             )
 
         if output.option('es6') and (
-                (isinstance(self, ast.ClassCall) and self.super)
-                or (isinstance(self, ast.Call) and self.expression.name is 'super')
-                ):
+                    (isinstance(self, ast.ClassCall) and self.super)
+                 or (isinstance(self, ast.Call)      and self.expression.name is 'super') ):
             # in ES6, move "self = this" definition after the super() call
             output.end_statement()
             output.indent()
@@ -2291,6 +2340,7 @@ def Stream(options):
         # this will effectively convert tuples to arrays
         if isinstance(p, ast.Binary)
         or isinstance(p, ast.Return)
+        or (isinstance(p, ast.Yield) and not p.yield_request)
         or isinstance(p, ast.Array)
         or isinstance(p, ast.BaseCall)
         or isinstance(p, ast.SimpleStatement):
