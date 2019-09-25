@@ -831,17 +831,47 @@ def Stream(options):
             output.end_statement()
 
     def write_imports(module_, output):
-        imports = []
-        for import_id in Object.keys(module_.imports):
-            imports.push(module_.imports[import_id])
-        imports.sort(def(a, b):
-            if (subs = a.submodules) and b.module_id in subs:
-                return 1
-            if (subs = b.submodules) and a.module_id in subs:
-                return -1
-            a, b = a.import_order, b.import_order
-            return ((a < b) ? -1 : ((a > b) ? 1 : 0))
-        )
+
+        def sort_imports(mod, imp_sorted, importing, done):
+            # returns sorted array of  module_ids
+            imp_sorted = imp_sorted  or []
+            importing = importing or  {}
+            done = done or  {}
+            
+            def push_key(k):
+                if not done[k]:
+                    imp_sorted.push(k)
+                    done[k] = True
+
+            def sort_imp(a,b):
+                a = module_.imports[a].import_order
+                b = module_.imports[b].import_order
+                return a < b ? -1 : a > b ? 1 : 0
+
+            if importing[mod.module_id] or done[mod.module_id]: return 
+            importing[mod.module_id] = True
+            # process imports
+            imp_keys = Object.keys(mod.depends_on).sort(sort_imp)
+            imp_keys.forEach(def (mod_id):
+                # if import foo.bar.c -> push all foo submodules first
+                pack_id = mod_id.split('.')[0]
+                sort_imports(module_.imports[pack_id], imp_sorted, importing, done)
+                push_key(mod_id);
+            )
+            # process self submodules
+            if mod.submodules.length:
+                mod.submodules.sort(sort_imp)
+                mod.submodules.forEach(def (sub_key):
+                    sort_imports(module_.imports[sub_key], imp_sorted, importing, done)
+                    push_key(sub_key);
+                )
+                push_key(mod.module_id)
+
+            return imp_sorted
+
+        imports = sort_imports(module_).map(def(mid): return module_.imports[mid];)
+        imports.push(module_.imports['__main__']) 
+
         if imports.length > 1:
             output.indent()
             output.spaced('var ՐՏ_modules', '=', '{};')

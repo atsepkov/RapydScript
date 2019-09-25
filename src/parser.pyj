@@ -258,7 +258,8 @@ def parse($TEXT, options):
     import_dirs = options.import_dirs[:]
     if options.libdir: import_dirs.push(options.libdir)
     if options.basedir: import_dirs.unshift(options.basedir)
-    
+
+    depends_on = {} # for each module imports tracking
     PRE_IMPORTED = options.PRE_IMPORTED or {}
     IMPORTED = options.IMPORTED or {}
     IMPORTING = options.IMPORTING or {}
@@ -867,6 +868,7 @@ def parse($TEXT, options):
 
         for imp in ans['imports']:
             do_import(imp.key)
+            depends_on[imp.key] = True 
             cur_imported = IMPORTED[imp.key]
             classes = cur_imported.classes
             is_init_pyj = /^.+?__init__\.pyj$/.test(cur_imported.filename);
@@ -2529,6 +2531,7 @@ def parse($TEXT, options):
             if item not in toplevel.nonlocalvars:
                 toplevel.localvars.push(new_symbol(ast.SymbolVar, item))
         toplevel.exports = toplevel.localvars.concat(callables).filter(uniq)
+        toplevel.depends_on = depends_on
         toplevel.submodules = []
         toplevel.classes = CLASS_MAP
         toplevel.import_order = Object.keys(IMPORTED).length
