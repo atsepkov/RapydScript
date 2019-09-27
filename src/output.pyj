@@ -1132,7 +1132,8 @@ def Stream(options):
             output.indent()
 
         for self in container.imports:
-            output.import(self.module.name)
+            if isinstance(self, ast.Splat):
+                output.import(self.module.name)
             if self.argnames:
                 # A from import
                 for argname in self.argnames:
