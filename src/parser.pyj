@@ -866,25 +866,43 @@ def parse($TEXT, options):
             else:
                 break
 
+        from_pack_imp = []
         for imp in ans['imports']:
             do_import(imp.key)
             depends_on[imp.key] = True 
             cur_imported = IMPORTED[imp.key]
             classes = cur_imported.classes
             is_init_pyj = /^.+?__init__\.pyj$/.test(cur_imported.filename);
+            argnames  = []
             if from_import:
                 expect_token("keyword", "import")
                 imp.argnames = argnames = []
                 while True:
-                    aname = as_symbol(ast.ImportedVar)
+                    if not is_('name'):
+                        unexpected()
+                    name =  S.token.value
+                    # maybe `from package import module` 
+                    if is_init_pyj \
+                          and not cur_imported.exports.find(def(it): return it.name is name;):
+                        key =  imp.key + '.' + name
+                        aname = ast.Import({
+                            'module': expression(False),
+                            'key': key,
+                            'alias': new_symbol(ast.SymbolAlias,  name),
+                            'argnames':None,
+                            'body':def():
+                                return IMPORTED[key]
+                        })
+                        from_pack_imp.push(aname)
+                        do_import(key)
+                    
+                    else:
+                        aname = as_symbol(ast.ImportedVar)
+                        argnames.push(aname)
                     if is_('keyword', 'as'):
                         next()
                         aname.alias = as_symbol(ast.SymbolAlias)
-                    # may be `from package import module`    
-                    if is_init_pyj \
-                          and not cur_imported.exports.find(def(it): return it.name is aname.name;):
-                        do_import(imp.key + '.' + aname.name)
-                    argnames.push(aname)
+
                     if is_('punc', ','):
                         next()
                     else:
@@ -903,6 +921,7 @@ def parse($TEXT, options):
                         key = (imp.alias) ? imp.alias.name : imp.key
                         S.in_scope[-1].classes[key + '.' + obj.name.name] = { "static": obj.static, "bound": obj.bound }
 
+        [].push.apply(ans.imports, from_pack_imp)
         return ans
 
 
