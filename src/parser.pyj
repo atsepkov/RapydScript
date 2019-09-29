@@ -1829,7 +1829,7 @@ def parse($TEXT, options):
                 ctx = S.input.context()
                 orig = ctx.expect_object_literal_key
                 ctx.expect_object_literal_key = True
-                if first and not (peek().value in [':', ',']):
+                if first and not (peek().value in [':', ',', '}']):
                     # possibly dict comprehension
                     maybe_dict_comprehension = True
                     must_be_comprehension = not is_("punc", "(")
@@ -1878,7 +1878,8 @@ def parse($TEXT, options):
                 #    a.push(accessor_(name, start, False))
                 #    continue
 
-            if is_('punc', ',') and isinstance(key, ast.Identifier):
+            if is_('punc') and S.token.value in [',', '}'] \
+                    and isinstance(key, ast.Identifier):
                 # es6 short notation
                 value = key
             else:
