@@ -1805,6 +1805,7 @@ def parse($TEXT, options):
     @embed_tokens
     def object_():
         maybe_dict_comprehension = False
+        must_be_comprehension = False
         expect("{")
         first = True
         a = []
@@ -1831,6 +1832,7 @@ def parse($TEXT, options):
                 if first and not (peek().value in [':', ',']):
                     # possibly dict comprehension
                     maybe_dict_comprehension = True
+                    must_be_comprehension = not is_("punc", "(")
                     key = expression(False)
                     name = None
                 else:
@@ -1895,8 +1897,7 @@ def parse($TEXT, options):
                     statement: maybe_dict_comprehension ? key : as_atom_node(a[0].start),
                     value_statement: a[0].value
                 }))
-                maybe_dict_comprehension = False
-            elif maybe_dict_comprehension:
+            elif must_be_comprehension:
                 unexpected()
 
             first = False
