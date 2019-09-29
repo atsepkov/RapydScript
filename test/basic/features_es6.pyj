@@ -161,3 +161,8 @@ assert.equal(es6_hash['key_val'], 'val')
 es6_hash = { key_val, b:'bv'}
 assert.equal(es6_hash['key_val'], 'val')
 
+es6_hash = { (key_val):key_val, key_val, b:'bv'}
+assert.equal(es6_hash['val'], 'val')
+assert.equal(es6_hash['key_val'], 'val')
+
+
