@@ -1817,20 +1817,27 @@ def parse($TEXT, options):
 
             start = S.token
             type = start.type
-            computed = False
-            saw_starargs = False
             if is_("operator", "*"):
                 # spread operator
-                saw_starargs = True
                 if not options.es6:
                     croak("Spread operator in object literals is only allowed in ES6 mode")
                 a.push(maybe_unary(True))
+<<<<<<< HEAD
+                first = False
+                continue
+=======
+>>>>>>> origin/master
             else:
                 ctx = S.input.context()
                 orig = ctx.expect_object_literal_key
                 ctx.expect_object_literal_key = True
+<<<<<<< HEAD
+                if first and not (peek().value in [':', ',']):
+                    # possibly dict comprehension
+=======
                 if first and peek().value is not ':':
                 # possibly dict comprehension
+>>>>>>> origin/master
                     maybe_dict_comprehension = True
                     key = expression(False)
                     name = None
@@ -1842,7 +1849,10 @@ def parse($TEXT, options):
                         expect('(')
                         key = expression(False)
                         expect(')')
+<<<<<<< HEAD
+=======
                         computed = True
+>>>>>>> origin/master
                     else:
                         # regular key
                         key_ = as_property_name()
@@ -1874,24 +1884,41 @@ def parse($TEXT, options):
                             })
                 ctx.expect_object_literal_key = orig
 
-                if type is "name" and not is_("punc", ":"):
-                    a.push(accessor_(name, start, False))
-                    continue
+                #if type is "name" and not is_("punc", ":"):
+                #    a.push(accessor_(name, start, False))
+                #    continue
 
-            if not saw_starargs:
+            if is_('punc', ',') and isinstance(key, ast.Identifier):
+                # es6 short notation
+                value = key
+            else:
                 expect(":")
+<<<<<<< HEAD
+                value = expression(False)
+
+            a.push(ast.ObjectKeyVal({
+                start: start,
+                key: key,
+                value: value,
+                end: prev()
+            }))
+=======
                 a.push(ast.ObjectKeyVal({
                     start: start,
                     key: key,
                     value: expression(False),
                     end: prev()
                 }))
+>>>>>>> origin/master
 
-                if a.length is 1 and is_('keyword', 'for'):
-                    return read_comprehension(ast.DictComprehension({
-                        statement: maybe_dict_comprehension ? key : as_atom_node(a[0].start),
-                        value_statement: a[0].value
-                    }))
+            if first and is_('keyword', 'for'):
+                return read_comprehension(ast.DictComprehension({
+                    statement: maybe_dict_comprehension ? key : as_atom_node(a[0].start),
+                    value_statement: a[0].value
+                }))
+                maybe_dict_comprehension = False
+            elif maybe_dict_comprehension:
+                unexpected()
 
             first = False
 
