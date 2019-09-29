@@ -282,7 +282,7 @@ def Stream(options):
                     if JS('typeof props[key]')=='function':
                         prop_value = props[key]
                         prop_attrs = {'enumerable' : 'true', 'writable' : 'true'}
-                    else: # hash with value and attrs   
+                    else: # hash with value and attrs
                         prop_value = props[key].value
                         prop_attrs = props[key].attrs
                     if i:
@@ -344,11 +344,11 @@ def Stream(options):
         print_("]")
         return ret
 
-    
-    # class vars should be evaluated before Object.defineProperties(...) 
+
+    # class vars should be evaluated before Object.defineProperties(...)
     # nice to have a wrapper:
     # (function()
-    #       init/eval class vars, so they can refer to each other  
+    #       init/eval class vars, so they can refer to each other
     #       Object.defineProperties(...) - using predefined variables
     # )()
     def with_class_vars_init(vars, def_prop):
@@ -365,12 +365,12 @@ def Stream(options):
                     )
                     output.indent()
                     # def_prop = output.addProperties('prototype', methodsAndVars)
-                    def_prop.call(output, obj) 
+                    def_prop.call(output, obj)
                     output.end_statement()
                 )
             )
             output.print("()")
-        
+
     def comma():
         print_(",")
         space()
@@ -759,7 +759,7 @@ def Stream(options):
             return True
     )
     PARENS(ast.Yield, def(output):
-        # (yield some).a    
+        # (yield some).a
         return this.parens
     )
     PARENS(ast.Number, def(output):
@@ -837,7 +837,7 @@ def Stream(options):
             imp_sorted = imp_sorted  or []
             importing = importing or  {}
             done = done or  {}
-            
+
             def push_key(k):
                 if not done[k]:
                     imp_sorted.push(k)
@@ -848,7 +848,7 @@ def Stream(options):
                 b = module_.imports[b].import_order
                 return a < b ? -1 : a > b ? 1 : 0
 
-            if importing[mod.module_id] or done[mod.module_id]: return 
+            if importing[mod.module_id] or done[mod.module_id]: return
             importing[mod.module_id] = True
             # process imports
             imp_keys = Object.keys(mod.depends_on).sort(sort_imp)
@@ -870,7 +870,7 @@ def Stream(options):
             return imp_sorted
 
         imports = sort_imports(module_).map(def(mid): return module_.imports[mid];)
-        imports.push(module_.imports['__main__']) 
+        imports.push(module_.imports['__main__'])
 
         if imports.length > 1:
             output.indent()
@@ -1012,7 +1012,7 @@ def Stream(options):
                 output.print('ՐՏ_modules["' + module_id + '"]["' + key + '"] = ')
                 output.print('ՐՏ_modules["' + sub_module_id + '"]')
                 output.end_statement()
-    
+
     def declare_exports(module_id, exports, output):
         seen = {}
         for symbol in exports:
@@ -1022,7 +1022,7 @@ def Stream(options):
                 output.indent()
                 output.print('ՐՏ_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
                 output.end_statement()
-    
+
     def unpack_tuple(tuple, output, in_statement):
         tuple.elements.forEach(def(elem, i):
             output.indent()
@@ -1236,7 +1236,7 @@ def Stream(options):
                     if output.option('es6'):
                         output.with_square(def():
                             self.init.elements.forEach(def(element, index):
-                                if (index) output.comma()
+                                if (index): output.comma()
                                 element.print(output)
                             )
                         )
@@ -1450,7 +1450,7 @@ def Stream(options):
                             # in ES6, unpacking is no longer required
                             output.with_square(def():
                                 self.init.elements.forEach(def(element, index):
-                                    if (index) output.comma()
+                                    if (index): output.comma()
                                     element.print(output)
                                 )
                             )
@@ -1625,7 +1625,7 @@ def Stream(options):
             def addClassVariablesAndMethDecorators(decorated_methods):
                 # these were somehow omitted from ES6 standard, so we'll have to handle them ourselves, the messy way
                 properties = {}
-                # class vars should be evaluated before Object.defineProperties(...) 
+                # class vars should be evaluated before Object.defineProperties(...)
                 # order of vars is important! so we need an Array of {name: ... , value: ...}
                 class_vars = []
                 if self.docstring:
@@ -1648,8 +1648,8 @@ def Stream(options):
                         if decorated_methods:
                             for stmt in decorated_methods:
                                 funcName = obj + (stmt.static ? '.' : '.prototype.') + stmt.name.name
-                                decoration = { 
-                                    'value' : ( def(_stmt, _funcName): 
+                                decoration = {
+                                    'value' : ( def(_stmt, _funcName):
                                             return def(output):
                                                 decorate(_stmt.decorators, output, def(): output.print(_funcName););
                                     )(stmt, funcName),
@@ -1657,8 +1657,8 @@ def Stream(options):
                                 }
                                 if stmt.static:
                                     static_decorations[stmt.name.name] = decoration
-                                else:    
-                                    properties[stmt.name.name] = decoration 
+                                else:
+                                    properties[stmt.name.name] = decoration
                         if Object.keys(properties).length:
                             output.addProperties('prototype', properties).call(output, obj)
                             output.end_statement()
@@ -1666,7 +1666,7 @@ def Stream(options):
                         if Object.keys(static_decorations).length:
                             output.addProperties(None, static_decorations).call(output, obj)
                     def_class_vars_and_decorators= output.with_class_vars_init(class_vars, def_class_vars_and_decorators)
-                    return def_class_vars_and_decorators 
+                    return def_class_vars_and_decorators
                 return None
 
             # new ES6 classes
@@ -1793,9 +1793,9 @@ def Stream(options):
                 # actual methods, and class variables
                 methodsAndVars = {}
                 staticMethods = {}
-                # class vars should be evaluated before Object.defineProperties(...) 
+                # class vars should be evaluated before Object.defineProperties(...)
                 # order of vars is important! so we need an Array of {name: ... , value: ...}
-                class_vars = [] 
+                class_vars = []
                 if self.docstring:
                     methodsAndVars['__doc__'] = def(output): output.print_string(self.docstring)
                 self.body.forEach(def(stmt, i):
@@ -1810,12 +1810,12 @@ def Stream(options):
                         # class variable
                         methodsAndVars[stmt.body.left.name] = def(output):
                             output.print(stmt.body.left.name)
-                        class_vars.push({   name: stmt.body.left.name, 
-                                            value: def(output): stmt.body.right.print(output);})    
+                        class_vars.push({   name: stmt.body.left.name,
+                                            value: def(output): stmt.body.right.print(output);})
                     elif isinstance(stmt, ast.Class):
                         console.error('Nested classes aren\'t supported yet')
                 )
-                
+
                 methodAndOutput = None
                 if Object.keys(methodsAndVars).length:
                     methodAndVarOutput = output.addProperties('prototype', methodsAndVars)
@@ -2566,7 +2566,7 @@ def Stream(options):
                 if output.option('es6'):
                     output.with_square(def():
                         self.left.elements.forEach(def(element, index):
-                            if (index) output.comma()
+                            if (index): output.comma()
                             element.print(output)
                         )
                     )
