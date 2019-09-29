@@ -153,4 +153,11 @@ assert.equal(tmp.next({prop: 'blah'}).value, 'blah-blah-blah')
 assert.equal(tmp.next().value, 5)
 assert.equal(tmp.next(10).value, 12)
 
+# es6 hash short notation
+key_val = 'val'
+es6_hash = {a:'av', key_val, b:'bv'}
+assert.equal(es6_hash['key_val'], 'val')
+
+es6_hash = { key_val, b:'bv'}
+assert.equal(es6_hash['key_val'], 'val')
 
