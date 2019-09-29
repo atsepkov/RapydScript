@@ -814,6 +814,7 @@ def parse($TEXT, options):
 
     def import_(from_import):
         ans = ast.Imports({'imports':[]})
+        imp_with = None
         while True:
             package_pref = ''
             # allow import submodules into __init__.pyj
@@ -844,7 +845,16 @@ def parse($TEXT, options):
                 })
             alias = None
             if not from_import:
-                if is_('keyword', 'as'):
+                if imp_with is None:
+                    if  is_('keyword', 'with'):
+                        imp_with = key
+                        next()
+                        continue
+                    else:
+                        imp_with = ''
+                if imp_with:
+                    key = imp_with + '.' + key
+                elif is_('keyword', 'as'):
                     next()
                     alias = as_symbol(ast.SymbolAlias)
                 # assume `import .module` is shortcut for `import package.module as module`       
