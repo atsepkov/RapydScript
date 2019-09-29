@@ -363,7 +363,7 @@ def parse($TEXT, options):
     def embed_tokens(parser):
         return def():
             start = S.token
-            expr = parser()
+            expr = parser.apply(this, arguments)
             if expr is undefined:
                 unexpected()
             end = prev()
@@ -421,9 +421,11 @@ def parse($TEXT, options):
 
         return ans
 
+    def block_statement():
+        return statement(True)
 
     @embed_tokens
-    def statement():
+    def statement(expect_block):
         if is_("operator", "/") or is_("operator", "/="):
             S.peeked = None
             S.token = S.input(S.token.value[1:])
@@ -450,11 +452,14 @@ def parse($TEXT, options):
         elif tmp_ is "punc":
             tmp_ = S.token.value
             if tmp_ is ":":
-                return ast.BlockStatement({
-                    start: S.token,
-                    body: block_(),
-                    end: prev()
-                })
+                if expect_block:
+                    return ast.BlockStatement({
+                        start: S.token,
+                        body: block_(),
+                        end: prev()
+                    })
+                else:
+                    unexpected()
             elif tmp_ is "{" or tmp_ is "[" or tmp_ is "(":
                 return simple_statement()
             elif tmp_ is ";":
@@ -486,7 +491,7 @@ def parse($TEXT, options):
                 return ast.Debugger()
             elif tmp_ is "do":
                 return ast.Do({
-                    body: in_loop(statement),
+                    body: in_loop(block_statement),
                     condition: def():
                         expect(".")
                         expect_token("keyword", "while")
@@ -498,7 +503,7 @@ def parse($TEXT, options):
             elif tmp_ is "while":
                 return ast.While({
                     condition: expression(True),
-                    body: in_loop(statement)
+                    body: in_loop(block_statement)
                 })
             elif tmp_ is "for":
                 if is_("name", "JS"):
@@ -592,7 +597,7 @@ def parse($TEXT, options):
             elif tmp_ is "with":
                 return ast.With({
                     expression: parenthesised(),
-                    body: statement()
+                    body: block_statement()
                 })
             else:
                 unexpected()
@@ -702,7 +707,7 @@ def parse($TEXT, options):
             init: init,
             name: lhs,
             object: obj,
-            body: in_loop(statement)
+            body: in_loop(block_statement)
         })
 
     # A native JavaScript for loop - for JS("var i=0; i<5000; i++"):
@@ -710,7 +715,7 @@ def parse($TEXT, options):
         condition = expression(True, True)
         return ast.ForJS({
             condition: condition,
-            body: in_loop(statement)
+            body: in_loop(block_statement)
         })
 
     # scan function/class body for nested class declarations
@@ -1315,7 +1320,7 @@ def parse($TEXT, options):
 
     def if_():
         cond = expression(True)
-        body = statement()
+        body =  block_statement()
         belse = None
         if is_("keyword", "elif") or is_("keyword", "else"):
             if is_("keyword", "else"):
@@ -1323,7 +1328,7 @@ def parse($TEXT, options):
             else:
                 S.token.value = "if"
             # effectively converts 'elif' to 'else if'
-            belse = statement()
+            belse = block_statement()
 
         return ast.If({
             condition: cond,
