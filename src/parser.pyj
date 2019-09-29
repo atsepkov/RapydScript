@@ -430,6 +430,16 @@ def parse($TEXT, options):
             S.peeked = None
             S.token = S.input(S.token.value[1:])
 
+        if expect_block:
+            if is_("punc", ":"):
+                return ast.BlockStatement({
+                    start: S.token,
+                    body: block_(),
+                    end: prev()
+                })
+            else:
+                unexpected()
+
         tmp_ = S.token.type
         if tmp_ is "string":
             dir = S.in_directives
@@ -451,16 +461,7 @@ def parse($TEXT, options):
             return simple_statement()
         elif tmp_ is "punc":
             tmp_ = S.token.value
-            if tmp_ is ":":
-                if expect_block:
-                    return ast.BlockStatement({
-                        start: S.token,
-                        body: block_(),
-                        end: prev()
-                    })
-                else:
-                    unexpected()
-            elif tmp_ is "{" or tmp_ is "[" or tmp_ is "(":
+            if tmp_ is "{" or tmp_ is "[" or tmp_ is "(":
                 return simple_statement()
             elif tmp_ is ";":
                 next()
@@ -1325,10 +1326,11 @@ def parse($TEXT, options):
         if is_("keyword", "elif") or is_("keyword", "else"):
             if is_("keyword", "else"):
                 next()
+                belse = block_statement()
             else:
                 S.token.value = "if"
-            # effectively converts 'elif' to 'else if'
-            belse = block_statement()
+                # effectively converts 'elif' to 'else if'
+                belse = statement()
 
         return ast.If({
             condition: cond,

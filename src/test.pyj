@@ -167,7 +167,7 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
                 baseline = this[0].hz
                 console.log(file + ':')
                 s = def(num):
-                    if (num > 1e3) return parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    if (num > 1e3): return parseInt(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                     return num.toPrecision(4)
                 this.forEach(def(item):
                     normalized = item.hz/baseline * 100
