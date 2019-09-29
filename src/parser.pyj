@@ -1862,7 +1862,7 @@ def parse($TEXT, options):
                                 value: name,
                                 end: prev()
                             })
-                    ctx.expect_object_literal_key = orig
+                ctx.expect_object_literal_key = orig
 
                 if type is "name" and not is_("punc", ":"):
                     a.push(accessor_(name, start, False))
