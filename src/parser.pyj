@@ -20,8 +20,8 @@ from utils import makePredicate, defaults, ImportError, js_error, RAPYD_PREFIX, 
 import ast
 import tokenizer
 
-NATIVE_CLASSES = None 
-COMMON_STATIC = None 
+NATIVE_CLASSES = None
+COMMON_STATIC = None
 CLASS_MAP = None
 BASELIB = None
 STDLIB  = None
@@ -35,7 +35,7 @@ def array_to_hash(a):
 # it needs for reinitialization between in-browser compilations
 def init_mod():
     nonlocal NATIVE_CLASSES, COMMON_STATIC,  CLASS_MAP,  BASELIB, STDLIB
-    
+
     NATIVE_CLASSES = {
         # javascript
         'Image': {},
@@ -237,7 +237,7 @@ ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ]
 def parse($TEXT, options):
     if not STDLIB:
         init_mod()
-        
+
     options = defaults(options, {
         strict: False,          # whether to use strict JavaScript mode
         filename: None,         # name of the file being parsed
@@ -821,16 +821,16 @@ def parse($TEXT, options):
                 package_pref = options.module_id + '.'
                 if not PRE_IMPORTED[options.module_id]:
                     PRE_IMPORTED[options.module_id] = {submodules : []}
-                    
-            # dot expander: from .module -> from package.module        
+
+            # dot expander: from .module -> from package.module
             if is_('punc', '.'):
                 if not package_pref:
                     package_pref = (/^(.+?\.)[^\.]+$/.exec(options.module_id or '') or ['', ''])[1]
-                # FIX: if not package_pref: raise Error        
+                # FIX: if not package_pref: raise Error
                 next()
             else:
                 package_pref = ''
-                
+
             tmp = name = expression(False)
             key = ''
             while isinstance(tmp, ast.Dot):
@@ -847,7 +847,7 @@ def parse($TEXT, options):
                 if is_('keyword', 'as'):
                     next()
                     alias = as_symbol(ast.SymbolAlias)
-                # assume `import .module` is shortcut for `import package.module as module`       
+                # assume `import .module` is shortcut for `import package.module as module`
                 elif package_pref:
                     alias = new_symbol(ast.SymbolAlias,  name.name)
             imp = ast.Import({
@@ -869,7 +869,7 @@ def parse($TEXT, options):
         from_pack_imp = []
         for imp in ans['imports']:
             do_import(imp.key)
-            depends_on[imp.key] = True 
+            depends_on[imp.key] = True
             cur_imported = IMPORTED[imp.key]
             classes = cur_imported.classes
             is_init_pyj = /^.+?__init__\.pyj$/.test(cur_imported.filename);
@@ -881,7 +881,7 @@ def parse($TEXT, options):
                     if not is_('name'):
                         unexpected()
                     name =  S.token.value
-                    # maybe `from package import module` 
+                    # maybe `from package import module`
                     if is_init_pyj \
                           and not cur_imported.exports.find(def(it): return it.name is name;):
                         key =  imp.key + '.' + name
@@ -895,7 +895,7 @@ def parse($TEXT, options):
                         })
                         from_pack_imp.push(aname)
                         do_import(key)
-                    
+
                     else:
                         aname = as_symbol(ast.ImportedVar)
                         argnames.push(aname)
@@ -1505,7 +1505,7 @@ def parse($TEXT, options):
             definitions: vardefs(False, "const"),
             end: prev()
         })
-        
+
     def yield_():
         if S.in_scope[-1].type is not "function":
             croak("'yield' outside of function")
@@ -1525,7 +1525,7 @@ def parse($TEXT, options):
             yield_from: yield_from
         })
         return ret
-        
+
     def yield_request():
         start = S.token
         expect_token("keyword", "yield")
@@ -1535,8 +1535,8 @@ def parse($TEXT, options):
         ret.computedType = '?'
         ret.yield_request = True
         return ret
-        
-        
+
+
     def new_():
         start = S.token
         expect_token("operator", "new")
@@ -1646,10 +1646,10 @@ def parse($TEXT, options):
             func.start = start
             func.end = prev()
             return subscripts(func, allow_calls)
-            
+
         if is_("keyword", "yield"):
             return yield_request()
-            
+
         if ATOMIC_START_TOKEN[S.token.type]:
             return subscripts(as_atom_node(), allow_calls)
 
@@ -1815,53 +1815,54 @@ def parse($TEXT, options):
                 if not options.es6:
                     croak("Spread operator in object literals is only allowed in ES6 mode")
                 a.push(maybe_unary(True))
-            elif first and peek().value is not ':':
-                # possibly dict comprehension
-                maybe_dict_comprehension = True
-                key = expression(False)
-                name = None
             else:
                 ctx = S.input.context()
                 orig = ctx.expect_object_literal_key
                 ctx.expect_object_literal_key = True
-                if is_("punc", "("):
-                    # computed key
-                    if not options.es6:
-                        croak("Computed properties are only allowed in ES6 mode")
-                    expect('(')
+                if first and peek().value is not ':':
+                # possibly dict comprehension
+                    maybe_dict_comprehension = True
                     key = expression(False)
-                    expect(')')
-                    computed = True
+                    name = None
                 else:
-                    # regular key
-                    key_ = as_property_name()
-                    name = key_.value
-                    if key_.type is "num":
-                        key = ast.Number({
-                            start: start,
-                            value: name,
-                            end: prev()
-                        })
-                    elif key_.type is "name" or key_.type is "keyword":
-                        if name in ["True", "False"]:
-                            key = ast.Boolean({
-                                start: start,
-                                value: name,
-                                end: prev()
-                            })
-                        else:
-                            key = ast.Identifier({
-                                start: start,
-                                value: name,
-                                end: prev()
-                            })
+                    if is_("punc", "("):
+                        # computed key
+                        if not options.es6:
+                            croak("Computed properties are only allowed in ES6 mode")
+                        expect('(')
+                        key = expression(False)
+                        expect(')')
+                        computed = True
                     else:
-                        key = ast.String({
-                            start: start,
-                            value: name,
-                            end: prev()
-                        })
-                ctx.expect_object_literal_key = orig
+                        # regular key
+                        key_ = as_property_name()
+                        name = key_.value
+                        if key_.type is "num":
+                            key = ast.Number({
+                                start: start,
+                                value: name,
+                                end: prev()
+                            })
+                        elif key_.type is "name" or key_.type is "keyword":
+                            if name in ["True", "False"]:
+                                key = ast.Boolean({
+                                    start: start,
+                                    value: name,
+                                    end: prev()
+                                })
+                            else:
+                                key = ast.Identifier({
+                                    start: start,
+                                    value: name,
+                                    end: prev()
+                                })
+                        else:
+                            key = ast.String({
+                                start: start,
+                                value: name,
+                                end: prev()
+                            })
+                    ctx.expect_object_literal_key = orig
 
                 if type is "name" and not is_("punc", ":"):
                     a.push(accessor_(name, start, False))
@@ -1869,7 +1870,6 @@ def parse($TEXT, options):
 
             if not saw_starargs:
                 expect(":")
-
                 a.push(ast.ObjectKeyVal({
                     start: start,
                     key: key,
@@ -2152,7 +2152,7 @@ def parse($TEXT, options):
         if isinstance(expr, ast.Dot):
             return stringifyName(expr.expression) + "." + expr.property
         return expr.name
-    
+
     def keepDecoratorOrImport(expr, imp=False):
         # helper function for figuring out whether this decorator should be dropped
         if imp:
@@ -2540,7 +2540,7 @@ def parse($TEXT, options):
 
         def uniq(element, index, arr):
             return arr.lastIndexOf(element) is index
-            
+
         toplevel.filename = options.filename
         toplevel.nonlocalvars = Object.keys(S.in_scope[-1].nonlocal)
         assignments = Object.keys(S.in_scope[-1].vars)
