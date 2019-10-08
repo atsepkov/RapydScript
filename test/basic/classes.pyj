@@ -269,7 +269,7 @@ class Static_meth:
             @staticmethod
             def nested_test():
                 assert.equal(Nested.typeof(), 'nested_typeof')
-                #assert.equal(Static_meth.delete(), 'delete')
+                assert.equal(Static_meth.delete(), 'delete')
                 return True
             @staticmethod
             def typeof():
