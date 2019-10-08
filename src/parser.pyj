@@ -952,7 +952,12 @@ def parse($TEXT, options):
 
         class_details = {
             "static": [],
-            "bound": {}
+            "bound": {},
+            "subscribers": [],
+            "on_def_static": def(cb): this.subscribers.push(cb);
+            ,"push_static" : def(meth):
+                this.static.push(meth)
+                this.subscribers.forEach(def(cb): cb(meth););
         }
 
         # class setup
@@ -1070,10 +1075,12 @@ def parse($TEXT, options):
     def function_(in_class, ctor):
         start = prev()
         is_accessor = ctor is ast.ObjectGetter or ctor is ast.ObjectSetter
-        name = (is_("name") ? as_symbol((in_class ? ast.SymbolDefun : (is_accessor ? ast.SymbolAccessor : ast.SymbolLambda))) : (is_accessor and (is_("string") or is_("num")) ? as_atom_node() : None))
+        name = (is_("name") \
+            ? as_symbol((in_class ? ast.SymbolDefun : (is_accessor ? ast.SymbolAccessor : ast.SymbolLambda)), allow_keywords=True) \
+            : (is_accessor and (is_("string") or is_("num")) ? as_atom_node() : None))
         if in_class and not name:
             unexpected()
-        if name and name.name in tokenizer.JS_KEYWORDS:
+        if not (in_class and  options.es6) and name and name.name in tokenizer.JS_KEYWORDS:
             name.name += '_'
 
         generator = False           # whether this function is a generator
@@ -1088,7 +1095,8 @@ def parse($TEXT, options):
 
             if in_class:
                 if has_special_decorator("staticmethod"):
-                    S.in_scope[-2].classes[in_class].static.push(name.name)
+                    #S.in_scope[-2].classes[in_class].static.push(name.name)
+                    S.in_scope[-2].classes[in_class].push_static(name.name)
                     staticmethod = True
                 if has_special_decorator("bind") or name.name is not "__init__" and options.auto_bind:
                     BASELIB["bind"] += 1
@@ -1260,9 +1268,6 @@ def parse($TEXT, options):
                 callsSuper = S.in_scope[-1].callsSuper
                 superCall_expr = S.in_scope[-1].superCall_expr
 
-                # FIXME: debug logic
-                if generator:
-                    print(S.in_scope[-1])
 
                 localvars = [new_symbol(ast.SymbolVar, variable) for variable in Object.keys(S.in_scope[-1].vars) if variable not in S.in_scope[-1].nonlocal]
 
@@ -1933,7 +1938,7 @@ def parse($TEXT, options):
         else:
             unexpected()
 
-    def as_symbol(type, noerror, token):
+    def as_symbol(type, noerror, token, allow_keywords):
         token_ = token or S.token
         if not tokenizer.is_token(token_, "name"):
             if not noerror:
@@ -1941,7 +1946,7 @@ def parse($TEXT, options):
             return None
 
         name = token_.value
-        if name in tokenizer.JS_KEYWORDS:
+        if not allow_keywords and name in tokenizer.JS_KEYWORDS:
             token_.value += '_'
         sym = new (name is "this" ? ast.This : type)({
             name: (String)(token_.value),
@@ -2129,7 +2134,11 @@ def parse($TEXT, options):
                     # we have to prevent S.in_scope[-1].callsSuper from being changed if it is already set to True
                     is_super = S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and stringifyName(expr.expression) is S.in_scope[-2].parent
                     S.in_scope[-1].callsSuper = S.in_scope[-1].callsSuper or is_super
-                    return validateCallArgs(subscripts(ast.ClassCall({
+
+                    if not options.es6 and funcname.property in tokenizer.JS_KEYWORDS:
+                        funcname.property += '_'
+
+                    ast_ClassCall = ast.ClassCall({
                         start: start,
                         class: expr.expression,
                         method: funcname.property,
@@ -2137,7 +2146,16 @@ def parse($TEXT, options):
                         static: is_static_method(className, funcname.property),
                         args: func_call_list(),
                         end: prev()
-                    }), True))
+                    })
+
+                    # fix issue #128
+                    # subscribe on staticmethod definitions
+                    if not ast_ClassCall.static and className.on_def_static:
+                        className.on_def_static(def(static_name):
+                                     if static_name is funcname.property:
+                                         ast_ClassCall.static = True
+                        )
+                    return validateCallArgs(subscripts(ast_ClassCall, True))
                 elif isinstance(expr, ast.SymbolRef):
                     tmp_ = expr.name
                     # special functions that trigger addition of extra logic to generated JavaScript
@@ -2160,7 +2178,7 @@ def parse($TEXT, options):
                         S.in_scope[-1].callsSuper = True
                         S.in_scope[-1].superCall_expr = expr
                     elif tmp_ in tokenizer.JS_KEYWORDS:
-                        # avoid collision with reserved javascropt keywords
+                        # avoid collision with reserved javascript keywords
                         expr.name += '_'
 
                 # fall-through to basic function call
