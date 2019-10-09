@@ -255,3 +255,39 @@ assert.equal(player.quack(), 'quack!')
 assert.equal(player.fly(), 'N/A')
 assert.equal(player.skate(), '...zooom')
 assert.equal(player.hitPoints, 200)
+
+# static method test inside class definition
+#  issue #128 (fixed!)
+class Static_meth:
+    def __init__(self):
+        self.a = 'a'
+
+    def test(self):
+        assert.equal(Static_meth.me(), 'me')
+        assert.equal(Static_meth.delete(), 'delete')
+        class Nested:
+            @staticmethod
+            def nested_test():
+                assert.equal(Nested.typeof(), 'nested_typeof')
+                assert.equal(Static_meth.delete(), 'delete')
+                return True
+            @staticmethod
+            def typeof():
+                return 'nested_typeof'
+        assert.ok(Nested.nested_test())
+        assert.equal(Static_meth.typeof(self), 'a')
+        assert.equal(Nested.typeof(), 'nested_typeof')
+
+    def typeof(self):
+        return self.a
+
+    @staticmethod
+    def delete():
+        return 'delete'
+
+    @staticmethod
+    def me():
+        return 'me'
+
+Static_meth().test()
+
