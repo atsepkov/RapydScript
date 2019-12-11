@@ -2277,8 +2277,11 @@ def parse($TEXT, options):
         if op not in ['in', 'instanceof', '==', '!=', '===', '!==', '||', '&&', '='] and (
             left not in ['Number', 'String', 'Boolean', '?']
             or right not in ['Number', 'String', 'Boolean', '?']
-            or left is 'String' and op not in ['+', '+=']
-            or right is 'String' and op not in ['+', '+=']
+            or (left is 'String' or right is 'String') and
+                ( left is right \
+                    ? op not in ['+', '+=', '<', '<=', '>', '>=']  \
+                    : op not in ['+', '+=']
+                )
         ):
             # make the representations a bit more human-friendly
             if left:
