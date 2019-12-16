@@ -2271,7 +2271,8 @@ def parse($TEXT, options):
         op = astElement.operator
         # for in, instanceof, ==, !=, ===, !==, 'or', 'and', '=' everything is allowed
         # for 2 numbers any operator is valid
-        # for 2 strings or number and string only the + operator is valid
+        # for 2 strings '+' and comparison operators are valid
+        # for number and string only the + operator is valid
         # for ?, we don't have enough information
         # for everything else, no operator is valid
         if op not in ['in', 'instanceof', '==', '!=', '===', '!==', '||', '&&', '='] and (
