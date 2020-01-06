@@ -2196,8 +2196,7 @@ def parse($TEXT, options):
                     else: #elif tmp_ in tokenizer.JS_KEYWORDS:
                         # avoid collision with reserved javascript keywords
                         #expr.name += '_'
-                        #expr.name = maybe_keyword(expr.name)
-                        pass
+                        expr.name = maybe_keyword(expr.name)
 
 
                 # fall-through to basic function call
