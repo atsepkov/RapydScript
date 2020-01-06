@@ -534,7 +534,7 @@ def Stream(options):
                     # first call, parse baselib
                     baselibAst = parser.parse(_baselib.BASELIB, {
                         readfile: None,
-                        dropDocstrings: true,       # drop docstrings in the compiler
+                        dropDocstrings: True,       # drop docstrings in the compiler
                         filename: '_baselib.pyj'
                     })
                     hash = baselibAst.body[-1]

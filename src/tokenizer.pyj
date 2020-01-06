@@ -26,22 +26,27 @@ ES6_KEYWORDS = "async await yield"
 KEYWORDS = "as break case class const continue debugger default def del do elif else except " +
 "finally for from if import in is new nonlocal pass raise return switch til to " +
 "try void while with or and not " + ES6_KEYWORDS
-JS_KEYWORDS = "var function instanceof typeof catch delete throw".split(' ')
+JS_KEYWORDS = "var function instanceof typeof catch delete throw"
 
+# also allow use js keywords
+KEYWORDS_ATOM = "False None True false null true"
 
-KEYWORDS_ATOM = "False None True"
-
-RESERVED_WORDS = "abstract boolean byte char double enum export extends final float goto " +
-"implements int interface long native package private protected public short static " +
-"synchronized this throws transient volatile " + KEYWORDS_ATOM + " " + KEYWORDS
+# some keywords removed in es5/6
+RESERVED_WORDS = "enum export extends let " + \
+    "implements interface package private protected public static this " + \
+    KEYWORDS_ATOM + " " + KEYWORDS
 
 KEYWORDS_BEFORE_EXPRESSION = "return new del raise elif else if"
 
-ALL_KEYWORDS = RESERVED_WORDS + " " + KEYWORDS_BEFORE_EXPRESSION
+ALL_KEYWORDS = RESERVED_WORDS + " " \
+               + KEYWORDS_BEFORE_EXPRESSION + " " \
+               + JS_KEYWORDS
 
+JS_KEYWORDS =  JS_KEYWORDS.split(' ')
 KEYWORDS = makePredicate(KEYWORDS)
 ES6_KEYWORDS = makePredicate(ES6_KEYWORDS)
 RESERVED_WORDS = makePredicate(RESERVED_WORDS)
+IS_ANY_KEYWORD = makePredicate(ALL_KEYWORDS)
 KEYWORDS_BEFORE_EXPRESSION = makePredicate(KEYWORDS_BEFORE_EXPRESSION)
 KEYWORDS_ATOM = makePredicate(KEYWORDS_ATOM)
 
