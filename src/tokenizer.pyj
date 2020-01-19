@@ -26,10 +26,12 @@ ES6_KEYWORDS = "async await yield"
 KEYWORDS = "as break case class const continue debugger default def del do elif else except " +
 "finally for from if import in is new nonlocal pass raise return switch til to " +
 "try void while with or and not " + ES6_KEYWORDS
-JS_KEYWORDS = "var function instanceof typeof catch delete throw"
 
-# also allow use js keywords
-KEYWORDS_ATOM = "False None True false null true"
+# with the `strict_names` compiler option turned off
+# these keywords may be used as names, RS will fix them by adding the suffix `_ϟ`
+JS_KEYWORDS = "var function instanceof typeof catch delete throw false null true"
+
+KEYWORDS_ATOM = "False None True"
 
 # some keywords removed in es5/6
 RESERVED_WORDS = "enum export extends let " + \
@@ -42,7 +44,7 @@ ALL_KEYWORDS = RESERVED_WORDS + " " \
                + KEYWORDS_BEFORE_EXPRESSION + " " \
                + JS_KEYWORDS
 
-JS_KEYWORDS =  JS_KEYWORDS.split(' ')
+JS_KEYWORDS =  JS_KEYWORDS.split(/ +/)
 KEYWORDS = makePredicate(KEYWORDS)
 ES6_KEYWORDS = makePredicate(ES6_KEYWORDS)
 RESERVED_WORDS = makePredicate(RESERVED_WORDS)
@@ -676,7 +678,7 @@ def tokenizer($TEXT, filename):  # {{{
                     return cont(x)
                 except as ex:
                     if ex is EX_EOF:
-                        TokenizerError(eof_error, true)
+                        TokenizerError(eof_error, True)
                     else:
                         raise
 

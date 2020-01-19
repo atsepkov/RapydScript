@@ -1747,11 +1747,11 @@ def Stream(options):
             def define_method(stmt):
                 return def(output):
                     name = stmt.name.name
-                    def internalsub():
+                    def internalsub(print_meth_name = True):
                         output.print("function")
-                        output.space()
-                        output.print(name)
-
+                        if print_meth_name:
+                            output.space()
+                            output.print(name)
                         output.with_parens(def():
                             stmt.argnames.forEach(def(arg, i):
                                 # only strip first argument if the method isn't static
@@ -1769,6 +1769,17 @@ def Stream(options):
                         )
                         print_bracketed(stmt, output, True)
 
+                    if stmt.name.is_js_keyword:
+                        # wrap the method in special decorator that
+                        # saves the method name into method.__name__
+                        fn_def = internalsub
+                        internalsub = def():
+                            output.print("ՐՏ_with__name__")
+                            output.with_parens(def():
+                                fn_def(False)
+                                output.comma()
+                                output.print_string(name)
+                            )
                     # decorate the method
                     if stmt.decorators and stmt.decorators.length:
                         decorate(stmt.decorators, output, internalsub)

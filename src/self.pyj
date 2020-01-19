@@ -10,16 +10,17 @@ module.exports = def compile_self(base_path, src_path, lib_path, start_time):
     baselib = rapydscript.parse_baselib(src_path, True)
     options = {
         beautify: True,
-        private_scope: false,
-        omit_baselib: false,
-        write_name: false,
+        private_scope: False,
+        omit_baselib: False,
+        write_name: False,
 #        filename: file,
         readfile: fs.readFileSync,
         basedir: src_path,
         dropDocstrings: True,
-        auto_bind: false,
+        auto_bind: False,
         libdir: path.join(src_path, 'lib'),
         baselib: baselib,
+        strict_names: True
     }
 
     # generate baselib

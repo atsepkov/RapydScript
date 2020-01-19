@@ -35,7 +35,7 @@ def splatBaselib(key, value):
         body: ast.TopLevel({
             start: value[0].start,
             body: value,
-            strict: true,
+            strict: True,
             end: value[-1].end
         })
     })
@@ -43,7 +43,7 @@ def splatBaselib(key, value):
 browser_env = not exports
 if browser_env:
     # browser environment
-    rapydscript = exports = {}    
+    rapydscript = exports = {}
 
 exports.parse_baselib = exports.parseBaselib = def(srcPath, beautify):
     try:
@@ -51,7 +51,7 @@ exports.parse_baselib = exports.parseBaselib = def(srcPath, beautify):
         baselibPath = require('path').join(srcPath, 'baselib.pyj')
         baselibAst = parser.parse(fs.readFileSync(baselibPath, "utf8"), {
             readfile: fs.readFileSync,  # utility for reading files when dealing with nested imports
-            dropDocstrings: true,       # drop docstrings in the compiler
+            dropDocstrings: True,       # drop docstrings in the compiler
             filename: 'baselib.pyj'
         })
     except as e:
@@ -90,12 +90,12 @@ exports.get_import_dirs = def(paths_string, ignore_env):
 # options are shared between input and output and irrelevant options are ignored
 exports.compile = compile = def(code, options):
     # parse
-    
+
     # because of the use of the same Rapydscript instance,
     # we should re-initialize all static objects between compilations
     if browser_env:
         parser.init_mod()
-    
+
     toplevel = parser.parse(code, utils.defaults(options, {
         toplevel: toplevel,
         output: {}

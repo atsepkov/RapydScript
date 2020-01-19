@@ -118,6 +118,7 @@ def init_mod():
         "bin",
         "bind",
         "rebind_all",
+        "with__name__",
         "cmp",
         "chr",
         "dir",
@@ -240,7 +241,7 @@ def parse($TEXT, options):
 
     options = defaults(options, {
         strict: False,          # whether to use strict JavaScript mode
-        strict_names: False,    # if false RS will fix names (e.g. var -> var_) that are not RS- but JS-keywords
+        strict_names: False,    # if false RS will fix names (e.g. var -> var_ϟ) that are not RS- but JS-keywords
         filename: None,         # name of the file being parsed
         auto_bind: False,       # whether auto-binding of methods to classes is enabled
         module_id: '__main__',  # The id of the module being parsed
@@ -298,10 +299,10 @@ def parse($TEXT, options):
     def maybe_keyword(name):
         if not tokenizer.IS_ANY_KEYWORD(name):
             return name
-        # fix only some keywords but not all?
+        # fix only some keywords but not all
         if not options.strict_names and name in tokenizer.JS_KEYWORDS:
-            return name + '_'
-        #console.log(prev(),name, options.filename, options.strict_names)
+            #console.log(name, options.filename, prev())
+            return name + '_ϟ'
         token_error(prev(), "Can't use the name '"+ name +"' as a parameter/variable name, it is reserved by JavaScript")
 
     def is_(type, value):
@@ -527,6 +528,8 @@ def parse($TEXT, options):
                 BASELIB["extends"] += 1
                 if options.auto_bind:
                     BASELIB["rebind_all"] += 1
+                if not (options.es6 or options.strict_names):
+                    BASELIB["with__name__"] += 1
                 return class_()
             elif tmp_ is "def":
                 start = prev()
@@ -738,7 +741,7 @@ def parse($TEXT, options):
         if isinstance(expr, ast.SymbolRef):
             # check Native JS classes
             if expr.name in NATIVE_CLASSES:
-                return Object.assign({is_native:True}, NATIVE_CLASSES[expr.name])
+                return NATIVE_CLASSES[expr.name]
 
             # traverse in reverse to check local variables first
             for s in range(S.in_scope.length-1, -1, -1):
@@ -1087,10 +1090,12 @@ def parse($TEXT, options):
         name = (is_("name") \
             ? as_symbol((in_class ? ast.SymbolDefun : (is_accessor ? ast.SymbolAccessor : ast.SymbolLambda)), allow_keywords=True) \
             : (is_accessor and (is_("string") or is_("num")) ? as_atom_node() : None))
-        if in_class and not name:
-            unexpected()
-        if not (in_class and  options.es6) and name and name.name:
-            #name.name += '_'
+        if in_class:
+            if not name:
+                unexpected()
+            if not (options.es6 or options.strict_names) and name.name in tokenizer.JS_KEYWORDS:
+                name.is_js_keyword = True
+        elif name:
             name.name = maybe_keyword(name.name)
 
         generator = False           # whether this function is a generator
@@ -1105,7 +1110,6 @@ def parse($TEXT, options):
 
             if in_class:
                 if has_special_decorator("staticmethod"):
-                    #S.in_scope[-2].classes[in_class].static.push(name.name)
                     S.in_scope[-2].classes[in_class].push_static(name.name)
                     staticmethod = True
                 if has_special_decorator("bind") or name.name is not "__init__" and options.auto_bind:
@@ -1175,8 +1179,6 @@ def parse($TEXT, options):
                             return None
 
                         name = maybe_keyword(S.token.value)
-                        #if name in tokenizer.JS_KEYWORDS:
-                        #    name += '_'
 
                         sym = ast.SymbolFunarg({
                             'name': name,
@@ -1300,7 +1302,7 @@ def parse($TEXT, options):
 
         # remove arguments from localvars
         args = [arg.name for arg in definition.argnames]
-        definition.localvars = definition.localvars.filter(def(var): return var.name not in args;)
+        definition.localvars = definition.localvars.filter(def(var_): return var_.name not in args;)
 
         # do a few extra safety checks on arguments
         if in_class and not staticmethod:
@@ -1958,8 +1960,7 @@ def parse($TEXT, options):
             return None
 
         name = token_.value
-        if not allow_keywords and name != 'this': # and name in tokenizer.JS_KEYWORDS:
-            #token_.value += '_'
+        if not allow_keywords and name != 'this':
             token_.value = maybe_keyword(token_.value)
 
         sym = new (name is "this" ? ast.This : type)({
@@ -2149,11 +2150,6 @@ def parse($TEXT, options):
                     is_super = S.in_scope.length > 1 and S.in_scope[-2].type is 'class' and stringifyName(expr.expression) is S.in_scope[-2].parent
                     S.in_scope[-1].callsSuper = S.in_scope[-1].callsSuper or is_super
 
-                    if not options.es6: # and funcname.property in tokenizer.JS_KEYWORDS:
-                        #funcname.property += '_'
-                        if not (className.is_native and funcname.property in (className.static or [])):
-                            funcname.property = maybe_keyword(funcname.property)
-
                     ast_ClassCall = ast.ClassCall({
                         start: start,
                         class: expr.expression,
@@ -2193,9 +2189,8 @@ def parse($TEXT, options):
                     elif tmp_ is "super":
                         S.in_scope[-1].callsSuper = True
                         S.in_scope[-1].superCall_expr = expr
-                    else: #elif tmp_ in tokenizer.JS_KEYWORDS:
+                    else:
                         # avoid collision with reserved javascript keywords
-                        #expr.name += '_'
                         expr.name = maybe_keyword(expr.name)
 
 

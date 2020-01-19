@@ -304,8 +304,10 @@ symbols, like pyflakes does for python.
 */});
 
 opt("strict_names", 'sn', 'bool', false, function(){/*
-By default, RS autofixes names (e.g var -> var_) that are not RS- but JS-keywords
-If this option is set then these names will cause a  compilation error 
+By default, RS autofixes names (e.g. var -> var_ϟ)
+that are not RS- but JS-keywords
+If this option is set then these names 
+will cause a compilation error 
 */});
 var argv = module.exports.argv = parse_args();
 

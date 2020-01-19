@@ -13,13 +13,13 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
     # run all tests and exit
     assert = require("assert")
     os = require('os')
-    all_ok = true
+    all_ok = True
     vm = require('vm')
     test_dir = path.join(base_path, 'test/basic')
     error_dir = path.join(base_path, 'test/error')
     web_dir = path.join(base_path, 'test/web')
     perf_dir = path.join(base_path, 'test/perf')
-    baselib = rapydscript.parse_baselib(src_path, true)
+    baselib = rapydscript.parse_baselib(src_path, True)
     files, ok
 
     # visual indicator of version
@@ -42,7 +42,7 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
                 basedir: test_dir,
                 libdir: path.join(src_path, 'lib'),
                 baselib: baselib,
-                beautify: true
+                beautify: True
             })
         except as ex:
             console.log(file + ":\t" + ex + "\n")
@@ -78,10 +78,10 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
                     'console': console,
                     'base_path': base_path
                 }, {'filename': jsfile})
-                ok = true
+                ok = True
                 fs.unlinkSync(jsfile)
             except as e:
-                ok = false
+                ok = False
                 if e.stack:
                     console.log(file + ":\t" + e.stack + "\n\n")
                 else:
@@ -89,7 +89,7 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
             if ok:
                 console.log(file + ":\ttest completed successfully\n")
             else:
-                all_ok = false console.log(file + ":\ttest failed\n")
+                all_ok = False console.log(file + ":\ttest failed\n")
 
         # tests that cause compile time errors
         console.log('\nCOMPILATION ERROR TESTS\n')
@@ -101,7 +101,7 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
         for file in files:
             filepath = path.join(error_dir, file)
             code = fs.readFileSync(filepath, "utf-8").split('\n')
-            ok = true
+            ok = True
             code.forEach(def(line):
                 if line[0] is '#' or not line.trim().length:
                     return # blank line, no test here
@@ -117,7 +117,7 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
                     })
                     # we want EVERY line to throw an exception
                     # since these are parser errors, no need for output
-                    ok = false
+                    ok = False
                     console.log(file + ":\t`" + line + "` did not throw an error\n")
                 except:
                     return
@@ -125,7 +125,7 @@ module.exports = def(argv, base_path, src_path, lib_path, test_type):
             if ok:
                 console.log(file + ":\ttest completed successfully\n")
             else:
-                all_ok = false console.log(file + ":\ttest failed\n")
+                all_ok = False console.log(file + ":\ttest failed\n")
 
     # DOM/web tests
     if test_type is 'full':

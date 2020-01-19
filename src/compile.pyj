@@ -27,7 +27,7 @@ def read_whole_file(filename, cb):
         process.stdin.on('data', def(chunk):
             chunks.push(chunk)
         ).on('end', def():
-            cb(null, chunks.join(""))
+            cb(None, chunks.join(""))
         )
         process.openStdin()
     else:
