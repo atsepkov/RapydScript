@@ -1093,8 +1093,8 @@ def parse($TEXT, options):
         if in_class:
             if not name:
                 unexpected()
-            if not (options.es6 or options.strict_names) and name.name in tokenizer.JS_KEYWORDS:
-                name.is_js_keyword = True
+            if not options.es6 and tokenizer.IS_ANY_KEYWORD(name.name):
+                name.is_keyword = True
         elif name:
             name.name = maybe_keyword(name.name)
 
