@@ -1019,6 +1019,7 @@ class Array(Node):
         # attempt to extract a consistent type within array
         if not self.elements.length: return "[?]"
         expected = self.elements[0].resolveType(heap)
+        if not expected: return "[?]"
         for element in self.elements[1:]:
             current = element.resolveType(heap)
             if current is not expected:
