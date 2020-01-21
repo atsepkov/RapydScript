@@ -3,7 +3,7 @@
 assert.notOk = def(val): assert.ok(not val)
 
 # immutables
-none_1st = [None, 1, 'x']
+none_1st = [ None, 1, 'x']
 a = [4,5,6,7]
 aa = [1,
         2,
