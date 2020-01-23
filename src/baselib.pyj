@@ -56,6 +56,10 @@
             if rebind: thisArg[p] = bind(thisArg[p], thisArg)
             else: thisArg[p] = thisArg[p].orig
 ,
+"with__name__": def ՐՏ_with__name__(fn, name):
+    fn.__name__ = name
+    return fn
+,
 "cmp": def cmp(a, b): return a < b ? -1 : a > b ? 1 : 0
 ,
 "chr": def(): JS('var chr = String.fromCharCode')
@@ -131,10 +135,10 @@
     return arr.map(oper)
 ,
 "max": def max(a):
-    return Math.max.apply(null, Array.isArray(a) ? a : arguments)
+    return Math.max.apply(None, Array.isArray(a) ? a : arguments)
 ,
 "min": def min(a):
-    return Math.min.apply(null, Array.isArray(a) ? a : arguments)
+    return Math.min.apply(None, Array.isArray(a) ? a : arguments)
 ,
 "merge": def ՐՏ_merge(target, source, overwrite):
     for JS('var i in source'):
@@ -216,7 +220,7 @@
     if a is b:
         # simple object
         return True
-        
+
     if a is undefined or b is undefined or a is None or b is None:
         return False
 
