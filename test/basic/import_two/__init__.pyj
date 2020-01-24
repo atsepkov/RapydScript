@@ -2,19 +2,20 @@
 import import_two.sub
 import .sub
 from .sub import sub_func as func
-from .subpack.nested_mod import fun as subpack_nested_fun
+from .subpack.nested_mod import fun as subpack_nested_fun, Foo as subpack_nested_class
 
-console.log('  test import into __init__ .....')
-assert.equal(func(), 'sub')
-assert.equal(subpack_nested_fun(), 'nested_fun')
-assert.equal(sub.sub_func(), 'sub')
-assert.equal(import_two.sub.sub_func(), 'sub')
-console.log(' ok!\n')
 
-def run_test():
+def test__init__imports():
+    console.log('  imports into `import_two/__init__.pyj` .....')
+    assert.equal(func(), 'sub')
+    assert.equal(subpack_nested_fun(), 'nested_fun')
+    assert.equal(subpack_nested_class().name, 'nested_foo')
+    assert.equal(sub.sub_func(), 'sub')
+    assert.equal(import_two.sub.sub_func(), 'sub')
     assert.equal(func(), 'sub')
     assert.equal(sub.sub_func(), 'sub')
     assert.equal(import_two.sub.sub_func(), 'sub')
+    console.log('  ok!\n')
 
 
 def toplevel_func2(a):

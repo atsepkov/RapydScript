@@ -1,12 +1,12 @@
 console.log('imports.pyj ...\n')
 from _import_one import toplevel_var, toplevel_func as tf, TopLevel, true_var, false_var
-from import_two import toplevel_var2, toplevel_func2, TopLevel2 as TL2, run_test, sub as imp_two_sub
+from import_two import toplevel_var2, toplevel_func2, TopLevel2 as TL2, test__init__imports, sub as imp_two_sub
 import import_two.subpack.nested_mod as nested_mod
 import import_two.subpack
 from import_two import subpack
 
 # test import into __init__
-run_test()
+test__init__imports()
 
 # test `from package import module`
 assert.equal('sub', imp_two_sub.sub_var)
@@ -14,8 +14,9 @@ assert.equal('sub', imp_two_sub.sub_var)
 # test nested package
 assert.equal(nested_mod.NESTED_MOD_VAR, 'nested_var')
 assert.equal(nested_mod.fun(), 'nested_fun')
-assert.equal(import_two.subpack.Foo().name, 'nested_foo')
-assert.equal(new subpack.Foo().name, 'nested_foo')
+assert.equal(nested_mod.Foo().name, 'nested_foo')
+assert.equal(new import_two.subpack.Boo().name, 'nested_foo')
+assert.equal(new subpack.Boo().name, 'nested_foo')
 
 def AClass(x):
     return this
