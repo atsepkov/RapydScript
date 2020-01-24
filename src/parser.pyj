@@ -528,7 +528,7 @@ def parse($TEXT, options):
                 BASELIB["extends"] += 1
                 if options.auto_bind:
                     BASELIB["rebind_all"] += 1
-                if not (options.es6 or options.strict_names):
+                if not options.es6:
                     BASELIB["with__name__"] += 1
                 return class_()
             elif tmp_ is "def":
