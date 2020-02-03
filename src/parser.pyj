@@ -300,7 +300,7 @@ def parse($TEXT, options):
         if not tokenizer.IS_ANY_KEYWORD(name):
             return name
         # fix only some keywords but not all
-        if not options.strict_names and name in tokenizer.JS_KEYWORDS:
+        if not options.strict_names and tokenizer.JS_KEYWORDS_AUTOFIX(name):
             #console.log(name, options.filename, prev())
             return name + '_ϟ'
         token_error(prev(), "Can't use the name '"+ name +"' as a parameter/variable name, it is reserved by JavaScript")
@@ -955,7 +955,7 @@ def parse($TEXT, options):
 
     def class_():
         start = prev()
-        name = as_symbol(ast.SymbolDefun)
+        name = as_symbol(ast.SymbolClass)
         if not name:
             unexpected()
 
@@ -1087,16 +1087,19 @@ def parse($TEXT, options):
     def function_(in_class, ctor):
         start = prev()
         is_accessor = ctor is ast.ObjectGetter or ctor is ast.ObjectSetter
-        name = (is_("name") \
+        '''
+        name = is_("name") \
             ? as_symbol((in_class ? ast.SymbolDefun : (is_accessor ? ast.SymbolAccessor : ast.SymbolLambda)), allow_keywords=True) \
-            : (is_accessor and (is_("string") or is_("num")) ? as_atom_node() : None))
-        if in_class:
-            if not name:
-                unexpected()
-            if not options.es6 and tokenizer.IS_ANY_KEYWORD(name.name):
-                name.is_keyword = True
-        elif name:
-            name.name = maybe_keyword(name.name)
+            :  (is_("string") or is_("num")) \
+                ? as_atom_node() \
+                : is_("operator:keyword") ? as_property_name() : None
+        '''
+        name = as_symbol(in_class \
+            ? ( is_accessor ? ast.SymbolAccessor : ast.SymbolDefun) \
+            : ast.SymbolLambda, True)
+
+        if in_class and not name:
+            unexpected()
 
         generator = False           # whether this function is a generator
         localvars = None            # hash of local vars assigned to within the function
@@ -1952,19 +1955,33 @@ def parse($TEXT, options):
         else:
             unexpected()
 
-    def as_symbol(type, noerror, token, allow_keywords):
+    def as_symbol(type, noerror, token):
         token_ = token or S.token
-        if not tokenizer.is_token(token_, "name"):
-            if not noerror:
-                croak("Name expected")
-            return None
+        js_reserved = False
+        if type in [ast.SymbolDefun, ast.SymbolAccessor]:
+            name = token_._value or token_.value
+            tmp_ = token_.type
+            if tmp_ is "name" or tmp_ is "num" or tmp_ is "string" or tmp_ is "keyword" or tmp_ is "atom" \
+            or tokenizer.is_token(token_, "operator:keyword"):
+                js_reserved = tokenizer.ALL_JS_KEYWORDS(name)
+            else:
+                return None
+        else:
+            if not tokenizer.is_token(token_, "name"):
+                if not noerror:
+                    croak("Name expected")
+                return None
+            name = token_.value
+            if name is  'this':
+                if type is ast.SymbolLambda:
+                    return None
+                type = ast.This
+            else:
+                name = maybe_keyword(name)
 
-        name = token_.value
-        if not allow_keywords and name != 'this':
-            token_.value = maybe_keyword(token_.value)
-
-        sym = new (name is "this" ? ast.This : type)({
-            name: (String)(token_.value),
+        sym = new (True and type)({
+            name: (String)(name),
+            js_reserved: js_reserved,
             start: token_,
             end: token_
         })
