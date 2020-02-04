@@ -1087,13 +1087,6 @@ def parse($TEXT, options):
     def function_(in_class, ctor):
         start = prev()
         is_accessor = ctor is ast.ObjectGetter or ctor is ast.ObjectSetter
-        '''
-        name = is_("name") \
-            ? as_symbol((in_class ? ast.SymbolDefun : (is_accessor ? ast.SymbolAccessor : ast.SymbolLambda)), allow_keywords=True) \
-            :  (is_("string") or is_("num")) \
-                ? as_atom_node() \
-                : is_("operator:keyword") ? as_property_name() : None
-        '''
         name = as_symbol(in_class \
             ? ( is_accessor ? ast.SymbolAccessor : ast.SymbolDefun) \
             : ast.SymbolLambda, True)
