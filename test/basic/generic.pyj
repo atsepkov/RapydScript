@@ -54,6 +54,25 @@ assert(JS("""
     return s
 )(5))                        # shared scoping and equivalent capability
 
+# the same as above using string modifier 
+v'var def = {}'               # ability to bypass reserved keywords in declaration
+v'def'.item = 3            # ability to use reserved keywords
+assert(v'def.item' == 3)
+
+assert(v"""
+(function(n) {
+    var s = 0;
+    for (var i=0; i<=n; i++) {
+        s += i;
+    }
+    return s;
+})(5)
+""" == (def(n):
+    s = 0
+    for i in [0 to n]:
+        s += i
+    return s
+)(5))                        # shared scoping and equivalent capability
 
 # regex
 # test from coffeescript manual

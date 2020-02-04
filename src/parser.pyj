@@ -517,7 +517,7 @@ def parse($TEXT, options):
                     body: in_loop(block_statement)
                 })
             elif tmp_ is "for":
-                if is_("name", "JS"):
+                if is_("name", "JS") or is_("string:v"):
                     return for_js()
                 return for_()
             elif tmp_ is "from":
@@ -1602,12 +1602,19 @@ def parse($TEXT, options):
                 value: tok.value
             })
         elif tmp_ is "string":
-            ret = ast.String({
-                start: tok,
-                end: tok,
-                value: tok.value,
-                modifier: tok.subtype
-            })
+            if tok.subtype is "v":
+                ret = new ast.Verbatim({
+                    start: tok,
+                    value: tok.value,
+                    end: tok,
+                })
+            else:
+                ret = ast.String({
+                    start: tok,
+                    end: tok,
+                    value: tok.value,
+                    modifier: tok.subtype
+                })
         elif tmp_ is "regexp":
             ret = ast.RegExp({
                 start: tok,

@@ -147,7 +147,7 @@ UNICODE = {  # {{{
 }
 
 IDENTIFIER_PAT = /^[a-z_$][_a-z0-9$]*$/i
-STRING_MODIFIERS = 'urfURF'
+STRING_MODIFIERS = 'urfvURFV'
 UNARY_POSTFIX = makePredicate([ "--", "++" ])
 
 PRECEDENCE = (def(a, ret):
