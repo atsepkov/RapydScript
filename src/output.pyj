@@ -1097,8 +1097,7 @@ Stream = stream.Stream
                                 def print_name(output, stmt_):
                                       pref = obj + (stmt_.static ? '' : '.prototype')
                                       output.print(pref)
-                                      is_str = stmt_.name.start.type is "string"
-                                      if is_str:
+                                      if stmt_.name.start.type in ["string", "num"]:
                                           output.with_square(def(): stmt_.name.print(output);)
                                       else:
                                           output.print('.'+ stmt_.name.name)
@@ -1225,7 +1224,7 @@ Stream = stream.Stream
                         )
                         print_bracketed(stmt, output, True)
 
-                    if stmt.name.js_reserved:
+                    if stmt.name.js_reserved or stmt.name.start.type in ["string", "num"]:
                         # wrap the method in special decorator that
                         # saves the method name into method.__name__
                         fn_def = internalsub
@@ -1267,14 +1266,8 @@ Stream = stream.Stream
                     methodsAndVars['__doc__'] = def(output): output.print_string(self.docstring)
                 self.body.forEach(def(stmt, i):
                     if isinstance(stmt, ast.Method):
-                        #meth_name =  stmt.name.as_string ? encode_string(stmt.name.name, True) : stmt.name.name
-                        meth_name =  stmt.name.name
-                        if stmt.static:
-                            # static method
-                            staticMethods[meth_name] = {value: define_method(stmt), name: stmt.name}
-                        else:
-                            # regular method
-                            methodsAndVars[meth_name] = {value: define_method(stmt), name: stmt.name}
+                        meth_hash = stmt.static ? staticMethods : methodsAndVars
+                        meth_hash[stmt.name.name] ={value: define_method(stmt), name: stmt.name}
                     elif isinstance(stmt, ast.SimpleStatement) and isinstance(stmt.body, ast.Assign) and stmt.body.operator is '=':
                         # class variable
                         methodsAndVars[stmt.body.left.name] = def(output):
