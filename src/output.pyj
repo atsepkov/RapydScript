@@ -16,564 +16,12 @@
  **********************************************************************
 """
 
-from utils import makePredicate, noop, defaults, repeat_string, RAPYD_PREFIX
-from tokenizer import is_identifier_char, PRECEDENCE
+from utils import noop, RAPYD_PREFIX
+from tokenizer import PRECEDENCE
+import stream
 import ast
 
-# FIXME: a hack that depends on self's execution
-import _baselib
-import parser
-
-
-def Stream(options):
-    options = defaults(options, {
-        indent_start: 0,
-        indent_level: 4,
-        quote_keys: False,
-        space_colon: True,
-        ascii_only: False,
-        inline_script: False,
-        width: 80,
-        max_line_len: 32000,
-        es6: False,
-        beautify: False,
-        source_map: None,
-        bracketize: False,
-        semicolons: True,
-        comments: False,
-        preserve_line: False,
-        omit_baselib: False,
-        baselib: None,
-        private_scope: True,
-        auto_bind: False,
-        write_name: True
-    })
-    indentation = 0
-    current_col = 0
-    current_line = 1
-    current_pos = 0
-    BUFFERS = [{
-        vars: [],
-        output: "",
-        baselib: {}
-    }]
-    IMPORTED = {}
-    def to_ascii(str_, identifier):
-        return str_.replace(/[\u0080-\uffff]/g, def(ch):
-            code = ch.charCodeAt(0).toString(16)
-            if code.length <= 2 and not identifier:
-                while code.length < 2:
-                    code = "0" + code
-
-                return "\\x" + code
-            else:
-                while code.length < 4:
-                    code = "0" + code
-
-                return "\\u" + code
-
-        )
-
-    def make_string(str_, quotes):
-        dq = 0
-        sq = 0
-        str_ = str_.replace(/[\\\b\f\n\r\t\x22\x27\u2028\u2029\0]/g, def(s):
-            nonlocal dq, sq
-            tmp_ = s
-            if tmp_ is "\\":
-                return "\\\\"
-            elif tmp_ is "\b":
-                return "\\b"
-            elif tmp_ is "\f":
-                return "\\f"
-            elif tmp_ is "\n":
-                return "\\n"
-            elif tmp_ is "	":
-                return "\\t"
-            elif tmp_ is "\r":
-                return "\\r"
-            elif tmp_ is "\u2028":
-                return "\\u2028"
-            elif tmp_ is "\u2029":
-                return "\\u2029"
-            elif tmp_ is '"':
-                dq += 1
-                return '"'
-            elif tmp_ is "'":
-                sq += 1
-                return "'"
-            elif tmp_ is "\0":
-                return "\\0"
-            return s
-        )
-        if options.ascii_only:
-            str_ = to_ascii(str_)
-
-        if quotes:
-            if dq > sq:
-                return "'" + str_.replace(/\x27/g, "\\'") + "'"
-            else:
-                return '"' + str_.replace(/\x22/g, '\\"') + '"'
-        else:
-            return str_
-
-    def encode_string(str_, quotes):
-        ret = make_string(str_, quotes)
-        if options.inline_script:
-            ret = ret.replace(/<\x2fscript([>\/\t\n\f\r ])/gi, "<\\/script$1")
-
-        return ret
-
-    def make_name(name):
-        name = name.toString()
-        if options.ascii_only:
-            name = to_ascii(name, True)
-
-        return name
-
-    def make_indent(back):
-        return repeat_string(" ", options.indent_start + indentation - back * options.indent_level)
-
-    # -----[ beautification/minification ]-----
-    might_need_space = False
-    might_need_semicolon = False
-    last = None
-    def last_char():
-        return last.charAt(last.length - 1)
-
-    def maybe_newline():
-        if options.max_line_len and current_col > options.max_line_len:
-            print_("\n")
-
-    requireSemicolonChars = makePredicate("( [ + * / - , .")
-    def print_(str_):
-        nonlocal might_need_space, might_need_semicolon, last, current_line, current_pos, current_col
-        str_ = (String)(str_)
-        ch = str_.charAt(0)
-        if might_need_semicolon:
-            if (not ch or ch not in ";}") and not /[;]$/.test(last):
-                if options.semicolons or requireSemicolonChars(ch):
-                    BUFFERS[-1].output += ";"
-                    current_col += 1
-                    current_pos += 1
-                else:
-                    BUFFERS[-1].output += "\n"
-                    current_pos += 1
-                    current_line += 1
-                    current_col = 0
-
-                if not options.beautify:
-                    might_need_space = False
-
-
-            might_need_semicolon = False
-            maybe_newline()
-
-        if not options.beautify and options.preserve_line and stack[stack.length - 1]:
-            target_line = stack[stack.length - 1].start.line
-            while current_line < target_line:
-                BUFFERS[-1].output += "\n"
-                current_pos += 1
-                current_line += 1
-                current_col = 0
-                might_need_space = False
-
-
-        if might_need_space:
-            prev = last_char()
-            if is_identifier_char(prev) and (is_identifier_char(ch) or ch is "\\")
-            or /^[\+\-\/]$/.test(ch) and ch is prev:
-                BUFFERS[-1].output += " "
-                current_col += 1
-                current_pos += 1
-
-            might_need_space = False
-
-        a = str_.split(/\r?\n/)
-        n = a.length - 1
-        current_line += n
-        if n is 0:
-            current_col += a[n].length
-        else:
-            current_col = a[n].length
-
-        current_pos += str_.length
-        last = str_
-        BUFFERS[-1].output += str_
-
-    space = options.beautify ? def(): print_(" ")
-    : def():
-        nonlocal might_need_space
-        might_need_space = True
-
-    indent = options.beautify ? def(half):
-        if options.beautify:
-            print_(make_indent((half ? 0.5 : 0)))
-    : noop
-
-    with_indent = options.beautify ? def(col, cont):
-        nonlocal indentation
-        if col is True:
-            col = next_indent()
-
-        save_indentation = indentation
-        indentation = col
-        ret = cont()
-        indentation = save_indentation
-        return ret
-    : def(col, cont):
-        return cont()
-
-    newline = options.beautify ? def():
-        print_("\n")
-    : noop
-
-    semicolon = options.beautify ? def():
-        print_(";")
-    : def():
-        nonlocal might_need_semicolon
-        might_need_semicolon = True
-
-    def force_semicolon():
-        nonlocal might_need_semicolon
-        might_need_semicolon = False
-        print_(";")
-
-    def next_indent():
-        return indentation + options.indent_level
-
-    def spaced():
-        for i, x in enumerate(arguments):
-            if i > 0:
-                space()
-            if x.print:
-                x.print(this)
-            else:
-                print_(x)
-
-    def addProperty(prop, val):
-        # due to how unify works, this itself has to be a decorator to take inputs other than tmp
-        return def(obj): # needs to be called with output context
-            output = this
-            output.print('Object.defineProperty(')
-            output.print(obj)
-            output.comma()
-            output.print_string(prop)
-            output.comma()
-            output.with_block(def():
-                output.indent()
-                output.print('value')
-                output.colon()
-                output.print_string(val)
-                output.newline()
-            )
-            output.print(')')
-
-    def addProperties(subattr, props):
-        # due to how unify works, this itself has to be a decorator to take inputs other than tmp
-        return def(obj): # needs to be called with output context
-            output = this
-            output.print('Object.defineProperties(')
-            output.print(obj)
-            if subattr: output.print('.' + subattr)
-            output.comma()
-            output.with_block(def():
-                Object.keys(props).forEach(def(key, i):
-                    if JS('typeof props[key]')=='function':
-                        prop_value = props[key]
-                        prop_attrs = {'enumerable' : 'true', 'writable' : 'true'}
-                    else: # hash with value and attrs
-                        prop_value = props[key].value
-                        prop_attrs = props[key].attrs
-                    if i:
-                        output.print(",")
-                        output.newline()
-                    output.indent()
-                    output.print(key)
-                    output.colon()
-                    output.with_block(def():
-
-                        # the typical defineProperty required fields
-                        for attr in ['enumerable', 'writable']:
-                            output.indent()
-                            output.print(attr)
-                            output.colon()
-                            output.print(prop_attrs[attr] or 'true')
-                            output.comma()
-                            output.newline()
-
-                        output.indent()
-                        output.print('value')
-                        output.colon()
-                        prop_value(output)
-                        output.newline()
-                    )
-                )
-                output.newline()
-            )
-            output.print(')')
-
-    def end_statement():
-        semicolon()
-        newline()
-
-    def with_block(cont):
-        ret = None
-        print_("{")
-        newline()
-        with_indent(next_indent(), def():
-            nonlocal ret
-            ret = cont()
-        )
-        indent()
-        print_("}")
-        return ret
-
-    def with_parens(cont):
-        print_("(")
-        #XXX: still nice to have that for argument lists
-        #var ret = with_indent(current_col, cont);
-        ret = cont()
-        print_(")")
-        return ret
-
-    def with_square(cont):
-        print_("[")
-        #var ret = with_indent(current_col, cont);
-        ret = cont()
-        print_("]")
-        return ret
-
-
-    # class vars should be evaluated before Object.defineProperties(...)
-    # nice to have a wrapper:
-    # (function()
-    #       init/eval class vars, so they can refer to each other
-    #       Object.defineProperties(...) - using predefined variables
-    # )()
-    def with_class_vars_init(vars, def_prop):
-        return def(obj):
-            output = this
-            output.with_parens(def():
-                output.print("function()")
-                output.with_block(def():
-                    vars.forEach(def(v, i):
-                        output.indent()
-                        output.assign('var '+ v.name)
-                        v.value(output)
-                        output.end_statement()
-                    )
-                    output.indent()
-                    # def_prop = output.addProperties('prototype', methodsAndVars)
-                    def_prop.call(output, obj)
-                    output.end_statement()
-                )
-            )
-            output.print("()")
-
-    def comma():
-        print_(",")
-        space()
-
-    def colon():
-        print_(":")
-        if options.space_colon:
-            space()
-
-
-    add_mapping = (options.source_map ? def(token, name):
-        try:
-            if token:
-                options.source_map.add(token.file or "?", current_line, current_col, token.line, token.col, (not name and token.type is "name" ? token.value : name))
-        except as ex:
-            ast.Node.warn("Couldn't figure out mapping for {file}:{line},{col} → {cline},{ccol} [{name}]", {
-                file: token.file,
-                line: token.line,
-                col: token.col,
-                cline: current_line,
-                ccol: current_col,
-                name: name or ""
-            })
-    : noop)
-
-    def get_():
-        if BUFFERS.len > 1:
-            raise Error('Something went wrong, output generator didn\'t exit all of its scopes properly.')
-
-        output = this
-
-        # another cheat to reuse the scope-closing logic to dump variables in main scope consistently
-        if BUFFERS[0].vars.length:
-            BUFFERS.unshift({
-                vars: [],
-                output: ''
-            })
-            endLocalBuffer()
-        out = BUFFERS[0].output
-        BUFFERS[0].output = ''  # clear the buffer since we've copied it to a variable
-
-        if options.private_scope:
-            output.with_parens(def():
-                output.print("function()")
-                output.with_block(def():
-                    # strict mode is more verbose about errors, and less forgiving about them, similar to Python
-                    output.print('"use strict"')
-                    output.end_statement()
-
-                    output.print(out)
-                )
-            )
-            output.print("();")
-            output.newline()
-        else:
-            output.print(out)
-
-        return BUFFERS[-1].output
-
-    # generates: '[name] = '
-    def assign_var(name):
-        if JS('typeof name') is "string":
-            print_(name)
-        else:
-            name.print(this)
-        space()
-        print_("=")
-        space()
-
-
-    # TEMP VAR MANIPULATION
-    tmpIndex = {
-        "itr": 0, # iterator
-        "idx": 0, # index
-        "upk": 0, # unpack
-        "_": 0,   # default
-    }
-    def newTemp(subtype="_", buffer=True):
-        # convenience method for generating unused temporary\ variable
-        tmpIndex[subtype] += 1
-        tmp = RAPYD_PREFIX + subtype + tmpIndex[subtype]
-        if buffer:
-            BUFFERS[-1].vars.push(tmp)
-        return tmp
-
-    def prevTemp(subtype="_"):
-        # returns most recently declared temporary variable
-        return RAPYD_PREFIX + subtype + tmpIndex[subtype]
-
-    def startLocalBuffer():
-        # helper method for abstracting scope creation a bit, allows us cleaner injection of temp vars
-        BUFFERS.push({
-            vars: [],
-            output: ""
-        })
-
-    def endLocalBuffer(baselib=False):
-        # flushes local buffer, declaring the requested localvars
-        localBuffer = BUFFERS.pop()
-        if localBuffer.vars.length:
-            indent()
-            print_('var ')
-            localBuffer.vars.forEach(def(local, i):
-                if i: comma()
-                print_(local)
-            )
-            force_semicolon()
-            newline()
-        if baselib:
-            BUFFERS[-1].output = localBuffer.output + BUFFERS[-1].output
-        else:
-            BUFFERS[-1].output += localBuffer.output
-
-
-    stack = []
-    baselibCache = {}
-    return {
-        get: get_,
-        toString: get_,
-        indent: indent,
-        indentation: def(): return indentation
-        ,
-        current_width: def(): return current_col - indentation
-        ,
-        should_break: def(): return options.width and this.current_width() >= options.width
-        ,
-        newline: newline,
-        print: print_,
-        space: space,
-        comma: comma,
-        colon: colon,
-        last: def(): return last
-        ,
-        semicolon: semicolon,
-        force_semicolon: force_semicolon,
-        to_ascii: to_ascii,
-        print_name: def(name): print_(make_name(name))
-        ,
-        print_string: def(str_, quotes=True): print_(encode_string(str_, quotes))
-        ,
-        next_indent: next_indent,
-        with_indent: with_indent,
-        with_block: with_block,
-        with_parens: with_parens,
-        with_class_vars_init: with_class_vars_init,
-        spaced: spaced,
-        end_statement: end_statement,
-        addProperty: addProperty,
-        startLocalBuffer: startLocalBuffer,
-        endLocalBuffer: endLocalBuffer,
-        addProperties: addProperties,
-        with_square: with_square,
-        add_mapping: add_mapping,
-        assign: assign_var,
-#        prologue: prologue,
-        print_baselib: def(key):
-            # this logic is a duplication of get_baselib with the exception that it will work in the browser
-            # because it uses the embedded baselib string instead of parsing a file
-            if not options.omit_baselib:
-                if not Object.keys(baselibCache).length:
-                    # first call, parse baselib
-                    baselibAst = parser.parse(_baselib.BASELIB, {
-                        readfile: None,
-                        dropDocstrings: True,       # drop docstrings in the compiler
-                        filename: '_baselib.pyj'
-                    })
-                    hash = baselibAst.body[-1]
-                    data = hash.body.properties
-                    for item in data:
-                        key_ = item.key.value
-                        value = item.value.name ? [item.value] : item.value.body
-                        baselibCache[key_] = splatBaselib(key_, value)
-                baselibCache[key].print(this)
-            return None
-        ,
-        import: def(key):
-            if not IMPORTED.hasOwnProperty(key):
-                IMPORTED[key] = key
-                return True
-            return False
-        ,
-        is_main: def(): return BUFFERS.length is 1 and BUFFERS[-1].output.length is 0
-        ,
-        option: def(opt): return options[opt]
-        ,
-        line: def(): return current_line
-        ,
-        col: def(): return current_col
-        ,
-        pos: def(): return current_pos
-        ,
-        push_node: def(node): stack.push(node)
-        ,
-        pop_node: def(): return stack.pop()
-        ,
-        stack: def(): return stack
-        ,
-        newTemp: newTemp,
-        prevTemp: prevTemp,
-        parent: def(n): return stack[stack.length - 2 - (n or 0)]
-
-    }
-
+Stream = stream.Stream
 
 # -----[ code generators ]-----
 (def():
@@ -1588,7 +1036,6 @@ def Stream(options):
         self._do_print(output)
     )
 
-
     # -----[ classes ]-----
     ast.Class.prototype._do_print = def(output):
         self = this
@@ -1647,13 +1094,21 @@ def Stream(options):
                         static_decorations = {}
                         if decorated_methods:
                             for stmt in decorated_methods:
-                                funcName = obj + (stmt.static ? '.' : '.prototype.') + stmt.name.name
+                                def print_name(output, stmt_):
+                                      pref = obj + (stmt_.static ? '' : '.prototype')
+                                      output.print(pref)
+                                      if stmt_.name.start.type in ["string", "num"]:
+                                          output.with_square(def(): stmt_.name.print(output);)
+                                      else:
+                                          output.print('.'+ stmt_.name.name)
+
                                 decoration = {
-                                    'value' : ( def(_stmt, _funcName):
+                                    'value' : ( def(_stmt):
                                             return def(output):
-                                                decorate(_stmt.decorators, output, def(): output.print(_funcName););
-                                    )(stmt, funcName),
-                                    'attrs' : {'enumerable': 'false'}
+                                                decorate(_stmt.decorators, output, def(): print_name(output, _stmt););
+                                    )(stmt),
+                                    'attrs' : {'enumerable': 'false'},
+                                    'name': stmt.name
                                 }
                                 if stmt.static:
                                     static_decorations[stmt.name.name] = decoration
@@ -1769,7 +1224,7 @@ def Stream(options):
                         )
                         print_bracketed(stmt, output, True)
 
-                    if stmt.name.is_keyword:
+                    if stmt.name.js_reserved or stmt.name.start.type in ["string", "num"]:
                         # wrap the method in special decorator that
                         # saves the method name into method.__name__
                         fn_def = internalsub
@@ -1811,12 +1266,8 @@ def Stream(options):
                     methodsAndVars['__doc__'] = def(output): output.print_string(self.docstring)
                 self.body.forEach(def(stmt, i):
                     if isinstance(stmt, ast.Method):
-                        if stmt.static:
-                            # static method
-                            staticMethods[stmt.name.name] = define_method(stmt)
-                        else:
-                            # regular method
-                            methodsAndVars[stmt.name.name] = define_method(stmt)
+                        meth_hash = stmt.static ? staticMethods : methodsAndVars
+                        meth_hash[stmt.name.name] ={value: define_method(stmt), name: stmt.name}
                     elif isinstance(stmt, ast.SimpleStatement) and isinstance(stmt.body, ast.Assign) and stmt.body.operator is '=':
                         # class variable
                         methodsAndVars[stmt.body.left.name] = def(output):
@@ -2694,6 +2145,9 @@ def Stream(options):
     ast.Symbol.prototype.definition = def(): return this.thedef
 
     DEFPRINT(ast.Symbol, def(self, output):
+        if self.start and self.start.type is "string":
+            output.print_string(self.name)
+            return
         def_ = self.definition()
         output.print_name((def_ ? def_.mangled_name or def_.name : self.name))
     )

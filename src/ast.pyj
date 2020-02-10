@@ -49,6 +49,7 @@ class Token(AST):
         'type': 'The type of the token',
         'subtype': 'The subtype of the token',
         'value': 'The value of the token',
+        '_value': 'The src value of the token',
         'line': 'The line number at which the token occurs',
         'col': 'The column number at which the token occurs',
         'pos': 'Absolute position of the token start, relative to document start',
@@ -558,7 +559,7 @@ class Exit(Jump):
         return self.value.resolveType(heap)
 
 class Return(Exit): "A `return` statement"
-class Yield(Exit): 
+class Yield(Exit):
     "A `yield` statement"
     properties = {
         yield_from: "[boolean] true if it is `yield from` i.e. JS `yield*` ",
@@ -1082,12 +1083,12 @@ class ObjectLiteral(Node):
             else:
                 # regular element
                 current = element.value.resolveType(heap)
-                if not current: 
+                if not current:
                     return "{String:?}"
                 elif current is not expected:
-                    if expected.indexOf("Function") is 0 and current.indexOf("Function") is 0: 
+                    if expected.indexOf("Function") is 0 and current.indexOf("Function") is 0:
                         continue # only the signatures don't match
-                    else:    
+                    else:
                         return "{String:?}"
         result = "{String:" + expected + "}"
         if spread:
@@ -1120,7 +1121,6 @@ class Symbol(Node):
     }
 
 class SymbolAlias(Symbol): "An alias used in an import statement"
-class SymbolAccessor(Symbol): "The name of a property accessor (setter/getter function)"
 
 class SymbolDeclaration(Symbol):
     "A declaration symbol (symbol in var/const, function name or argument, symbol in catch)"
@@ -1145,7 +1145,13 @@ class SymbolFunarg(SymbolVar):
         annotation: "[Annotation?] annotation provided for this argument, if any"
     }
 
-class SymbolDefun(SymbolDeclaration): "Symbol defining a function"
+class SymbolClass(SymbolDeclaration): "Symbol naming a class expression"
+class SymbolDefun(SymbolDeclaration):
+    "Symbol defining a function"
+    properties = {
+        js_reserved: "[boolean/S] If True, the method name must be omitted and defined as anonymous function (does matter in es5 only)"
+    }
+class SymbolAccessor(SymbolDefun): "The name of a property accessor (setter/getter function)"
 class SymbolLambda(SymbolDeclaration): "Symbol naming a function expression"
 class SymbolCatch(SymbolDeclaration): "Symbol naming the exception in catch"
 

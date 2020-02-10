@@ -291,3 +291,41 @@ class Static_meth:
 
 Static_meth().test()
 
+# JS is omnivorous regarding class method names
+class WeirdNames:
+    def 1(self, foo):
+        #assert.equal(self['2']('foo'), 'foo')
+        return  foo
+    def or(self, a):
+        return a
+    def True(self, a):
+        return a
+    def this(self, a):
+        return a
+    def var(self, a):
+        return a
+    def './foo'(self, a):
+        return a
+    @negate
+    def './decorated'(self, a):
+        return a 
+        
+    @staticmethod
+    def 2(foo):
+        return  foo
+
+weird = WeirdNames()
+
+assert.equal(weird['1']('foo'), 'foo')
+assert.equal(weird.or('foo'), 'foo')
+assert.equal(weird.True('foo'), 'foo')
+assert.equal(weird.this('foo'), 'foo')
+assert.equal(weird.var('foo'), 'foo')
+assert.equal(weird.var('foo'), 'foo')
+assert.equal(WeirdNames['2']('two'), 'two')
+assert.equal(weird['./foo']('str'), 'str')
+assert.equal(weird['./decorated'](23), -23)
+# the below tests fail in es6 mode, because it is not required to use '__name__' to store the method name
+#assert.equal(WeirdNames['2'].__name__, '2')
+#assert.equal(weird['./foo'].__name__, './foo')
+
