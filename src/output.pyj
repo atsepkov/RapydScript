@@ -1036,6 +1036,143 @@ Stream = stream.Stream
         self._do_print(output)
     )
 
+    # -----[ XObject ]-----
+    ast.XObject.prototype._do_print = def(output):
+        self = this
+        def getES6DecoratedMethods():
+            decorated_methods = []
+            for stmt in self.body:
+                if isinstance(stmt, ast.Lambda) and stmt.decorators and stmt.decorators.length:
+                    decorated_methods.push(stmt)
+            if decorated_methods.length:
+                return decorated_methods
+            return None
+
+        def outputEs6():
+            def addClassVariablesAndMethDecorators(decorated_methods):
+                # these were somehow omitted from ES6 standard, so we'll have to handle them ourselves, the messy way
+                properties = {}
+                # class vars should be evaluated before Object.defineProperties(...)
+                # order of vars is important! so we need an Array of {name: ... , value: ...}
+                class_vars = []
+                self.body.forEach(def(stmt, i):
+                    if isinstance(stmt, ast.SimpleStatement) \
+                    and isinstance(stmt.body, ast.Assign) \
+                    and stmt.body.operator is '=':
+                        # naively assume left side will not be an expression
+                        properties[stmt.body.left.name] = def(output):
+                            output.print(stmt.body.left.name)
+                            output.newline()
+                        class_vars.push({
+                            name: stmt.body.left.name,
+                            value: def(output): stmt.body.right.print(output)
+                        })
+                    elif (v_key = isinstance(stmt, ast.ObjectGetter) ? 'get' \
+                          : isinstance(stmt, ast.ObjectSetter) ? 'set' : False):
+                        h_ = def(stmt): return def(output):
+                                    output.print("function")
+                                    #output.space()
+                                    #output.print(stmt.name.name)
+                                    output.print("(")
+                                    if stmt.argnames[1]: # setter
+                                          stmt.argnames[1].print(output)
+                                    output.print(")")
+                                    print_bracketed(stmt, output, True)
+
+                        if not (props = properties[stmt.name.name]):
+                            props = properties[stmt.name.name] = {
+                                'name': stmt.name,
+                                'attrs' : {'enumerable': 'true'},
+                            }
+                        props[v_key] = h_(stmt)
+                )
+                if Object.keys(properties).length or (decorated_methods or []).length:
+                    def_class_vars_and_decorators = def(obj):
+                        output = this
+                        static_decorations = {}
+                        if decorated_methods:
+                            for stmt in decorated_methods:
+                                def print_name(output, stmt_):
+                                      output.print(obj)
+                                      if stmt_.name.start.type in ["string", "num"]:
+                                          output.with_square(def(): stmt_.name.print(output);)
+                                      else:
+                                          output.print('.'+ stmt_.name.name)
+
+                                decoration = {
+                                    'value' : (
+                                        def(_stmt):
+                                            return def(output):
+                                                decorate(_stmt.decorators,
+                                                         output,
+                                                         def(): print_name(output, _stmt););
+                                    )(stmt),
+                                    'attrs' : {'enumerable': 'true'},
+                                    'name': stmt.name
+                                }
+                                properties[stmt.name.name] = decoration
+                        if Object.keys(properties).length:
+                            output.addProperties(None, properties).call(output, obj)
+                            output.end_statement()
+                            output.indent()
+                    def_class_vars_and_decorators = \
+                         output.with_class_vars_init(class_vars, def_class_vars_and_decorators)
+                    return def_class_vars_and_decorators
+                return None
+
+            # new ES6 classes
+            # @decorated(self.decorators, output)
+            @unify(output, None, addClassVariablesAndMethDecorators(getES6DecoratedMethods()))
+            def generateXObject():
+                #output.space()
+                j = 0
+                output.with_block(def():
+                    self.body.forEach(def(stmt, i):
+                        nonlocal j
+                        if isinstance(stmt, ast.Method):
+                            if j:
+                                output.comma()
+                                output.newline()
+                            j+=1
+                            output.indent()
+                            #FIX
+                            if 0 and  isinstance(stmt, ast.ObjectGetter):
+                                output.print('get ')
+                            elif 0 and isinstance(stmt, ast.ObjectSetter):
+                                output.print('set ')
+                            elif stmt.generator:
+                                output.print('*')
+                            stmt.name.print(output)
+
+                            # argument list
+                            output.with_parens(def():
+                                stmt.argnames.forEach(def(arg, i):
+                                    # only strip first argument if the method isn't static
+                                    #if stmt.name.name in self.static: i += 1
+                                    if i > 1: output.comma()
+                                    if i: arg.print(output)
+                                    if stmt.argnames.defaults[arg.name]:
+                                        # in ES6 default arguments can be part of the signature instead of being in body
+                                        output.print('=')
+                                        stmt.argnames.defaults[arg.name].print(output)
+                                )
+
+                                # handle kwargs hook, if there is a kwargs decorator
+                                if self.kwargs:
+                                    if self.argnames.length: output.comma()
+                                    # it's a generic argument name, we'll rename it in function body
+                                    output.print('ՐՏ_kw')
+                            )
+                            output.space()
+                            print_bracketed(stmt, output, True)
+                    )
+                    output.newline()
+                )
+            return generateXObject
+        generate = outputEs6()
+        # ignition
+        generate()
+
     # -----[ classes ]-----
     ast.Class.prototype._do_print = def(output):
         self = this
@@ -1340,6 +1477,9 @@ Stream = stream.Stream
         self._do_print(output)
     )
 
+    DEFPRINT(ast.XObject, def(self, output):
+        self._do_print(output)
+    )
     DEFPRINT(ast.SymbolClassRef, def(self, output):
         self.class.print(output)
         output.print('.prototype.' + self.name)

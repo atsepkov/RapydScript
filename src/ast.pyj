@@ -493,6 +493,21 @@ class Function(Lambda):
 
         return signature
 
+class XObject(Scope):
+    "A XObject declaration"
+    properties = {
+        decorators: "[Decorator*] function decorators, if any",
+        statements: "[Node*] list of statements in the class scope (excluding method definitions)",
+    }
+    def _walk(self, visitor):
+        return visitor._visit(self, def():
+            walk_body(this, visitor)
+        )
+
+    @memoized
+    def resolveType(self, heap):
+        return '?'
+
 class Class(Scope):
     "A class declaration"
     properties = {

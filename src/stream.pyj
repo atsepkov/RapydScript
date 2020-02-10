@@ -279,11 +279,13 @@ def Stream(options):
             output.with_block(def():
                 Object.keys(props).forEach(def(key, i):
                     print_name = def(): output.print(key);
+                    prop_keys = {}
                     if JS('typeof props[key]')=='function':
-                        prop_value = props[key]
                         prop_attrs = {'enumerable' : 'true', 'writable' : 'true'}
+                        prop_keys['value'] = props[key]
                     else: # hash with value and attrs
-                        prop_value = props[key].value
+                        for k in ['get', 'set', 'value']:
+                            if props[key][k]: prop_keys[k] = props[key][k]
                         prop_attrs = props[key].attrs or {}
                         print_name = props[key].name and props[key].name.print \
                                            ? def(): props[key].name.print(output); \
@@ -298,18 +300,25 @@ def Stream(options):
                     output.with_block(def():
 
                         # the typical defineProperty required fields
-                        for attr in ['enumerable', 'writable']:
+                        for attr in (prop_keys.value \
+                                ? ['enumerable', 'writable'] \
+                                : ['enumerable', 'configurable']):
                             output.indent()
                             output.print(attr)
                             output.colon()
                             output.print(prop_attrs[attr] or 'true')
                             output.comma()
                             output.newline()
-
-                        output.indent()
-                        output.print('value')
-                        output.colon()
-                        prop_value(output)
+                        i = 0
+                        for k in prop_keys:
+                            if i:
+                                output.comma()
+                                output.newline()
+                            i +=1
+                            output.indent()
+                            output.print(k)
+                            output.colon()
+                            prop_keys[k](output)
                         output.newline()
                     )
                 )

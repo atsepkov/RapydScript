@@ -1,0 +1,36 @@
+q = def:
+    a = 1
+    b = a + 1
+    def get_a(self):
+        return self.a
+    get c(self):
+        return self._c
+    set c(self,v):
+        self._c = v*2 
+    set dd(self,v):
+        self.v = 56
+    nested = def:
+        a = 1
+        b = a + 1
+        def get_a(self):
+            return self.a
+        get c(self):
+            return self.c
+        set c(self,v):
+            self.v = 56
+        set dd(self,v):
+            self.v = 56
+    Z= a+b
+s = def: def q(self): return 5;
+d=45
+w = def():
+    pass
+w(def:
+    def t(self): return 4;
+    def y(self):
+        some
+)
+assert.equal(q.get_a(),1)
+q.c = 45
+assert.equal(q.c,90)
+console.log(q)

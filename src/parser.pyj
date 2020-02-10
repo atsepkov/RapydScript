@@ -532,8 +532,11 @@ def parse($TEXT, options):
                     BASELIB["with__name__"] += 1
                 return class_()
             elif tmp_ is "def":
+                if peek().value is ':': # extended object notation
+                    return ext_object()
                 start = prev()
-                func = function_(S.in_scope[-1].type is "class" ? S.in_scope[-1].name : False)
+                #func = function_(S.in_scope[-1].type is "class" ? S.in_scope[-1].name : False)
+                func = function_(S.in_scope[-1].type in ["class", "xobject"] ? S.in_scope[-1].name or True : False)
                 func.start = start
                 func.end = prev()
                 chain = subscripts(func, True)
@@ -952,6 +955,60 @@ def parse($TEXT, options):
         [].push.apply(ans.imports, from_pack_imp)
         return ans
 
+    def ext_object():
+        start = prev()
+        #name = as_symbol(ast.SymbolClass)
+        #if not name:
+        #    unexpected()
+        definition = ast.XObject({
+            start: start,
+            localvars: [],
+            statements: [],
+            body: (def(loop, labels):
+                S.in_scope.push({
+                    type: "xobject",
+                    nonlocal: {},
+                    functions: {},
+                    vars: {},
+                })
+                S.in_directives = True
+                S.in_loop = 0
+                S.labels = []
+
+                a = block_()
+                # state "pop"
+                S.in_scope.pop()
+                S.in_loop = loop
+                S.labels = labels
+
+                return a
+            )(S.in_loop, S.labels),
+            end: prev()
+        })
+
+        # find class variables
+        props_names = {}
+        # Ensure that if a class variable refers to another class variable in
+        # its initialization, the referenced variables' names are correctly
+        # mangled.
+        def walker():
+            this._visit = def(node, descend):
+                if isinstance(node, ast.Method):
+                    props_names[node.name.name] = True
+                    return
+                elif isinstance(node, ast.Assign) and isinstance(node.left, ast.SymbolRef):
+                    props_names[node.left.name] = True
+                if descend:
+                    descend.call(node)
+        visitor = new walker()
+
+        for stmt in definition.body:
+            if  not isinstance(stmt, ast.Method):
+                stmt.walk(visitor)
+                definition.statements.push(stmt)
+
+        return definition
+
 
     def class_():
         start = prev()
@@ -1052,20 +1109,20 @@ def parse($TEXT, options):
                 break
 
         # find class variables
-        class_var_names = {}
+        class_vars_names = {}
         # Ensure that if a class variable refers to another class variable in
         # its initialization, the referenced variables' names are correctly
         # mangled.
         def walker():
             this._visit = def(node, descend):
                 if isinstance(node, ast.Method):
-                    class_var_names[node.name.name] = True
+                    class_vars_names[node.name.name] = True
                     return
                 elif isinstance(node, ast.Assign) and isinstance(node.left, ast.SymbolRef):
-                    class_var_names[node.left.name] = True
+                    class_vars_names[node.left.name] = True
 
                 for child in node:
-                    if isinstance(node[child], ast.SymbolRef) and Object.prototype.hasOwnProperty.call(class_var_names, node[child].name):
+                    if isinstance(node[child], ast.SymbolRef) and Object.prototype.hasOwnProperty.call(class_vars_names, node[child].name):
                         node[child] = ast.SymbolClassRef({
                             'class': name,
                             'name': node[child].name
@@ -1091,7 +1148,7 @@ def parse($TEXT, options):
             ? ( is_accessor ? ast.SymbolAccessor : ast.SymbolDefun) \
             : ast.SymbolLambda, True)
 
-        if in_class and not name:
+        if in_class and JS("typeof in_class") is 'string' and not name:
             unexpected()
 
         generator = False           # whether this function is a generator
@@ -1104,7 +1161,7 @@ def parse($TEXT, options):
             # special decorators are decorators that have special meaning to the compiler
             has_special_decorator = def(name): return has_simple_decorator(S.decorators, name)
 
-            if in_class:
+            if JS("typeof in_class") is "string":
                 if has_special_decorator("staticmethod"):
                     S.in_scope[-2].classes[in_class].push_static(name.name)
                     staticmethod = True
@@ -1681,6 +1738,8 @@ def parse($TEXT, options):
 
         if is_("keyword", "def"):
             next()
+            if is_("punc", ":"):
+                return ext_object()
             func = function_(False)
             func.start = start
             func.end = prev()
