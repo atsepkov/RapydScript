@@ -22,35 +22,44 @@ import ast
 
 def characters(str_): return str_.split("")
 
+# -------- [ KEYWORDS ] ----------
+# 'arguments'  - it seems that it is a special var and could be used as valid name
+
 ES6_KEYWORDS = "async await yield"
-KEYWORDS = "as break case class const continue debugger default def del do elif else except " +
-"finally for from if import in is new nonlocal pass raise return switch til to " +
-"try void while with or and not " + ES6_KEYWORDS
+COMMON_KEYWORDS = "break case class const continue debugger default do else " +
+"finally for if import in new return switch " +
+"try void while with " + ES6_KEYWORDS
+
+# some keywords removed in es5/6
+JS_KEYWORDS = "enum export extends implements " +
+"interface let package private protected " +
+"public static this" # super?
 
 # with the `strict_names` compiler option turned off
 # these keywords may be used as names, RS will fix them by adding the suffix `_ϟ`
-JS_KEYWORDS = "var function instanceof typeof catch delete throw false null true"
+JS_KEYWORDS_AUTOFIX = "var function instanceof typeof catch delete throw false null true"
 
+RS_KEYWORDS = "as def del elif except " +
+"from is nonlocal pass raise til to or and not"
+
+KEYWORDS = [RS_KEYWORDS, COMMON_KEYWORDS].join(" ")
 KEYWORDS_ATOM = "False None True"
 
-# some keywords removed in es5/6
-RESERVED_WORDS = "enum export extends let " + \
-    "implements interface package private protected public static this " + \
-    KEYWORDS_ATOM + " " + KEYWORDS
+RESERVED_WORDS = [KEYWORDS_ATOM, KEYWORDS, JS_KEYWORDS].join(" ")
 
 KEYWORDS_BEFORE_EXPRESSION = "return new del raise elif else if"
 
-ALL_KEYWORDS = RESERVED_WORDS + " " \
-               + KEYWORDS_BEFORE_EXPRESSION + " " \
-               + JS_KEYWORDS
+ALL_KEYWORDS = [RESERVED_WORDS, JS_KEYWORDS_AUTOFIX].join(" ")
+ALL_JS_KEYWORDS =  [JS_KEYWORDS, JS_KEYWORDS_AUTOFIX, COMMON_KEYWORDS].join(" ")
 
-JS_KEYWORDS =  JS_KEYWORDS.split(/ +/)
 KEYWORDS = makePredicate(KEYWORDS)
 ES6_KEYWORDS = makePredicate(ES6_KEYWORDS)
 RESERVED_WORDS = makePredicate(RESERVED_WORDS)
 IS_ANY_KEYWORD = makePredicate(ALL_KEYWORDS)
 KEYWORDS_BEFORE_EXPRESSION = makePredicate(KEYWORDS_BEFORE_EXPRESSION)
 KEYWORDS_ATOM = makePredicate(KEYWORDS_ATOM)
+JS_KEYWORDS_AUTOFIX = makePredicate(JS_KEYWORDS_AUTOFIX)
+ALL_JS_KEYWORDS= makePredicate(ALL_JS_KEYWORDS)
 
 OPERATOR_CHARS = makePredicate(characters("+-*&%=<>!?|~^@"))
 
@@ -60,8 +69,6 @@ RE_DEC_NUMBER = /^\d*\.?\d*(?:e[+-]?\d*(?:\d\.?|\.?\d)\d*)?$/i
 
 OPERATORS = makePredicate([
     "in",
-    "instanceof",
-    "typeof",
     "new",
     "void",
     "del",
@@ -140,7 +147,7 @@ UNICODE = {  # {{{
 }
 
 IDENTIFIER_PAT = /^[a-z_$][_a-z0-9$]*$/i
-STRING_MODIFIERS = 'urfURF'
+STRING_MODIFIERS = 'urfvURFV'
 UNARY_POSTFIX = makePredicate([ "--", "++" ])
 
 PRECEDENCE = (def(a, ret):
@@ -205,7 +212,12 @@ def parse_js_number(num):
         return parseFloat(num)
 
 def is_token(token, type, val):
-    return token.type is type and (val is None or val is undefined or token.value is val)
+    type_subtype = type.split(':')
+    type = type_subtype[0]
+    subtype = type_subtype[1]
+    return token.type is type and (subtype ? token.subtype is subtype : True  ) \
+             and (val is None or val is undefined or token.value is val)
+
 
 def js_error(message, filename, line, col, pos, is_eof):
     ast.Node.warn("ERROR: {message} [{file}:{line},{col}]", {
@@ -275,6 +287,7 @@ def tokenizer($TEXT, filename):  # {{{
         full_type = full_type.split(':')
         type = full_type[0]
         subtype = full_type[1]
+        _value = None
 
         S.regex_allowed = type is "operator" and not UNARY_POSTFIX[value] \
             or type is "keyword" and KEYWORDS_BEFORE_EXPRESSION(value) \
@@ -285,12 +298,14 @@ def tokenizer($TEXT, filename):  # {{{
             value = "!=="
 
         if type is "operator" and OP_MAP[value]:
+            _value = value
             value = OP_MAP[value]
 
         ret = {
             type: type,
             subtype: subtype,
             value: value,
+            _value: _value,
             line: S.tokline,
             col: S.tokcol,
             pos: S.tokpos,
@@ -653,7 +668,7 @@ def tokenizer($TEXT, filename):  # {{{
             # pretend that this is an operator as the tokenizer only allows
             # one character punctuation.
             return token('punc', op)
-        return token("operator", op)
+        return token("operator:symbol", op)
 
     def handle_slash():
         next()
@@ -667,7 +682,7 @@ def tokenizer($TEXT, filename):  # {{{
         word = read_name()
         return (KEYWORDS_ATOM(word) ? token("atom", word) : (
             not KEYWORDS(word) ? token("name", word) : (
-                OPERATORS(word) and prevChar() is not "." ? token("operator", word) : token("keyword", word)
+                OPERATORS(word) and prevChar() is not "." ? token("operator:keyword", word) : token("keyword", word)
             )
         ))
 
