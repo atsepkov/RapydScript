@@ -303,8 +303,10 @@ Stream = stream.Stream
             imp_keys.forEach(def (mod_id):
                 # if import foo.bar.c -> push all foo submodules first
                 pack_id = mod_id.split('.')[0]
-                sort_imports(module_.imports[pack_id], imp_sorted, importing, done)
-                push_key(mod_id);
+                # may be own submodule
+                if pack_id != mod.module_id:
+                    sort_imports(module_.imports[pack_id], imp_sorted, importing, done)
+                    push_key(mod_id);
             )
             # process self submodules
             if mod.submodules.length:
@@ -371,15 +373,17 @@ Stream = stream.Stream
             else:
                 needsSuper = True
         if (isinstance(node, ast.Method) or isinstance(node, ast.ObjectGetter) or isinstance(node, ast.ObjectSetter)) \
-              and not node.static and not delaySelfAssignment:
-            if needsSuper:
-                output.indent()
-                output.print('super()')
-                output.end_statement()
-            output.indent()
-            output.spaced("var", node.argnames[0], "=", "this")
-            output.end_statement()
+              and not node.static:
             offset += 1
+            if not delaySelfAssignment:
+                if needsSuper:
+                    output.indent()
+                    output.print('super()')
+                    output.end_statement()
+                output.indent()
+                output.spaced("var", node.argnames[0], "=", "this")
+                output.end_statement()
+
 
         if isinstance(node, ast.Scope):
             # if function takes any arguments
@@ -570,8 +574,16 @@ Stream = stream.Stream
     )
 
     DEFPRINT(ast.Imports, def(container, output):
-
+        seen = {}
         def add_aname(aname, key, from_import):
+            seen_key = key + (from_import ? '.' + from_import : '')
+            if seen[aname]:
+                if seen[aname] == seen_key:
+                    return
+                else:
+                    tmp = aname  + ' : '  + [seen[aname], seen_key].join(', ')
+                    raise Error('Something went wrong, 2 imports with the same name detected: ' + tmp)
+            seen[aname] = seen_key
             output.assign('var ' + aname)
             output.print('ՐՏ_modules["' + key + '"]')
             if from_import:

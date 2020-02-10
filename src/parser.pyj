@@ -238,6 +238,8 @@ ATOMIC_START_TOKEN = array_to_hash([ "atom", "num", "string", "regexp", "name" ]
 def parse($TEXT, options):
     if not STDLIB:
         init_mod()
+    # needs to have per module
+    class_map = {}
 
     options = defaults(options, {
         strict: False,          # whether to use strict JavaScript mode
@@ -839,7 +841,7 @@ def parse($TEXT, options):
         while True:
             package_pref = ''
             # allow import submodules into __init__.pyj
-            if /^.+?__init__.pyj$/.test(options.filename or ''):
+            if (options.filename or '').endsWith('/__init__.pyj'):
                 package_pref = options.module_id + '.'
                 if not PRE_IMPORTED[options.module_id]:
                     PRE_IMPORTED[options.module_id] = {submodules : []}
@@ -902,18 +904,17 @@ def parse($TEXT, options):
             do_import(imp.key)
             depends_on[imp.key] = True
             cur_imported = IMPORTED[imp.key]
-            classes = cur_imported.classes
-            is_init_pyj = /^.+?__init__\.pyj$/.test(cur_imported.filename);
             argnames  = []
             if from_import:
                 expect_token("keyword", "import")
                 imp.argnames = argnames = []
+                from_pack_module_names = []
                 while True:
                     if not is_('name'):
                         unexpected()
                     name =  S.token.value
                     # maybe `from package import module`
-                    if is_init_pyj \
+                    if cur_imported.is_package \
                           and not cur_imported.exports.find(def(it): return it.name is name;):
                         key =  imp.key + '.' + name
                         aname = ast.Import({
@@ -925,11 +926,12 @@ def parse($TEXT, options):
                                 return IMPORTED[key]
                         })
                         from_pack_imp.push(aname)
+                        from_pack_module_names.push(aname)
                         do_import(key)
-
                     else:
                         aname = as_symbol(ast.ImportedVar)
                         argnames.push(aname)
+
                     if is_('keyword', 'as'):
                         next()
                         aname.alias = as_symbol(ast.SymbolAlias)
@@ -940,17 +942,18 @@ def parse($TEXT, options):
                         break
 
                 # Put imported class names in the outermost scope
+                classes = cur_imported.classes
                 for argvar in argnames:
                     obj = classes[argvar.name]
                     if obj:
                         key = (argvar.alias) ? argvar.alias.name : argvar.name
                         S.in_scope[-1].classes[key] = { "static": obj.static, "bound": obj.bound }
+
+                for mod_name in from_pack_module_names:
+                    Object.assign(S.in_scope[S.in_scope.length-1].classes, IMPORTED[mod_name.key].top_classes(mod_name.alias.name))
             else:
-                for i in dir(classes):
-                    obj = classes[i]
-                    if isinstance(obj, ast.Class):
-                        key = (imp.alias) ? imp.alias.name : imp.key
-                        S.in_scope[-1].classes[key + '.' + obj.name.name] = { "static": obj.static, "bound": obj.bound }
+                key = imp.alias ? imp.alias.name : imp.key;
+                Object.assign(S.in_scope[S.in_scope.length-1].classes, cur_imported.top_classes(key))
 
         [].push.apply(ans.imports, from_pack_imp)
         return ans
@@ -1137,6 +1140,7 @@ def parse($TEXT, options):
                 definition.statements.push(stmt)
 
         if S.in_scope.length is 1:  # we're in top level
+            class_map[definition.name.name] = definition
             CLASS_MAP[definition.name.name] = definition
 
         return definition
@@ -2692,9 +2696,26 @@ def parse($TEXT, options):
         toplevel.exports = toplevel.localvars.concat(callables).filter(uniq)
         toplevel.depends_on = depends_on
         toplevel.submodules = []
-        toplevel.classes = CLASS_MAP
+        toplevel.classes = class_map
+        toplevel.top_classes = def(key):
+            ret = {}
+            key = key or ''
+            cn = ''
+            for JS('cn in this.classes'):
+                obj = this.classes[cn]
+                ret[key ? key + '.'+ cn : cn] = {
+                      "static": obj.static,
+                      "bound": obj.bound
+                }
+            for sub_id in this.submodules:
+                sub_key = sub_id.replace(RegExp('^' + this.module_id.replace(/\./g, '\\.')), key)
+                sub = IMPORTED[sub_id]
+                Object.assign(ret, sub.top_classes(sub_key))
+            return ret
+
         toplevel.import_order = Object.keys(IMPORTED).length
         toplevel.module_id = module_id
+        toplevel.is_package = (toplevel.filename or '').endsWith('/__init__.pyj')
         IMPORTED[module_id] = toplevel
         toplevel.imports = IMPORTED
         toplevel.baselib = BASELIB
