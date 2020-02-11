@@ -356,6 +356,10 @@ def parse($TEXT, options):
                     ", expected " + type + " «" + val + "»")
 
     def expect(punc):
+        if punc is "," and S.token.comma_expected:
+            if is_("punc", ","):
+                next()
+            return S.token
         return expect_token("punc", punc)
 
     def can_insert_semicolon():
@@ -1904,9 +1908,9 @@ def parse($TEXT, options):
         while not is_("punc", "}"):
             if not first:
                 expect(",")
-            if not options.strict and is_("punc", "}"):
-                # allow trailing comma
-                break
+                if not options.strict and is_("punc", "}"):
+                    # allow trailing comma
+                    break
 
             start = S.token
             type = start.type

@@ -56,6 +56,7 @@ class Token(AST):
         'endpos': 'Absolute position of the token start, relative to document start',
         'newline_before': 'True if there was a newline before this token',
         'comments_before': 'True if there were comments before this token',
+        'comma_expected': 'True if comma was expected instead of this token',
         'file': 'Name of the file currently being parsed'
     }
 
