@@ -490,7 +490,9 @@ def parse($TEXT, options):
                 type = S.token.value
                 start = S.token.start
                 next()
-                return accessor_(type, start, True)
+                if not (S.in_scope[-1].type in ["class", "xobject"]):
+                    croak("Getter/setter outside of class/object")
+                return accessor_(type, start, S.in_scope[-1].name or True)
             return (tokenizer.is_token(peek(), "punc", ":") ? labeled_statement() : simple_statement())
         elif tmp_ is "keyword":
             tmp_ = S.token.value
@@ -1030,10 +1032,15 @@ def parse($TEXT, options):
             "static": [],
             "bound": {},
             "subscribers": [],
-            "on_def_static": def(cb): this.subscribers.push(cb);
+            "on_static_change": def(cb): this.subscribers.push(cb);
             ,"push_static" : def(meth):
                 this.static.push(meth)
-                this.subscribers.forEach(def(cb): cb(meth););
+                this.subscribers.forEach(def(cb): cb(meth, True););
+            ,"pop_static" : def(meth):
+                idx = this.static.indexOf(meth)
+                if idx >=0:
+                    this.static.splice(idx, 1)
+                    this.subscribers.forEach(def(cb): cb(meth, False););
         }
 
         # class setup
@@ -1054,6 +1061,8 @@ def parse($TEXT, options):
                     expect(")")
                     nonlocal parent
                     parent = stringifyName(atom)
+                    if parent and (parent_details = S.in_scope[-1].classes[parent]):
+                        [].push.apply(class_details.static, parent_details.static)
                     return atom
                 else:
                     return None
@@ -1149,14 +1158,18 @@ def parse($TEXT, options):
 
         return definition
 
-    def function_(in_class, ctor):
+    def function_(in_class_or_xobject, ctor):
+        in_class = in_xobject = False
+        if in_class_or_xobject:
+            in_xobject = in_class_or_xobject is True ? True : False
+            in_class = in_xobject ? False : in_class_or_xobject
         start = prev()
         is_accessor = ctor is ast.ObjectGetter or ctor is ast.ObjectSetter
-        name = as_symbol(in_class \
+        name = as_symbol(in_class_or_xobject \
             ? ( is_accessor ? ast.SymbolAccessor : ast.SymbolDefun) \
             : ast.SymbolLambda, True)
 
-        if in_class and JS("typeof in_class") is 'string' and not name:
+        if in_class_or_xobject and not name:
             unexpected()
 
         generator = False           # whether this function is a generator
@@ -1169,18 +1182,29 @@ def parse($TEXT, options):
             # special decorators are decorators that have special meaning to the compiler
             has_special_decorator = def(name): return has_simple_decorator(S.decorators, name)
 
-            if JS("typeof in_class") is "string":
+            if in_class:
+                cls_details = S.in_scope[-2].classes[in_class]
                 if has_special_decorator("staticmethod"):
-                    S.in_scope[-2].classes[in_class].push_static(name.name)
                     staticmethod = True
+                    # may be inherited from parent static
+                    if not (name.name in cls_details.static):
+                        cls_details.push_static(name.name)
+                # may overwrites parent static
+                elif name.name in cls_details.static:
+                    cls_details.pop_static(name.name)
+
                 if has_special_decorator("bind") or name.name is not "__init__" and options.auto_bind:
                     BASELIB["bind"] += 1
                     S.in_scope[-2].classes[in_class].bound[name.name] = True
 
         expect("(")
         if not ctor:
-            ctor = in_class ? name.name is '__init__' ? ast.Constructor : ast.Method : ast.Function
-
+            if in_class_or_xobject:
+                ctor = in_class and name.name is '__init__' \
+                    ? ast.Constructor \
+                    : ast.Method
+            else:
+                ctor = ast.Function
         docstring = None
         callsSuper = None
         superCall_expr = None
@@ -1191,17 +1215,17 @@ def parse($TEXT, options):
                 defaults = {}
                 first = True
                 seen_names = {}
-                def_line = S.input.context().tokline
-
                 def get_arg():
                     if Object.prototype.hasOwnProperty.call(seen_names, S.token.value):
                         token_error(prev(), "Can't repeat parameter names")
                     if S.token.value is 'arguments':
                         token_error(prev(), "Can't use the name '"+ S.token.value +"' as a parameter name, it is reserved by JavaScript")
-                    seen_names[S.token.value] = True
-                    # save these in order to move back if we have an annotation
+                    if not is_("name"):
+                        croak("Name expected")
+                        return None
                     name_token = S.token
-                    name_ctx = S.input.context()
+                    seen_names[name_token.value] = True
+                    name = maybe_keyword(name_token.value)
                     # check if we have an argument annotation
                     ntok = peek()
                     if ntok.type is 'punc' and ntok.value is ':':
@@ -1212,16 +1236,10 @@ def parse($TEXT, options):
 
                         # and now, do as_symbol without the next() at the end
                         # since we are already at the next comma (or end bracket)
-                        if not tokenizer.is_token(name_token, "name"):
-                            # assuming the previous context in case
-                            # the annotation was over the line
-                            croak("Name expected", name_ctx.tokline)
-                            return None
-
                         sym = ast.SymbolFunarg({
-                            'name': name_token.value,
-                            'start': S.token,
-                            'end': S.token,
+                            'name': name,
+                            'start': name_token,
+                            'end': name_token,
                             'annotation': annotation ? ast.Annotation({
                                 'start': annotation.start,
                                 'expression': annotation,
@@ -1230,21 +1248,10 @@ def parse($TEXT, options):
                         })
                     else:
                         # arg (no annotation)
-                        if not is_("name"):
-                            # there is no name, which is an error we should report on the
-                            # same line as the definition, so move to that is we're not already there.
-                            if S.input.context().tokline is not def_line:
-                                croak("Name expected", def_line)
-                            else:
-                                croak("Name expected")
-                            return None
-
-                        name = maybe_keyword(S.token.value)
-
                         sym = ast.SymbolFunarg({
                             'name': name,
-                            'start': S.token,
-                            'end': S.token,
+                            'start': name_token,
+                            'end': name_token,
                             'annotation': None
                         })
                         next()
@@ -1366,24 +1373,19 @@ def parse($TEXT, options):
         definition.localvars = definition.localvars.filter(def(var_): return var_.name not in args;)
 
         # do a few extra safety checks on arguments
-        if in_class and not staticmethod:
-            if ctor is ast.Constructor:
-                definition.parent = S.in_scope[-1].parent
-                definition.callsSuper = callsSuper
-                if superCall_expr:
-                    superCall_expr.selfArg = definition.argnames[0]
-            if definition.argnames.length < 1:
-                croak("Class methods require at least one argument (self)", start.line, start.col, start.pos)
-            elif ctor is ast.ObjectGetter and definition.argnames.length is not 1:
-                croak("Class getters don't take any arguments aside from one referencing the instance (self)", start.line, start.col, start.pos)
+        if in_class_or_xobject:
+            if in_class and not staticmethod:
+                if ctor is ast.Constructor:
+                    definition.parent = S.in_scope[-1].parent
+                    definition.callsSuper = callsSuper
+                    if superCall_expr:
+                        superCall_expr.selfArg = definition.argnames[0]
+                if definition.argnames.length < 1:
+                    croak("Class methods require at least one argument (self)", start.line, start.col, start.pos)
+            if ctor is ast.ObjectGetter and definition.argnames.length is not 1:
+                croak("Class/object getters don't take any arguments aside from one referencing the instance (self)", start.line, start.col, start.pos)
             elif ctor is ast.ObjectSetter and definition.argnames.length is not 2:
-                croak("Class setters take exactly 2 arguments (self, value)", start.line, start.col, start.pos)
-        elif is_accessor:
-            if ctor is ast.ObjectGetter and definition.argnames.length:
-                croak("Object getters don't take any arguments", start.line, start.col, start.pos)
-            elif ctor is ast.ObjectSetter and definition.argnames.length is not 1:
-                croak("Object setters take exactly 1 argument", start.line, start.col, start.pos)
-
+                croak("Class/object setters take exactly 2 arguments (self, value)", start.line, start.col, start.pos)
         return definition
 
     def accessor_(type, start, in_class):
@@ -1921,10 +1923,40 @@ def parse($TEXT, options):
                 a.push(maybe_unary(True))
                 first = False
                 continue
+            elif is_("operator", "@") or \
+                    (is_("keyword", "def") or is_("name", ["get", "set"])) \
+                    and peek().value is not ":":
+                #value = {body:[]}
+                while is_("operator", "@"):
+                    #value.body.push(maybe_unary(True))
+                    maybe_unary(True)
+                    pass
+                start = S.token
+                fun_type = is_("keyword", "def") \
+                            ? "def"  \
+                            : is_("name", ["get", "set"]) \
+                                ? start.value  \
+                                : None
+                if fun_type and peek().value is not ":":
+                    #value.body.push(expression(False))
+                    next()
+                    if fun_type is "def":
+                        value = function_(True)
+                    else:
+                        value  = accessor_(fun_type, start, True)
+                    #key = value.body[-1].name
+                    key = value.name
+                else:
+                    unexpected()
+                a.push(ast.ObjectKeyVal({
+                    start: start,
+                    key: key,
+                    value: value,
+                    end: prev()
+                }))
+                first = False
+                continue
             else:
-                ctx = S.input.context()
-                orig = ctx.expect_object_literal_key
-                ctx.expect_object_literal_key = True
                 if first and not (peek().value in [':', ',', '}']):
                     # possibly dict comprehension
                     maybe_dict_comprehension = True
@@ -1968,15 +2000,9 @@ def parse($TEXT, options):
                                 value: name,
                                 end: prev()
                             })
-                ctx.expect_object_literal_key = orig
 
-                #if type is "name" and not is_("punc", ":"):
-                #    a.push(accessor_(name, start, False))
-                #    continue
-
-            if is_('punc') and S.token.value in [',', '}'] \
-                    and isinstance(key, ast.Identifier):
-                # es6 short notation
+            if is_('punc') and S.token.value in [',', '}'] and isinstance(key, ast.Identifier):
+                # maybe es6 short notation
                 value = key
             else:
                 expect(":")
@@ -2246,10 +2272,10 @@ def parse($TEXT, options):
 
                     # fix issue #128
                     # subscribe on staticmethod definitions
-                    if not ast_ClassCall.static and className.on_def_static:
-                        className.on_def_static(def(static_name):
+                    if className.on_static_change:
+                        className.on_static_change(def(static_name, on_off):
                                      if static_name is funcname.property:
-                                         ast_ClassCall.static = True
+                                         ast_ClassCall.static = on_off
                         )
                     return validateCallArgs(subscripts(ast_ClassCall, True))
                 elif isinstance(expr, ast.SymbolRef):
