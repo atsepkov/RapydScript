@@ -1,36 +1,35 @@
-q = def:
-    a = 1
-    b = a + 1
-    def get_a(self):
-        return self.a
-    get c(self):
-        return self._c
-    set c(self,v):
-        self._c = v*2 
-    set dd(self,v):
-        self.v = 56
-    nested = def:
-        a = 1
-        b = a + 1
-        def get_a(self):
-            return self.a
-        get c(self):
-            return self.c
-        set c(self,v):
-            self.v = 56
-        set dd(self,v):
-            self.v = 56
-    Z= a+b
-s = def: def q(self): return 5;
-d=45
-w = def():
-    pass
-w(def():
-    def t(self): return 4;
-    def y(self):
-        some
-)
-assert.equal(q.get_a(),1)
-q.c = 45
-assert.equal(q.c,90)
-console.log(q)
+# extended object notation test
+logger = {
+    history: [],
+    def watch(self, f):
+        def inner(*args):
+            self.history.push(args)
+            return f.apply(this, args)
+        return inner
+}
+
+obj = {
+    _a : 1,
+    b : 2,
+    def get_ab(self):
+        return self._a + self.b
+    get a(self):
+        return self._a
+
+    @logger.watch
+    set a(self, v):
+        self._a = v
+    nested : {
+        _foo: 'foo',
+        get foo(self):
+            return self._foo
+    }
+}
+
+assert.equal(obj.get_ab(),1+2)
+assert.equal(obj.a,1)
+obj.a = 5
+assert.equal(obj.a,5)
+assert.equal(obj._a,5)
+assert.equal(logger.history[0][0],5)
+assert.equal(obj.nested.foo,"foo")
