@@ -1,0 +1,35 @@
+# extended object notation test
+logger = {
+    history: [],
+    def watch(self, f):
+        def inner(*args):
+            self.history.push(args)
+            return f.apply(this, args)
+        return inner
+}
+
+obj = {
+    _a : 1,
+    b : 2,
+    def get_ab(self):
+        return self._a + self.b
+    get a(self):
+        return self._a
+
+    @logger.watch
+    set a(self, v):
+        self._a = v
+    nested : {
+        _foo: 'foo',
+        get foo(self):
+            return self._foo
+    }
+}
+
+assert.equal(obj.get_ab(),1+2)
+assert.equal(obj.a,1)
+obj.a = 5
+assert.equal(obj.a,5)
+assert.equal(obj._a,5)
+assert.equal(logger.history[0][0],5)
+assert.equal(obj.nested.foo,"foo")

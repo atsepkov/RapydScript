@@ -303,8 +303,10 @@ Stream = stream.Stream
             imp_keys.forEach(def (mod_id):
                 # if import foo.bar.c -> push all foo submodules first
                 pack_id = mod_id.split('.')[0]
-                sort_imports(module_.imports[pack_id], imp_sorted, importing, done)
-                push_key(mod_id);
+                # may be own submodule
+                if pack_id != mod.module_id:
+                    sort_imports(module_.imports[pack_id], imp_sorted, importing, done)
+                    push_key(mod_id);
             )
             # process self submodules
             if mod.submodules.length:
@@ -371,15 +373,17 @@ Stream = stream.Stream
             else:
                 needsSuper = True
         if (isinstance(node, ast.Method) or isinstance(node, ast.ObjectGetter) or isinstance(node, ast.ObjectSetter)) \
-              and not node.static and not delaySelfAssignment:
-            if needsSuper:
-                output.indent()
-                output.print('super()')
-                output.end_statement()
-            output.indent()
-            output.spaced("var", node.argnames[0], "=", "this")
-            output.end_statement()
+              and not node.static:
             offset += 1
+            if not delaySelfAssignment:
+                if needsSuper:
+                    output.indent()
+                    output.print('super()')
+                    output.end_statement()
+                output.indent()
+                output.spaced("var", node.argnames[0], "=", "this")
+                output.end_statement()
+
 
         if isinstance(node, ast.Scope):
             # if function takes any arguments
@@ -451,24 +455,25 @@ Stream = stream.Stream
 
     def declare_submodules(module_id,  submodules, output):
         seen = {}
+        output.newline()
         for sub_module_id in submodules:
             if not seen.hasOwnProperty(sub_module_id):
                 seen[sub_module_id] = True
                 key = sub_module_id.split('.')[-1]
-                output.newline()
                 output.indent()
                 output.print('ՐՏ_modules["' + module_id + '"]["' + key + '"] = ')
                 output.print('ՐՏ_modules["' + sub_module_id + '"]')
                 output.end_statement()
 
     def declare_exports(module_id, exports, output):
+        output.newline()
         seen = {}
         for symbol in exports:
             if not seen[symbol.name]:
                 seen[symbol.name] = True
-                output.newline()
                 output.indent()
-                output.print('ՐՏ_modules["' + module_id + '"]["' + symbol.name + '"] = ' + symbol.name)
+                output.assign('ՐՏ_modules["' + module_id + '"]["' + symbol.name + '"]')
+                output.print(symbol.name)
                 output.end_statement()
 
     def unpack_tuple(tuple, output, in_statement):
@@ -570,8 +575,16 @@ Stream = stream.Stream
     )
 
     DEFPRINT(ast.Imports, def(container, output):
-
+        seen = {}
         def add_aname(aname, key, from_import):
+            seen_key = key + (from_import ? '.' + from_import : '')
+            if seen[aname]:
+                if seen[aname] == seen_key:
+                    return
+                else:
+                    tmp = aname  + ' : '  + [seen[aname], seen_key].join(', ')
+                    raise Error('Something went wrong, 2 imports with the same name detected: ' + tmp)
+            seen[aname] = seen_key
             output.assign('var ' + aname)
             output.print('ՐՏ_modules["' + key + '"]')
             if from_import:
@@ -973,7 +986,7 @@ Stream = stream.Stream
             return def():
                 decorate(decorators, output, baseFn)
 
-    ast.Lambda.prototype._do_print = def(output, nokeyword):
+    ast.Lambda.prototype._do_print = def(output):
         self = this
 
         def addDecorators():
@@ -995,24 +1008,48 @@ Stream = stream.Stream
         # label the variable correctly depending on context
         # FIXME: this is bug-prone, need var to be conditional on whether this is a standalone statement
         name = None
-        if self.name:
+        is_like_method = (
+             isinstance(self, ast.Method)
+             or isinstance(self, ast.ObjectGetter)
+             or isinstance(self, ast.ObjectSetter)
+        )
+        if self.name and not is_like_method:
             name = 'var ' + self.name.name
             # if first_in_statement(output):
             #     name = 'var ' + name
 
-        @unify(output, name, addDecorators(), addDocstring())
-        def internalsub():
-            if not nokeyword:
-                output.print("function")
-                if self.generator:
-                    output.print("*")
+        def maybe_weird_name(internalsub):
+            if self.name and (self.name.js_reserved or self.name.start.type in ["string", "num"]):
+                name = self.name.name
+                # wrap the method in special decorator that
+                # saves the method name into method.__name__
+                return def():
+                    output.print("ՐՏ_with__name__")
+                    output.with_parens(def():
+                        internalsub(False)
+                        output.comma()
+                        output.print_string(name)
+                    )
+            else:
+                return internalsub
 
-            if self.name:
+
+        @unify(output, name, addDecorators(), addDocstring())
+        @maybe_weird_name
+        def internalsub(print_name = True):
+            output.print("function")
+            if self.generator:
+                output.print("*")
+            if print_name and self.name:
                 output.space()
                 self.name.print(output)
 
             output.with_parens(def():
                 self.argnames.forEach(def(arg, i):
+                    if is_like_method:
+                        if i is 0:
+                            return
+                        i-=1
                     if i: output.comma()
                     arg.print(output)
                     if output.option('es6') and self.argnames.defaults[arg.name]:
@@ -1117,9 +1154,10 @@ Stream = stream.Stream
                         if Object.keys(properties).length:
                             output.addProperties('prototype', properties).call(output, obj)
                             output.end_statement()
-                            output.indent()
                         if Object.keys(static_decorations).length:
+                            output.indent()
                             output.addProperties(None, static_decorations).call(output, obj)
+                            output.end_statement()
                     def_class_vars_and_decorators= output.with_class_vars_init(class_vars, def_class_vars_and_decorators)
                     return def_class_vars_and_decorators
                 return None
@@ -2111,18 +2149,49 @@ Stream = stream.Stream
                 output.spaced(self.left, '<', self.right, '?', '1', ':', '-1')
             )
     )
+
+
     DEFPRINT(ast.ObjectLiteral, def(self, output):
         if self.properties.length > 0:
-            output.with_block(def():
-                self.properties.forEach(def(prop, i):
-                    if i:
-                        output.print(",")
-                        output.newline()
-                    output.indent()
-                    prop.print(output)
+            properties = {}
+            for p in self.properties:
+                v = p.value
+                key = p.key
+                if (v_key = isinstance(v, ast.ObjectGetter) ? 'get' \
+                      : isinstance(v, ast.ObjectSetter) ? 'set' : False):
+                    h_ = def(v):
+                         return def(output): v.print(output);
+                    if not (props = properties[key.name]):
+                        props = properties[key.name] = {
+                            'name': key,
+                            'attrs' : {'enumerable': 'true'},
+                        }
+                    props[v_key] = h_(v)
+            add_props = None
+            if Object.keys(properties).length:
+                add_props = def(obj):
+                    output.addProperties(None, properties).call(output, obj)
+                    output.end_statement()
+                    #output.indent()
+                add_props = output.with_class_vars_init([], add_props)
+
+            @unify(output, None, add_props)
+            def inner():
+                output.with_block(def():
+                    j = 0
+                    self.properties.forEach(def(prop, i):
+                        nonlocal j
+                        if not (isinstance(prop.value, ast.ObjectGetter) or isinstance(prop.value, ast.ObjectSetter)):
+                            if j:
+                                output.print(",")
+                                output.newline()
+                            j += 1
+                            output.indent()
+                            prop.print(output)
+                    )
+                    output.newline()
                 )
-                output.newline()
-            )
+            inner()
         else:
             output.print("{}")
     )
@@ -2130,7 +2199,8 @@ Stream = stream.Stream
         if isinstance(self.key, ast.Identifier)
         or isinstance(self.key, ast.String)
         or isinstance(self.key, ast.Number)
-        or isinstance(self.key, ast.Boolean):
+        or isinstance(self.key, ast.Boolean)
+        or isinstance(self.key, ast.SymbolDefun):
             # default key
             self.key.print(output)
         else:

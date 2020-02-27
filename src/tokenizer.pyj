@@ -216,7 +216,9 @@ def is_token(token, type, val):
     type = type_subtype[0]
     subtype = type_subtype[1]
     return token.type is type and (subtype ? token.subtype is subtype : True  ) \
-             and (val is None or val is undefined or token.value is val)
+             and (val is None or val is undefined
+                  or Array.isArray(val) and val.indexOf(token.value) >= 0
+                  or token.value is val)
 
 
 def js_error(message, filename, line, col, pos, is_eof):
@@ -244,13 +246,14 @@ def tokenizer($TEXT, filename):  # {{{
         regex_allowed: False,
         comments_before: [],
         whitespace_before: [],
-        newblock: False,
-        endblock: False,
-        indentation_matters: [ True ],
+        newblock: False,    # better rename to newblock_expect
+        endblock: False,    # doesnt affect tokenizer logic, can be removed
         cached_whitespace: "",
         prev: undefined,
-        index_or_slice: [ False ],
-        expect_object_literal_key: False
+        in_scope: ["block"],   # "block" - means block indentation scope
+                            # in_scope - tracks scopes of []{}() and block:
+        comma_expect: False,
+        block_expect: False
     }
     def peek():
         return S.text.charAt(S.pos)
@@ -284,9 +287,9 @@ def tokenizer($TEXT, filename):  # {{{
         S.tokpos = S.pos
 
     def token(full_type, value, is_comment, keep_newline):
-        full_type = full_type.split(':')
-        type = full_type[0]
-        subtype = full_type[1]
+        _full_type = full_type.split(':')
+        type = _full_type[0]
+        subtype = _full_type[1]
         _value = None
 
         S.regex_allowed = type is "operator" and not UNARY_POSTFIX[value] \
@@ -311,8 +314,36 @@ def tokenizer($TEXT, filename):  # {{{
             pos: S.tokpos,
             endpos: S.pos,
             newline_before: S.newline_before,
+            comma_expected: S.comma_expect,
             file: filename
         }
+        S.comma_expect = False
+        if not S.block_expect:
+            S.block_expect = (
+                S.in_scope[-1] is "{}"
+                and (
+                    S.prev.type is "keyword" and S.prev.value is "def"
+                    and (
+                        value is "("
+                        or type in ["name", "string", "num"]
+                        or full_type is 'operator:keyword'
+                    )
+                    or S.prev.type is "name" and S.prev.value in ["get", "set"]
+                    and (
+                        type in ["name", "string", "num"]
+                        or full_type is 'operator:keyword'
+                    )
+                )
+                or S.in_scope[-1] is "()" and S.prev.type is "keyword" and S.prev.value is "def"
+                and (
+                    value is "("
+                    or type is "name"
+                )
+            )
+        else:
+            block_expect = True
+            S.block_expect = False
+
         if not is_comment:
             ret.comments_before = S.comments_before
             S.comments_before = []
@@ -323,26 +354,42 @@ def tokenizer($TEXT, filename):  # {{{
         if not keep_newline:
             S.newline_before = False
 
+        top_scope = S.in_scope[-1]
         if type is "punc":
-            if value is ":" and not S.index_or_slice[-1]
-            and not S.expect_object_literal_key
-            and (not S.text.substring(S.pos, find("\n")).trim() or not S.text.substring(S.pos, find("#")).trim()):
-                S.newblock = True
-                S.indentation_matters.push(True)
+            if value is ":":
+                if (top_scope in ["block", "def", "[]"]):
+                    if top_scope is "def":
+                        S.in_scope.pop()
+                    if (not S.text.substring(S.pos, find("\n")).trim() or not S.text.substring(S.pos, find("#")).trim()):
+                        S.newblock = True
+                        S.in_scope.push("block")
 
-            if value is "[":
+            elif value is "[":
                 if S.prev and S.prev.type is "name":
-                    S.index_or_slice.push(True)
+                    S.in_scope.push("[:]") # prop, index, slice
                 else:
-                    S.index_or_slice.push(False)
-                S.indentation_matters.push(False)
-            elif value is "{" or value is "(":
-                S.indentation_matters.push(False)
-            elif value is "]":
-                S.index_or_slice.pop()
-                S.indentation_matters.pop()
-            elif value is "}" or value is ")":
-                S.indentation_matters.pop()
+                    S.in_scope.push("[]")
+            elif value is "(":
+                if block_expect or S.block_expect:
+                    S.in_scope.push("def")
+                    S.block_expect = False
+                S.in_scope.push("()")
+            elif value is "{" :
+                S.in_scope.push("{}")
+            # scope exits
+            elif value in ["]", ")", "}"]:
+                if top_scope[-1] is value:
+                    S.in_scope.pop()
+                else:
+                    console.log('mismatch: ' + value)
+            elif value is "endblock":
+                ret.value = "}"
+                if top_scope is "block":
+                    S.in_scope.pop()
+                    if S.in_scope[-1] in ["[]", "{}", "()"] :
+                        S.comma_expect = True
+                else:
+                    console.log('missmatch: ' + value)
         S.prev = ast.Token(ret)
         return S.prev
 
@@ -363,13 +410,13 @@ def tokenizer($TEXT, filename):  # {{{
                 leading_whitespace = S.cached_whitespace
             else:
                 S.cached_whitespace = leading_whitespace
-            if S.newline_before or S.endblock:
+            if S.newline_before: # or S.endblock  - S.newline_before is always True if S.endblock is True
                 return test_indent_token(leading_whitespace)
 
     def test_indent_token(leading_whitespace):
-        most_recent = S.whitespace_before[S.whitespace_before.length - 1] or ""
+        most_recent = S.whitespace_before[-1] or ""
         S.endblock = False
-        if S.indentation_matters[-1] and leading_whitespace is not most_recent:
+        if S.in_scope[-1] is 'block' and leading_whitespace is not most_recent:
             if S.newblock and leading_whitespace and leading_whitespace.indexOf(most_recent) is 0:
                 # positive indent, new block
                 S.newblock = False
@@ -702,10 +749,8 @@ def tokenizer($TEXT, filename):  # {{{
             return read_regexp(force_regexp)
 
         indent = parse_whitespace()
-        #        if (indent == 1)
-        #            return token("punc", "{");
         if indent is -1:
-            return token("punc", "}", False, True)
+            return token("punc", "endblock", False, True)
 
         start_token()
         ch = peek()

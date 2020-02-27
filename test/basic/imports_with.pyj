@@ -3,7 +3,8 @@ import import_two with  sub, subpack.nested_mod
 
 
 assert.equal(import_two.subpack.nested_mod.NESTED_MOD_VAR, 'nested_var')
-assert.equal(new import_two.subpack.Foo().name, 'nested_foo')
+assert.equal(import_two.subpack.nested_mod.Foo().name, 'nested_foo')
+assert.equal(new import_two.subpack.Boo().name, 'nested_foo')
 assert.equal('sub', import_two.sub.sub_var)
 
 console.log('ok!\n')
