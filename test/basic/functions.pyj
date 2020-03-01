@@ -82,12 +82,22 @@ inlined = [
 	def(x): return x+1;, def(x): return x+2;,
 	def(x): return x+3
 	,
-	def(x): return x+4
+	def(x): return x+4;,
+
+    # test auto-prepend by 'return' one-statement function
+    # if statement is in parens or Array or ObjectLiteral
+	def(x): (x+4);,
+	def(x): [0, x+4];,
+	def(x): {x:x+4};
 ]
 assert.equal(inlined[0](1), 2)
 assert.equal(inlined[1](1), 3)
 assert.equal(inlined[2](1), 4)
 assert.equal(inlined[3](1), 5)
+
+assert.equal(inlined[4](1), 5)
+assert.equal(inlined[5](1)[1], 5)
+assert.equal(inlined[6](1).x, 5)
 
 # decorators
 def makebold(fn):
@@ -194,3 +204,4 @@ def Quux(a:Number, b:[Number], c:{String:Number}) -> [[Number]]:
         return [b]
     return [[c['test']]]
     # unfortunately we can't yet assert on the case of return [[Number]] or Number since it resolves to ?, which we don't assert on
+
