@@ -448,15 +448,18 @@ Stream = stream.Stream
 
         # insert 'return' (if there is no one) into one-statement function
         # if statement starts immediately after ':' and if it is in parens or Array or ObjectLiteral
-        with_return = (
+        stmt = (
             isinstance(node, ast.Lambda) and node.body.length == 1
             and not node.body[0].start.newline_before
             and isinstance(node.body[0], ast.SimpleStatement)
-            and (
-                node.body[0].start.value is '('
-                or isinstance(node.body[0].body, ast.Array)
-                or isinstance(node.body[0].body, ast.ObjectLiteral)
-            )
+            and node.body[0].body
+        )
+        with_return = stmt and (
+            node.body[0].start.value is '('
+            or isinstance(node.body[0].body, ast.Array)
+            or isinstance(node.body[0].body, ast.ObjectLiteral)
+            or isinstance(node.body[0].body, ast.Dot)
+            or isinstance(node.body[0].body, ast.PropAccess)
         )
         display_body(node.body, is_toplevel, output, with_return)
         output.endLocalBuffer()
