@@ -1315,15 +1315,15 @@ def parse($TEXT, options):
         definition.localvars = definition.localvars.filter(def(var_): return var_.name not in args;)
 
         # do a few extra safety checks on arguments
-        if in_class_or_xobject:
-            if in_class and not staticmethod:
+        if in_class_or_xobject and not staticmethod:
+            if in_class:
                 if ctor is ast.Constructor:
                     definition.parent = S.in_scope[-1].parent
                     definition.callsSuper = callsSuper
                     if superCall_expr:
                         superCall_expr.selfArg = definition.argnames[0]
-                if definition.argnames.length < 1:
-                    croak("Class methods require at least one argument (self)", start.line, start.col, start.pos)
+            if definition.argnames.length < 1:
+                croak("Class/object methods require at least one argument (self)", start.line, start.col, start.pos)
             if ctor is ast.ObjectGetter and definition.argnames.length is not 1:
                 croak("Class/object getters don't take any arguments aside from one referencing the instance (self)", start.line, start.col, start.pos)
             elif ctor is ast.ObjectSetter and definition.argnames.length is not 2:
