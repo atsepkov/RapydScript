@@ -719,13 +719,15 @@ class Call(BaseCall):
         if isinstance(self.expression, SymbolRef):
             # self is where we get a bit devious, we use scope to infer the return type, if possible
             for scope in reversed(heap):
-                if self.expression.name in scope.vars and '->' in scope.vars[self.expression.name][-1]:
+                exp_name = self.expression.name
+                # scope.vars[exp_name][-1] - can be None
+                if exp_name in scope.vars and scope.vars[exp_name][-1] and "->" in scope.vars[exp_name][-1]:
                     # local var declarations, return result
-                    return scope.vars[self.expression.name][-1].split('->')[1].trim()
-                elif self.expression.name in scope.functions and '->' in scope.functions[self.expression.name]:
+                    return scope.vars[exp_name][-1].split('->')[1].trim()
+                elif exp_name in scope.functions and scope.functions[exp_name] and "->" in scope.functions[exp_name]:
                     # local function declarations, return result
-                    return scope.functions[self.expression.name].split('->')[1].trim()
-                elif scope.type is "function" and self.expression.name is scope.name and scope.return:
+                    return scope.functions[exp_name].split('->')[1].trim()
+                elif scope.type is "function" and exp_name is scope.name and scope.return:
                     # recursion, need to check return_annotation
                     # TODO: refactor self to minimize duplication
                     # helper method for detecting if self is a type annotation, and returning appropriate type
