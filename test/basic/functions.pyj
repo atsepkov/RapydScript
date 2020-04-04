@@ -211,3 +211,11 @@ def Quux(a:Number, b:[Number], c:{String:Number}) -> [[Number]]:
     return [[c['test']]]
     # unfortunately we can't yet assert on the case of return [[Number]] or Number since it resolves to ?, which we don't assert on
 
+# test resolve type on deffered function definition
+FOO = None
+def FOO_use():
+    return FOO()
+FOO = def(): return 'foo';
+assert.equal(FOO_use(), 'foo')
+
+
