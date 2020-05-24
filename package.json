@@ -1,7 +1,7 @@
 {
   "name": "rapydscript",
   "description": "Python-inspired, decluttered version of JavaScript with optional static typing, automatic optimizations and enhanced error-checking.",
-  "homepage": "http://rapydscript.com",
+  "homepage": "http://atsepkov.github.io/RapydScript",
   "keywords": [
     "javascript",
     "rapydscript",
@@ -17,7 +17,7 @@
     "postversion": "git push && npm publish",
     "build-self": "bin/rapydscript --self"
   },
-  "version": "0.5.61",
+  "version": "0.5.62",
   "license": "BSD-2-Clause",
   "engines": {
     "node": ">=0.12.0"
@@ -27,6 +27,10 @@
       "name": "Alexander Tsepkov",
       "email": "atsepkov@rapydscript.com",
       "web": "http://rapydscript.com"
+    },
+    {
+      "name": "Valeriy Kucherov",
+      "email": "valq7711@gmail.com"
     }
   ],
   "repository": {
