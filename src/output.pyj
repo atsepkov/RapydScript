@@ -114,10 +114,10 @@ Stream = stream.Stream
                     )
 
                 for c in comments:
-                    if c.type is "comment:line":
+                    if c.subtype is "line":
                         output.print("//" + c.value + "\n")
                         output.indent()
-                    elif c.type is "comment:multiline":
+                    elif c.subtype is "multiline":
                         output.print("/*" + c.value + "*/")
                         if start.newline_before:
                             output.print("\n")
