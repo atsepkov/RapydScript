@@ -1120,6 +1120,11 @@ def parse($TEXT, options):
         function_args = {}          # hash of arguments this function sees
         return_annotation = None    # return annotation for the function, if any
 
+        # grab comments from decorators
+        S.decorators.slice().reverse().forEach(def(d):
+                Array.prototype.unshift.apply(start.comments_before, d.start.comments_before);
+        )
+
         if not S.in_decorator: # prevents this logic from firing in a function that exists within the decorator call
             # special decorators are decorators that have special meaning to the compiler
             has_special_decorator = def(name): return has_simple_decorator(S.decorators, name)
@@ -2293,6 +2298,10 @@ def parse($TEXT, options):
             if S.in_decorator:
                 croak('Nested decorators are not allowed')
             next()
+
+            # grab comments
+            S.token.comments_before = start.comments_before[:]
+
             S.in_decorator = True
             expr = expression(True)
             S.in_decorator = False
