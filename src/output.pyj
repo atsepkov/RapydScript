@@ -1218,6 +1218,7 @@ Stream = stream.Stream
                     self.body.forEach(def(stmt, i):
                         if isinstance(stmt, ast.Lambda):
                             output.indent()
+                            stmt.add_comments(output)
                             if stmt.static:
                                 output.print('static')
                                 output.space()
