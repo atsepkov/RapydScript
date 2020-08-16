@@ -384,6 +384,12 @@ def tokenizer($TEXT, filename):  # {{{
                     console.log('mismatch: ' + value)
             elif value is "endblock":
                 ret.value = "}"
+                if ret.comments_before.length
+                and ret.comments_before[-1].col <= S.col:
+                    # comments is out of block
+                    S.comments_before = ret.comments_before
+                    ret.comments_before = []
+
                 if top_scope is "block":
                     S.in_scope.pop()
                     if S.in_scope[-1] in ["[]", "{}", "()"] :
