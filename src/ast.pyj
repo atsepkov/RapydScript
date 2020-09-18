@@ -326,6 +326,7 @@ class Scope(Block):
 class TopLevel(Scope):
     "The toplevel scope"
     properties = {
+        async: "[boolean] if True this is async (external) module should be set at runtime",
         globals: "[Object/S] a map of name -> SymbolDef for all undeclared names",
         baselib: "[Object/s] a collection of used parts of baselib",
         imports: "[Object/S] a map of module_id->TopLevel for all imported modules",
@@ -356,7 +357,7 @@ class Import(Statement):
         key: "[string] The key by which this module is stored in the global modules mapping",
         alias: "[SymbolAlias] The name this module is imported as, can be None. For import x as y statements.",
         argnames: "[ImportedVar*] names of objects to be imported",
-        body: "[TopLevel] parsed contents of the imported file",
+        body: "[Function -> TopLevel] returns parsed contents of the imported file",
     }
     def _walk(self, visitor):
         return visitor._visit(self, def():

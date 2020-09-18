@@ -1,0 +1,77 @@
+
+
+def module(mod_id): # -> Module[mod_id] | Module[]
+    if mod_id:
+        return ՐՏ_modules[mod_id]
+    def all_():
+        ret = {}
+        for v'var k in ՐՏ_modules':
+            if not k.startsWith('ՐՏ:'):
+                ret[k] = ՐՏ_modules[k]
+        return ret
+    def keys():
+        ret = []
+        for v'var k in ՐՏ_modules':
+            if not k.startsWith('ՐՏ:'):
+                ret.push(k)
+        return ret
+    return {'all':all_, keys}
+
+
+def module_spec(mod_id): # # ->  ModuleSpec[mod_id] | {all(), undefined(), defined()}.() -> ModuleSpec[]
+    if mod_id:
+        return ՐՏ_modules['ՐՏ:'+ mod_id ]
+    return {
+        'all': def():
+            ret = {}
+            module().keys().forEach(def(k):
+                    ret[k] = module_spec(k)
+                    pass;
+            )
+            return ret;
+
+        'undefined': def():
+            ret = {}
+            module().keys().forEach(def(k):
+                    ms = module_spec(k)
+                    if not (ms.exports or ms.body):
+                        ret[k] = ms
+                    pass;
+            )
+            return ret;
+
+        'defined': def():
+            ret = {}
+            module().keys().forEach(def(k):
+                    ms = module_spec(k)
+                    if (ms.exports or ms.body):
+                        ret[k] = ms
+                    pass;
+            )
+            return ret;
+    }
+
+def create_module(mod_name, pack_id):
+    mod_id = pack_id ? pack_id + '.' + mod_name : mod_name
+    if module_spec(mod_id):
+        raise KeyError('Module exists: ' + mod_id)
+    if pack_id:
+        pack = module_spec(pack_id)
+        if not pack:
+            raise KeyError('Package doesn\'t exists: ' + pack_id)
+    else: pack = None
+    ՐՏ_modules.ՐՏ_def_mod(mod_id)
+    if pack:
+        rs_mod_id = 'ՐՏ:'+ mod_id
+        pack.export(mod_name,
+            def(): return ՐՏ_modules[rs_mod_id].exports;,
+            def(v): replace_module(mod_id, v);
+        )
+
+def replace_module(mod_id, new_exp):
+    if not (mod_spec = module_spec(mod_id)):
+        raise KeyError('Module doesn\'t exist: ' + mod_id)
+    for p in (exp = mod_spec.exports):
+        del exp[p]
+    Object.defineProperties(exp, Object.getOwnPropertyDescriptors(new_exp))
+
