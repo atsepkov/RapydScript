@@ -290,6 +290,8 @@ Stream = stream.Stream
     def write_imports(module_, output):
 
         def sort_imports(mod, imp_sorted, importing, done):
+            if mod.async:
+                return imp_sorted
             # returns sorted array of  module_ids
             imp_sorted = imp_sorted  or []
             importing = importing or  {}
@@ -333,12 +335,14 @@ Stream = stream.Stream
 
         if imports.length > 1:
             output.indent()
-            output.spaced('var ՐՏ_modules', '=', '{};')
+            output.spaced('var ՐՏ_modules', '=', 'ՐՏ_def_modules();')
             output.newline()
 
         # Declare all variable names exported from the modules as global symbols
         nonlocalvars = {}
         for module_ in imports:
+            if module_.async:
+                continue
             for name in module_.nonlocalvars:
                 nonlocalvars[name] = True
         nonlocalvars = Object.getOwnPropertyNames(nonlocalvars).join(', ')
@@ -351,13 +355,12 @@ Stream = stream.Stream
         for module_ in imports:
             if module_.module_id is not '__main__':
                 output.indent()
-                output.assign('ՐՏ_modules["' + module_.module_id + '"]')
-                output.print('{}')
+                output.print('ՐՏ_modules.ՐՏ_def("' + module_.module_id + '")')
                 output.end_statement()
 
         # Output module code
         for module_ in imports:
-            if module_.module_id is not '__main__':
+            if not module_.async and module_.module_id is not '__main__':
                 print_module(module_, output)
 
     def write_main_name(output):
@@ -485,20 +488,29 @@ Stream = stream.Stream
                 seen[sub_module_id] = True
                 key = sub_module_id.split('.')[-1]
                 output.indent()
-                output.print('ՐՏ_modules["' + module_id + '"]["' + key + '"] = ')
-                output.print('ՐՏ_modules["' + sub_module_id + '"]')
+                sub_mod = 'ՐՏ_modules["' + sub_module_id + '"]'
+                output.print( 'ՐՏ_modules["ՐՏ:' + module_id + '"].export("' + key + '", function(){return ' + sub_mod + ';}, function(){throw new Error("use Object.defineProperty!");})')
+                #output.print('ՐՏ_modules["' + module_id + '"]["' + key + '"] = ')
+                #output.print('ՐՏ_modules["' + sub_module_id + '"]')
                 output.end_statement()
 
     def declare_exports(module_id, exports, output):
         output.newline()
         seen = {}
+        output.indent()
+        rs_mod = 'ՐՏ_modules["ՐՏ:' + module_id + '"]'
+        output.print('var ՐՏ_mod = ՐՏ_modules["ՐՏ:' + module_id + '"]')
+        output.end_statement()
+        # set eхports
         for symbol in exports:
             if not seen[symbol.name]:
                 seen[symbol.name] = True
                 output.indent()
-                output.assign('ՐՏ_modules["' + module_id + '"]["' + symbol.name + '"]')
-                output.print(symbol.name)
+                output.print( 'ՐՏ_mod.export("' + symbol.name + '", function(){return ' + symbol.name + ';}, function(ՐՏ_v){if (typeof ' + symbol.name + ' !== "undefined") {'+ symbol.name  +' = ՐՏ_v;};})')
                 output.end_statement()
+        output.indent()
+        output.print('return ՐՏ_mod["exports"]')
+        output.end_statement()
 
     def unpack_tuple(tuple, output, in_statement):
         tuple.elements.forEach(def(elem, i):
@@ -569,27 +581,27 @@ Stream = stream.Stream
             Object.keys(BASELIB).filter(def(a): return self.baselib[a] > 0;).forEach(def(key):
                 output.print_baselib(key)
             )
+            if Object.keys(self.imports).length > 1: # except imports['__main__']
+                output.print_baselib("def_modules")
             output.endLocalBuffer(True)
 
     )
     def print_module(self, output):
         output.newline()
         output.indent()
-        output.with_parens(def():
-            output.print("function()")
-            output.with_block(def():
-                # dump the logic of this module
-                output.indent()
-                output.assign('var __name__')
-                output.print('"' + self.module_id + '"')
-                output.end_statement()
-                declare_submodules(self.module_id, self.submodules, output)
-                declare_vars(self.localvars, output)
-                display_body(self.body, True, output)
-                declare_exports(self.module_id, self.exports, output)
-            )
+        output.assign('ՐՏ_modules["ՐՏ:' + self.module_id + '"].body')
+        output.print("function()")
+        output.with_block(def():
+            # dump the logic of this module
+            output.indent()
+            output.assign('var __name__')
+            output.print('"' + self.module_id + '"')
+            output.end_statement()
+            declare_submodules(self.module_id, self.submodules, output)
+            declare_vars(self.localvars, output)
+            display_body(self.body, True, output)
+            declare_exports(self.module_id, self.exports, output)
         )
-        output.print("()")
         output.end_statement()
 
     DEFPRINT(ast.Splat, def(self, output):
@@ -600,7 +612,9 @@ Stream = stream.Stream
 
     DEFPRINT(ast.Imports, def(container, output):
         seen = {}
+        i = 0
         def add_aname(aname, key, from_import):
+            nonlocal i
             seen_key = key + (from_import ? '.' + from_import : '')
             if seen[aname]:
                 if seen[aname] == seen_key:
@@ -609,12 +623,15 @@ Stream = stream.Stream
                     tmp = aname  + ' : '  + [seen[aname], seen_key].join(', ')
                     raise Error('Something went wrong, 2 imports with the same name detected: ' + tmp)
             seen[aname] = seen_key
+            if i:
+                output.newline()
+                output.indent()
+                i+=1
             output.assign('var ' + aname)
             output.print('ՐՏ_modules["' + key + '"]')
             if from_import:
                 output.print('.' + from_import)
-            output.end_statement()
-            output.indent()
+            output.semicolon()
 
         for self in container.imports:
             if isinstance(self, ast.Splat):
