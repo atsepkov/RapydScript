@@ -17,7 +17,7 @@
     "postversion": "git push && npm publish",
     "build-self": "bin/rapydscript --self"
   },
-  "version": "0.5.62",
+  "version": "0.5.63",
   "license": "BSD-2-Clause",
   "engines": {
     "node": ">=0.12.0"
