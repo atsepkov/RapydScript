@@ -45,14 +45,15 @@ if browser_env:
     # browser environment
     rapydscript = exports = {}
 
-exports.parse_baselib = exports.parseBaselib = def(srcPath, beautify):
+exports.parse_baselib = exports.parseBaselib = def(srcPath, es6):
     try:
         fs = require('fs')
         baselibPath = require('path').join(srcPath, 'baselib.pyj')
         baselibAst = parser.parse(fs.readFileSync(baselibPath, "utf8"), {
             readfile: fs.readFileSync,  # utility for reading files when dealing with nested imports
             dropDocstrings: True,       # drop docstrings in the compiler
-            filename: 'baselib.pyj'
+            filename: 'baselib.pyj',
+            es6: es6
         })
     except as e:
         if e.code is "ENOENT":
@@ -93,51 +94,32 @@ exports.compile = compile = def(code, options):
 
     # because of the use of the same Rapydscript instance,
     # we should re-initialize all static objects between compilations
-    if browser_env:
-        parser.init_mod()
+    parser.init_mod()
 
     toplevel = parser.parse(code, utils.defaults(options, {
         toplevel: toplevel,
         output: {}
     }))
 
-    # account for unused baselib methods
-    if not options.omit_baselib and not browser_env:
-        if not toplevel.baselib['AssertionError']:
-            toplevel.baselib['extends'] -= 1
-        if not toplevel.baselib['IndexError']:
-            toplevel.baselib['extends'] -= 1
-        if not toplevel.baselib['KeyError']:
-            toplevel.baselib['extends'] -= 1
-        if not toplevel.baselib['TypeError']:
-            toplevel.baselib['extends'] -= 1
-        if not toplevel.baselib['ValueError']:
-            toplevel.baselib['extends'] -= 1
-        if not toplevel.baselib['kwargs']:
-            toplevel.baselib['in'] -= 1
-            toplevel.baselib['iterator'] -= 1
-            toplevel.baselib['range'] -= 1
-            toplevel.baselib['dir'] -= 1
-        if not toplevel.baselib['eq']:
-            toplevel.baselib['iterator'] -= 2
-            toplevel.baselib['range'] -= 1
-        if not toplevel.baselib['merge']:
-            toplevel.baselib['iterator'] -= 1
-        if not toplevel.baselib['mixin']:
-            toplevel.baselib['in'] -= 1
-            toplevel.baselib['iterator'] -= 2
-        if not toplevel.baselib['enumerate']:
-            toplevel.baselib['iterator'] -= 1
-            toplevel.baselib['range'] -= 1
-        if not toplevel.baselib['all']:
-            toplevel.baselib['iterator'] -= 1
-        if not toplevel.baselib['any']:
-            toplevel.baselib['iterator'] -= 1
-        if not toplevel.baselib['zip']:
-            toplevel.baselib['iterator'] -= 1
-            toplevel.baselib['range'] -= 1
-        if not toplevel.baselib['rebind_all']:
-            toplevel.baselib['bind'] -= 1
+
+    # add baselib internal deps
+    if not options.omit_baselib:
+        baselib_dep_map = {
+            '.+Error': ['extends'],
+            'all|any|zip|iterable|kwargs|eq|merge|mixin|enumerate': ['iterable'],
+            'kwargs': ['in', 'range', 'merge', 'dir'],
+            'eq': ['range'],
+            'mixin':['in'],
+            'zip':['range'],
+            'rebind_all':['bind'],
+        }
+        for fun in Object.keys(toplevel.baselib).filter(def(f): return toplevel.baselib[f];):
+            for rex_key in baselib_dep_map:
+                rex = RegExp('^(' + rex_key + ')$')
+                if rex.test(fun):
+                    baselib_dep_map[rex_key] \
+                        .forEach(def(k): toplevel.baselib[k] = 1;)
+
 
     # output
     stream = output.Stream(options)
@@ -153,7 +135,7 @@ exports.minify = def(files, options):
         fromString: False,
         warnings: False,
     })
-    if JS('typeof files === "string"'):
+    if v'typeof files === "string"':
         files = [files] # handle single file
     for file in files:
         options.filename = options.fromString ? '?' : file

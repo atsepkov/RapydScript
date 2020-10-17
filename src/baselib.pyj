@@ -51,7 +51,7 @@
 ,
 "rebind_all": def ՐՏ_rebindAll(thisArg, rebind):
     if rebind is undefined: rebind = True
-    for JS('var p in thisArg'):
+    for v'var p in thisArg':
         if thisArg[p] and thisArg[p].orig:
             if rebind: thisArg[p] = bind(thisArg[p], thisArg)
             else: thisArg[p] = thisArg[p].orig
@@ -60,16 +60,48 @@
     fn.__name__ = name
     return fn
 ,
+"def_modules": def ՐՏ_def_modules():
+    modules = {}
+    def mounter(mod_id):
+        rs_mod_id = "ՐՏ:"+ mod_id
+        rs_mod = modules[rs_mod_id] = {
+            "body": None,
+            "exports":None,
+        }
+        rs_mod["export"] = def(prop, get, set):
+            if not rs_mod["exports"]: rs_mod["exports"] = {}
+            Object.defineProperty( rs_mod["exports"], prop, {
+                configurable: True,
+                enumerable: True,
+                get: get,
+                set: set,
+            })
+        Object.defineProperty( modules,  mod_id, {
+            enumerable: True,
+            get: def():
+                return (mod = modules[rs_mod_id])["exports"] or mod["body"]()
+            , set: def(v):
+                modules[rs_mod_id]["exports"] = v
+        })
+        return rs_mod
+
+    Object.defineProperty( modules, 'ՐՏ_def', {
+        configurable: False,
+        enumerable: False,
+        value: mounter
+    })
+    return modules
+,
 "cmp": def cmp(a, b): return a < b ? -1 : a > b ? 1 : 0
 ,
-"chr": def(): JS('var chr = String.fromCharCode')
+"chr": def(): v'var chr = String.fromCharCode'
 ,
 "dir": def dir(item):
     # TODO: this isn't really representative of real Python's dir(), nor is it
     # an intuitive replacement for "for ... in" loop, need to update this logic
     # and introduce a different way of achieving "for ... in"
     arr = []
-    for JS('var i in item'): arr.push(i)
+    for v'var i in item': arr.push(i)
     return arr
 ,
 "enumerate": def enumerate(item):
@@ -81,17 +113,17 @@
 ,
 "eslice": def ՐՏ_eslice(arr, step, start, end):
     arr = arr[:]
-    if JS('typeof arr') is 'string' or isinstance(arr, String):
+    if v'typeof arr' is 'string' or isinstance(arr, String):
         isString = True
         arr = arr.split('')
 
     if step < 0:
         step = -step
         arr.reverse()
-        if JS('typeof start') is not "undefined": start = arr.length - start - 1
-        if JS('typeof end') is not "undefined": end = arr.length - end - 1
-    if JS('typeof start') is "undefined": start = 0
-    if JS('typeof end') is "undefined": end = arr.length
+        if v'typeof start' is not "undefined": start = arr.length - start - 1
+        if v'typeof end' is not "undefined": end = arr.length - end - 1
+    if v'typeof start' is "undefined": start = 0
+    if v'typeof end' is "undefined": end = arr.length
 
     arr = arr.slice(start, end).filter(def(e, i): return i % step is 0;)
     return isString ? arr.join('') : arr
@@ -107,8 +139,8 @@
 "hex": def hex(a): return '0x' + (a >>> 0).toString(16)
 ,
 "in": def ՐՏ_in(val, arr):
-    if JS('typeof arr.indexOf') is 'function': return arr.indexOf(val) is not -1
-    elif JS('typeof arr.has') is 'function': return arr.has(val)
+    if v'typeof arr.indexOf' is 'function': return arr.indexOf(val) is not -1
+    elif v'typeof arr.has' is 'function': return arr.has(val)
     return arr.hasOwnProperty(val)
 ,
 "iterable": def ՐՏ_Iterable(iterable):
@@ -141,12 +173,12 @@
     return Math.min.apply(None, Array.isArray(a) ? a : arguments)
 ,
 "merge": def ՐՏ_merge(target, source, overwrite):
-    for JS('var i in source'):
+    for v'var i in source':
         # instance variables
-        if source.hasOwnProperty(i) and (overwrite or JS('typeof target[i]') is 'undefined'): target[i] = source[i]
+        if source.hasOwnProperty(i) and (overwrite or v'typeof target[i]' is 'undefined'): target[i] = source[i]
     for prop in Object.getOwnPropertyNames(source.prototype):
         # methods
-        if overwrite or JS('typeof target.prototype[prop]') is 'undefined':
+        if overwrite or v'typeof target.prototype[prop]' is 'undefined':
             Object.defineProperty(target.prototype, prop, Object.getOwnPropertyDescriptor(source.prototype, prop))
 ,
 "mixin": def ՐՏ_mixin(*classes):
@@ -159,7 +191,7 @@
 
 ,
 "print": def ՐՏ_print():
-    if JS('typeof console') is 'object': console.log.apply(console, arguments)
+    if v'typeof console' is 'object': console.log.apply(console, arguments)
 ,
 "range": def range(start, stop, step):
     if arguments.length <= 1:
@@ -172,7 +204,7 @@
     range = Array(length)
 
     while idx < length:
-        range[JS('idx++')] = start
+        range[v'idx++'] = start
         start += step
     return range
 ,
@@ -206,7 +238,7 @@
     obj[name] = value
 ,
 "hasattr": def hasattr(obj, name):
-    return JS('name in obj')
+    return v'name in obj'
 ,
 "eq": def ՐՏ_eq(a, b):
     """
@@ -247,14 +279,14 @@
     elif (Set and a.constructor is Set) or (Map and a.constructor is Map):
         # sets and maps
         if a.size is not b.size: return False
-        for JS('i of a'):
+        for v'i of a':
             if not b.has(i):
                 return False
         return True
     elif (a.constructor is Date):
         # dates
         return a.getTime() is b.getTime()
-    elif JS('typeof a.__eq__') is 'function':
+    elif v'typeof a.__eq__' is 'function':
         # everything else that implements __eq__ method
         return a.__eq__(b)
     return False
@@ -270,7 +302,7 @@
             args = [].slice.call(arguments)
             if args.length:
                 kw = args[-1]
-                if JS('typeof kw') is 'object':
+                if v'typeof kw' is 'object':
                     for i in range(argNames.length):
                         if argNames[i] in kw:
                             args[i] = kw[argNames[i]]

@@ -119,6 +119,7 @@ def init_mod():
         "bind",
         "rebind_all",
         "with__name__",
+        "def_modules",
         "cmp",
         "chr",
         "dir",
@@ -407,6 +408,39 @@ def parse($TEXT, options):
         else:
             return False
 
+    def scan_for_top_level_imports(body):
+        self_fun = scan_for_top_level_imports
+        ans = []
+        # Get imports names
+        if Array.isArray(body):
+            for name in dir(body):
+                obj = body[name]
+                if isinstance(obj, ast.Imports):
+                    for imp in obj.imports:
+                        if imp.argnames: # from import ...
+                            for argname in imp.argnames:
+                                imp_sym = argname.alias or argname
+                        else:
+                            # in case of 'import pack.sub.mod' we need to declare only 'pack'
+                            imp_sym = imp.alias \
+                                or new_symbol(ast.SymbolVar ,imp.key.split('.', 1)[0])
+                        #console.log(imp.key,':', imp_sym)
+                        ans.push(imp_sym)
+                else:
+                    # skip inner scopes
+                    if isinstance(obj, ast.Scope):
+                        continue
+                    for x in ['body', 'alternative']:
+                        opt = obj[x]
+                        if opt:
+                            ans = ans.concat(self_fun(opt))
+        elif body.body:
+            # recursive descent into wrapper statements that contain body blocks
+            ans = ans.concat(self_fun(body.body))
+            if body.alternative:
+                ans = ans.concat(self_fun(body.alternative))
+        return ans
+
     def scan_for_top_level_callables(body):
         ans = []
         # Get the named functions and classes
@@ -558,6 +592,13 @@ def parse($TEXT, options):
             elif tmp_ is "pass":
                 semicolon()
                 return ast.EmptyStatement()
+            elif tmp_ is "async":
+                is_from = False
+                if S.token.type is 'keyword' \
+                        and (S.token.value is 'import' or (is_from = S.token.value is 'from')):
+                    next()
+                    return import_(is_from, True)
+                unexpected()
             elif tmp_ is "return" or tmp_ is "yield":
                 if S.in_scope[-1].type is not "function":
                     croak("'return' outside of function")
@@ -838,25 +879,26 @@ def parse($TEXT, options):
             if not (key in subs):
                 subs.push(key)
 
-    def import_(from_import):
-        ans = ast.Imports({'imports':[]})
+    def import_(from_import, async_import):
+        ans = ast.Imports({'imports':[], 'async':async_import})
         imp_with = None
         while True:
             package_pref = ''
-            # allow import submodules into __init__.pyj
-            if (options.filename or '').endsWith('/__init__.pyj'):
-                package_pref = options.module_id + '.'
-                if not PRE_IMPORTED[options.module_id]:
-                    PRE_IMPORTED[options.module_id] = {submodules : []}
+            if not async_import:
+                # allow import submodules into __init__.pyj
+                if not async_import and (options.filename or '').endsWith('/__init__.pyj'):
+                    package_pref = options.module_id + '.'
+                    if not PRE_IMPORTED[options.module_id]:
+                        PRE_IMPORTED[options.module_id] = {submodules : []}
 
-            # dot expander: from .module -> from package.module
-            if is_('punc', '.'):
-                if not package_pref:
-                    package_pref = (/^(.+?\.)[^\.]+$/.exec(options.module_id or '') or ['', ''])[1]
-                # FIX: if not package_pref: raise Error
-                next()
-            else:
-                package_pref = ''
+                # dot expander: from .module -> from package.module
+                if is_('punc', '.'):
+                    if not package_pref:
+                        package_pref = (/^(.+?\.)[^\.]+$/.exec(options.module_id or '') or ['', ''])[1]
+                    # FIX: if not package_pref: raise Error
+                    next()
+                else:
+                    package_pref = ''
 
             tmp = name = expression(False)
             key = ''
@@ -891,8 +933,10 @@ def parse($TEXT, options):
                 'key': key,
                 'alias': alias,
                 'argnames':None,
-                'body':def():
-                    return IMPORTED[key]
+                'body': (def(_):
+                    return def():
+                        return IMPORTED[_];
+                )(key)
             })
             ans.imports.push(imp)
             if from_import:
@@ -904,9 +948,30 @@ def parse($TEXT, options):
 
         from_pack_imp = []
         for imp in ans['imports']:
-            do_import(imp.key)
+            if not async_import:
+                do_import(imp.key)
+            else:
+                # async module definition
+                IMPORTED[imp.key] = ast.TopLevel( {
+                    #globals: "[Object/S] a map of name -> SymbolDef for all undeclared names",
+                    #baselib: "[Object/s] a collection of used parts of baselib",
+                    imports: {},
+                    nonlocalvars: [],
+                    module_id: imp.key,
+                    exports: [],
+                    submodules: [],
+                    classes: [],
+                    filename: None,
+                    async: True
+                })
+                IMPORTED[imp.key].localvars = []
+                IMPORTED[imp.key].body = []
+
             depends_on[imp.key] = True
-            cur_imported = IMPORTED[imp.key]
+            cur_imported = async_import \
+                ? None \
+                : IMPORTED[imp.key]
+
             argnames  = []
             if from_import:
                 expect_token("keyword", "import")
@@ -917,7 +982,7 @@ def parse($TEXT, options):
                         unexpected()
                     name =  S.token.value
                     # maybe `from package import module`
-                    if cur_imported.is_package \
+                    if cur_imported and cur_imported.is_package \
                           and not cur_imported.exports.find(def(it): return it.name is name;):
                         key =  imp.key + '.' + name
                         aname = ast.Import({
@@ -945,18 +1010,20 @@ def parse($TEXT, options):
                         break
 
                 # Put imported class names in the outermost scope
-                classes = cur_imported.classes
-                for argvar in argnames:
-                    obj = classes[argvar.name]
-                    if obj:
-                        key = (argvar.alias) ? argvar.alias.name : argvar.name
-                        S.in_scope[-1].classes[key] = { "static": obj.static, "bound": obj.bound }
+                if cur_imported:
+                    classes = cur_imported.classes
+                    for argvar in argnames:
+                        obj = classes[argvar.name]
+                        if obj:
+                            key = (argvar.alias) ? argvar.alias.name : argvar.name
+                            S.in_scope[-1].classes[key] = { "static": obj.static, "bound": obj.bound }
 
                 for mod_name in from_pack_module_names:
                     Object.assign(S.in_scope[S.in_scope.length-1].classes, IMPORTED[mod_name.key].top_classes(mod_name.alias.name))
             else:
-                key = imp.alias ? imp.alias.name : imp.key;
-                Object.assign(S.in_scope[S.in_scope.length-1].classes, cur_imported.top_classes(key))
+                key = imp.alias ? imp.alias.name : imp.key
+                if cur_imported:
+                    Object.assign(S.in_scope[S.in_scope.length-1].classes, cur_imported.top_classes(key))
 
         [].push.apply(ans.imports, from_pack_imp)
         return ans
@@ -2668,11 +2735,14 @@ def parse($TEXT, options):
         toplevel.nonlocalvars = Object.keys(S.in_scope[-1].nonlocal)
         assignments = Object.keys(S.in_scope[-1].vars)
         callables = scan_for_top_level_callables(toplevel.body).filter(uniq)
+        imports = scan_for_top_level_imports(toplevel.body)
         toplevel.localvars = []
         for item in assignments:
             if item not in toplevel.nonlocalvars:
                 toplevel.localvars.push(new_symbol(ast.SymbolVar, item))
-        toplevel.exports = toplevel.localvars.concat(callables).filter(uniq)
+        toplevel.exports = toplevel.localvars \
+            .concat(callables) \
+            .concat(imports).filter(uniq) # unique elements, but not names!
         toplevel.depends_on = depends_on
         toplevel.submodules = []
         toplevel.classes = class_map
