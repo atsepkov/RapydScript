@@ -1906,19 +1906,24 @@ Stream = stream.Stream
         output.print_name(self.property)
     )
     DEFPRINT(ast.Sub, def(self, output):
-        self.expression.print(output)
+        if isinstance(self.expression, ast.SymbolVar):
+            self.expression.print(output)
+            exp_print = def(): self.expression.print(output);
+        else:
+            tmp = None
+            output.with_parens(def():
+                nonlocal tmp
+                tmp = output.newTemp()
+                output.assign(tmp)
+                self.expression.print(output)
+            )
+            exp_print = def(): output.print(tmp);
         output.print("[")
         # parse negative constants into len-constant
         if isinstance(self.property, ast.Unary) and self.property.operator is "-"
         and isinstance(self.property.expression, ast.Number):
-            # TODO: this might parse incorrectly if expression is a
-            # function call that might not return the same result
-            # when called repeatedly. We might eventually want to
-            # save the return to a temporary variable and use that
-            # instead if expression is a function. Or we could just
-            # throw an error if negative indices are used with a
-            # type that's not ast.SymbolVar
-            self.expression.print(output)
+            # TODO: Why are only ast.Number negative indices allowed?
+            exp_print()
             output.print(".length")
 
         self.property.print(output)
