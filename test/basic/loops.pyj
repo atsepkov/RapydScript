@@ -1,31 +1,31 @@
 # loop through values, not indices
 a = ['foo', 'bar', 'baz']
 for val in a:
-	assert.ok(val in a)
+    assert.ok(val in a)
 
 for i in range(len(a)):
-	assert.ok(a[i] in a)
+    assert.ok(a[i] in a)
 
 for i, val in enumerate(a): # testing that comments are allowed here
-	assert.equal(a[i], val)
+    assert.equal(a[i], val)
 
 # nesting
 final = []
 for i in [1,2]:
-	for j in [4,5,6]:
-		final.push((i,j))
+    for j in [4,5,6]:
+        final.push((i,j))
 assert.deepEqual(final, [[1,4], [1,5], [1,6], [2,4], [2,5], [2,6]])
 
 i = 0
 while i < len(a):
-	assert.ok(a[i] in a)
-	i += 1
+    assert.ok(a[i] in a)
+    i += 1
 
 counter = 5
 factorial = 1
 do:
-	factorial *= counter
-	counter -= 1
+    factorial *= counter
+    counter -= 1
 .while counter > 0
 assert.equal(factorial, 120)
 

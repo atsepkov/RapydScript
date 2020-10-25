@@ -16,8 +16,16 @@
 **********************************************************************
 """
 
-from utils import makePredicate, ParseError
+from utils import makePredicate, ParseError, defaults
 import ast
+
+OPTIONS = {
+    indent_min: 2
+}
+
+def set_options(opt):
+    nonlocal OPTIONS
+    OPTIONS = defaults(opt,OPTIONS, True)
 
 
 def characters(str_): return str_.split("")
@@ -423,6 +431,11 @@ def tokenizer($TEXT, filename):  # {{{
         most_recent = S.whitespace_before[-1] or ""
         S.endblock = False
         if S.in_scope[-1] is 'block' and leading_whitespace is not most_recent:
+            # check indent/dedent length (if it is space, not tab)
+            if (leading_whitespace.indexOf(' ') is 0 or most_recent.indexOf(' ') is 0) \
+            and  Math.abs(leading_whitespace.length - most_recent.length) < OPTIONS.indent_min:
+                TokenizerError("Indentation is too small")
+
             if S.newblock and leading_whitespace and leading_whitespace.indexOf(most_recent) is 0:
                 # positive indent, new block
                 S.newblock = False

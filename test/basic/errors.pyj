@@ -3,9 +3,9 @@ a = ValueError('error test')
 assert.equal(a.name, 'ValueError')
 assert.equal(a.message, 'error test')
 assert.throws(
-	def():
-		raise a
-	,
+    def():
+        raise a
+    ,
     /ValueError: error test/
 )
 
