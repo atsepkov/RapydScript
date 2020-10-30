@@ -62,15 +62,15 @@ assert.deepEqual([v, u, t], [3, 2, 1])
 
 
 # DICTIONARIES
-d0 = {'a':'b','c':2, d:		'd',}
+d0 = {'a':'b','c':2, d: 'd',}
 d1 = {
-	'foo': 1,
-	"bar": "baz",
-	"fun1": def():
-		return 5
-	,
-	fun2: def(c):
-		return c+1
+    'foo': 1,
+    "bar": "baz",
+    "fun1": def():
+        return 5
+    ,
+    fun2: def(c):
+        return c+1
 }
 # arbitrary indentation inside
 {a:1, 1:

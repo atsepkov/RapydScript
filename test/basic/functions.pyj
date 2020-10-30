@@ -1,20 +1,20 @@
 def nothing():
-	pass
+    pass
 assert.equal(nothing(), undefined)
 
 add = def(a, b):
-	return a+b
+    return a+b
 def sub(a, b):
-	return a-b
+    return a-b
 
 mul = None
 (def():
-	nonlocal mul
-	mul = def(a, b):
-		return a*b
+    nonlocal mul
+    mul = def(a, b):
+        return a*b
 
-	div = def(a, b):
-		return a/b
+    div = def(a, b):
+        return a/b
 )()
 
 assert.equal(add(1,2), 3)
@@ -22,10 +22,10 @@ assert.equal(sub(1,2), -1)
 assert.equal(mul(2,2), 4)
 # for some reason input to throws must be of type block, hence the 'def' wrapper
 assert.throws(
-	def():
-		div(6,3)
-	,
-	/div is not defined/
+    def():
+        div(6,3)
+    ,
+    /div is not defined/
 )
 
 arr = [8,4]
@@ -33,17 +33,17 @@ assert.equal(add(*arr), 12)
 assert.ok(Array.isArray(arr))
 
 def sum(*args):
-	ttl = 0
-	for i in args:
-		ttl += i
-	return ttl
+    ttl = 0
+    for i in args:
+        ttl += i
+    return ttl
 assert.equal(sum(1,2,3), 6)
 assert.equal(sum(1,*[2,3]), 6)
 
 num = 4
 def():
-	nonlocal num
-	num = 5
+    nonlocal num
+    num = 5
 .call(this)
 
 assert.equal(num, 5)
@@ -51,21 +51,21 @@ assert.equal(num, 5)
 x = "foo"
 y = 5
 def swap(x, y):
-	return y, x
+    return y, x
 x, y = swap(x, y)
 assert.equal(x, 5)
 assert.equal(y, "foo")
 
 count = 0
 f, r = (def():
-	def fake_increment():
-		# this pattern no longer allowed, compiler throws an error since you probably forgot nonlocal definition
-		# count += 1
-		pass
-	def real_increment():
-		nonlocal count
-		count += 1
-	return fake_increment, real_increment
+    def fake_increment():
+        # this pattern no longer allowed, compiler throws an error since you probably forgot nonlocal definition
+        # count += 1
+        pass
+    def real_increment():
+        nonlocal count
+        count += 1
+    return fake_increment, real_increment
 )()
 
 f()
@@ -80,19 +80,19 @@ assert.equal(type(st), type(st1))
 # testing inlined functions
 foo = {bar: 'bar'}
 inlined = [
-	def(x): return x+1;, def(x): return x+2;,
-	def(x): return x+3
-	,
-	def(x): return x+4;,
+    def(x): return x+1;, def(x): return x+2;,
+    def(x): return x+3
+    ,
+    def(x): return x+4;,
 
     # test auto-prepend by 'return' one-statement function
     # if statement is in parens or one of:
     #   Array, ObjectLiteral, Dot (e.g. foo.bar), PropAccess (e.g. foo['bar'])
-	def(x): (x+4);,
-	def(x): [0, x+4];,
-	def(x): {x:x+4};,
-	def(x): x.bar;,
-	def(x): foo[x];
+    def(x): (x+4);,
+    def(x): [0, x+4];,
+    def(x): {x:x+4};,
+    def(x): x.bar;,
+    def(x): foo[x];
 ]
 assert.equal(inlined[0](1), 2)
 assert.equal(inlined[1](1), 3)
@@ -107,19 +107,19 @@ assert.equal(inlined[8]('bar'), 'bar')
 
 # decorators
 def makebold(fn):
-	def wrapped(arg):
-		return "<b>" + fn(arg) + "</b>"
-	return wrapped
+    def wrapped(arg):
+        return "<b>" + fn(arg) + "</b>"
+    return wrapped
 
 def makeitalic(fn):
-	def wrapped(arg):
-		return "<i>" + fn(arg) + "</i>"
-	return wrapped
+    def wrapped(arg):
+        return "<i>" + fn(arg) + "</i>"
+    return wrapped
 
 @makebold
 @makeitalic
 def hello(something):
-	return "hello " + something
+    return "hello " + something
 
 assert.equal(hello("world"), "<b><i>hello world</i></b>")
 

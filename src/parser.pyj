@@ -255,7 +255,8 @@ def parse($TEXT, options):
         dropImports: [],        # Imports to omit from compilation
         dropDocstrings: False,  # If true, omit docstrings from compilation
         classes: None,          # Map of class names to ast.Class that are available in the global namespace (used by the REPL)
-        readfile: JS('typeof require != "undefined"') ? require('fs').readFileSync : None  # File reader
+        readfile: v'typeof require != "undefined"' ? require('fs').readFileSync : None,  # File reader
+        indent_min: 2
     })
     module_id = options.module_id
 
@@ -269,9 +270,9 @@ def parse($TEXT, options):
     IMPORTED = options.IMPORTED or {}
     IMPORTING = options.IMPORTING or {}
     IMPORTING[module_id] = True
-
+    tokenizer.set_options({indent_min:options.indent_min})
     S = {
-        input: (JS('typeof $TEXT') is "string" ? tokenizer.tokenizer($TEXT, options.filename) : $TEXT),
+        input: (v'typeof $TEXT' is "string" ? tokenizer.tokenizer($TEXT, options.filename) : $TEXT),
         token: None,            # current token being scanned
         prev: None,             # previous token
         peeked: None,           # cached version of next token

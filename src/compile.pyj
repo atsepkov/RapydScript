@@ -53,7 +53,8 @@ module.exports = def(start_time, argv, base_path, src_path, lib_path):
         beautify: argv.beautify,
         private_scope: !argv.bare,
         omit_baselib: argv.omit_baselib,
-        strict_names: argv.strict_names
+        strict_names: argv.strict_names,
+        indent_min: parseInt(argv.indent_min)
     }
     if not argv.omit_baselib:
         parseOpts.baselib = rapydscript.parse_baselib(src_path, parseOpts.es6)
@@ -82,7 +83,7 @@ module.exports = def(start_time, argv, base_path, src_path, lib_path):
                 'console': console,
                 'process': process,
                 'require': require,
-                'root': JS('typeof window') is 'object' ? window : global
+                'root': v'typeof window' is 'object' ? window : global
             }, {'filename':files[0]})
         else:
             console.log(output)
