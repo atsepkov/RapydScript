@@ -1906,7 +1906,7 @@ Stream = stream.Stream
         output.print_name(self.property)
     )
     DEFPRINT(ast.Sub, def(self, output):
-        if isinstance(self.expression, ast.SymbolVar):
+        if isinstance(self.expression, ast.SymbolRef):
             self.expression.print(output)
             exp_print = def(): self.expression.print(output);
         else:
