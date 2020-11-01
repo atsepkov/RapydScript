@@ -1906,10 +1906,13 @@ Stream = stream.Stream
         output.print_name(self.property)
     )
     DEFPRINT(ast.Sub, def(self, output):
-        if isinstance(self.expression, ast.SymbolVar):
+        is_neg = isinstance(self.property, ast.Unary) and self.property.operator is "-" \
+            and isinstance(self.property.expression, ast.Number)
+
+        if isinstance(self.expression, ast.SymbolRef) or isinstance(self.expression, ast.This):
             self.expression.print(output)
             exp_print = def(): self.expression.print(output);
-        else:
+        elif is_neg:
             tmp = None
             output.with_parens(def():
                 nonlocal tmp
@@ -1918,14 +1921,13 @@ Stream = stream.Stream
                 self.expression.print(output)
             )
             exp_print = def(): output.print(tmp);
+        else:
+            self.expression.print(output)
         output.print("[")
         # parse negative constants into len-constant
-        if isinstance(self.property, ast.Unary) and self.property.operator is "-"
-        and isinstance(self.property.expression, ast.Number):
-            # TODO: Why are only ast.Number negative indices allowed?
+        if is_neg:
             exp_print()
             output.print(".length")
-
         self.property.print(output)
         output.print("]")
     )
