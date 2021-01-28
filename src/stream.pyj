@@ -365,6 +365,8 @@ def Stream(options):
     #       Object.defineProperties(...) - using predefined variables
     # )()
     def with_class_vars_init(vars, def_prop):
+        if not (vars and vars.length or def_prop):
+            return None
         return def(obj):
             output = this
             output.with_parens(def():
@@ -376,14 +378,17 @@ def Stream(options):
                         v.value(output)
                         output.end_statement()
                     )
-                    output.indent()
-                    # def_prop = output.addProperties('prototype', methodsAndVars)
+                    #output.indent()
                     def_prop.call(output, obj)
-                    #output.end_statement()
-                    #output.newline()
+                    output.indent();
+                    output.print("return");
+                    output.space();
+                    output.print(obj);
+                    output.end_statement();
                 )
             )
             output.print("()")
+            return obj
 
     def comma():
         print_(",")

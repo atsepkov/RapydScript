@@ -1120,14 +1120,19 @@ Stream = stream.Stream
         if self.external:
             return
 
-        def addDecorators():
+        def addDecorators(class_postproc):
             # decorate the class with class decorators
             if self.decorators and self.decorators.length:
                 return def(obj):
+                    def internalsub():
+                        if class_postproc:
+                            class_postproc.call(output, obj)
+                        else:
+                            output.print(obj)
                     output = this
                     output.assign(obj)
-                    decorate(self.decorators, output, def(): output.print(obj);)
-            return None
+                    decorate(self.decorators, output, internalsub)
+            return class_postproc or None
 
         def getES6DecoratedMethods():
             decorated_methods = []
@@ -1147,7 +1152,8 @@ Stream = stream.Stream
             #     name = 'var ' + name
 
         def outputEs6():
-            def addClassVariablesAndMethDecorators(decorated_methods):
+            def class_postproc(decorated_methods):
+                ''' decorate methods and inject class vars '''
                 # these were somehow omitted from ES6 standard, so we'll have to handle them ourselves, the messy way
                 properties = {}
                 # class vars should be evaluated before Object.defineProperties(...)
@@ -1167,7 +1173,7 @@ Stream = stream.Stream
                         })
                 )
                 if Object.keys(properties).length or (decorated_methods and decorated_methods.length):
-                    def_class_vars_and_decorators = def(obj):
+                    def def_class_vars_and_decorators(obj):
                         output = this
                         static_decorations = {}
                         if decorated_methods:
@@ -1193,19 +1199,20 @@ Stream = stream.Stream
                                 else:
                                     properties[stmt.name.name] = decoration
                         if Object.keys(properties).length:
+                            output.indent()
                             output.addProperties('prototype', properties).call(output, obj)
                             output.end_statement()
                         if Object.keys(static_decorations).length:
                             output.indent()
                             output.addProperties(None, static_decorations).call(output, obj)
                             output.end_statement()
+                        return obj
                     def_class_vars_and_decorators= output.with_class_vars_init(class_vars, def_class_vars_and_decorators)
                     return def_class_vars_and_decorators
                 return None
 
             # new ES6 classes
-            # @decorated(self.decorators, output)
-            @unify(output, name, addDecorators(), addClassVariablesAndMethDecorators(getES6DecoratedMethods()))
+            @unify(output, name, addDecorators(class_postproc(getES6DecoratedMethods())))
             def generateClass():
                 output.print('class')
 
@@ -1361,18 +1368,29 @@ Stream = stream.Stream
                 methodAndOutput = None
                 if Object.keys(methodsAndVars).length:
                     methodAndVarOutput = output.addProperties('prototype', methodsAndVars)
-                    if class_vars.length:
-                        methodAndVarOutput = output.with_class_vars_init(class_vars, methodAndVarOutput)
+                    #if class_vars.length:
+                    #    methodAndVarOutput = output.with_class_vars_init(class_vars, methodAndVarOutput)
 
                 staticMethodOutput = None
                 if Object.keys(staticMethods).length:
                     staticMethodOutput = output.addProperties(None, staticMethods)
+                return methodAndVarOutput, staticMethodOutput, class_vars
 
-                return methodAndVarOutput, staticMethodOutput
-            methodsAndVars, staticmethods = addMethods()
+            methodsAndVars, staticmethods, class_vars = addMethods()
+
+            if methodsAndVars or staticmethods:
+                def class_postproc(obj):
+                    output = this
+                    for cb in [methodsAndVars, staticmethods]:
+                        if cb:
+                            output.indent()
+                            cb.call(output, obj)
+                            output.end_statement()
+            else:
+                class_postproc = None
 
             # generate constructor
-            @unify(output, name, addInheritance(), addDecorators(), methodsAndVars, staticmethods)
+            @unify(output, name, addInheritance(), addDecorators(output.with_class_vars_init(class_vars, class_postproc)))
             def generateClass():
                 if self.init or self.parent or self.statements.length:
                     output.print("function")
