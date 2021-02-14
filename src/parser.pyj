@@ -56,7 +56,8 @@ def init_mod():
 
                 # experimental
                 "values",
-                "entries"
+                "entries",
+                "fromEntries"
             ]
         },
         'String': {
