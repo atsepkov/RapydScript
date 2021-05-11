@@ -44,17 +44,42 @@
 "bind": def ՐՏ_bind(fn, thisArg):
     if fn.orig: fn = fn.orig
     if thisArg is False: return fn
+    if not fn.apply:
+        raise TypeError("Cannot bind non-callable")
     ret = def():
         return fn.apply(thisArg, arguments)
     ret.orig = fn
     return ret
 ,
 "rebind_all": def ՐՏ_rebindAll(thisArg, rebind):
+
+    def getmethods(obj):
+        cur = obj
+        props = Object.getOwnPropertyNames
+        proto = Object.getPrototypeOf
+        base_proto = proto({})
+        obj_proto = proto(Object)
+        methods = {}
+        while cur and not (cur is base_proto or cur is obj_proto):
+            for mname in props(cur):
+                if mname == 'constructor' or mname == '__init__' or mname == '__base__':
+                    continue
+                if (meth = cur[mname]) and meth.apply:
+                    methods[mname] = True
+            cur = proto(cur)
+        ret = {}
+        for v'var n in methods':
+            ret[n] = obj[n]
+        return ret
+
     if rebind is undefined: rebind = True
-    for v'var p in thisArg':
-        if thisArg[p] and thisArg[p].orig:
-            if rebind: thisArg[p] = bind(thisArg[p], thisArg)
-            else: thisArg[p] = thisArg[p].orig
+    for v'var p in getmethods(thisArg)':
+        fn = thisArg[p]
+        if fn.orig and not rebind:
+            thisArg[p] = fn.orig
+        elif rebind:
+            thisArg[p] = bind(fn, thisArg)
+
 ,
 "with__name__": def ՐՏ_with__name__(fn, name):
     fn.__name__ = name
