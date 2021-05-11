@@ -55,22 +55,26 @@
 
     def getmethods(obj):
         cur = obj
-        props = Object.getOwnPropertyNames
+        prop_names = Object.getOwnPropertyNames
+        descriptor = Object.getOwnPropertyDescriptor
         proto = Object.getPrototypeOf
         base_proto = proto({})
         obj_proto = proto(Object)
         methods = {}
         while cur and not (cur is base_proto or cur is obj_proto):
-            for mname in props(cur):
-                if mname == 'constructor' or mname == '__init__' or mname == '__base__':
+            props = prop_names(cur)
+            for v'var idx in props':
+                pname = props[idx]
+                if pname == 'constructor' or pname == '__init__' or pname == '__base__':
                     continue
-                if (meth = cur[mname]) and meth.apply:
-                    methods[mname] = True
+                if (
+                    not methods[pname]
+                    and (meth = descriptor(cur, pname))
+                    and (meth = meth.value) and meth.apply
+                ):
+                    methods[pname] = meth
             cur = proto(cur)
-        ret = {}
-        for v'var n in methods':
-            ret[n] = obj[n]
-        return ret
+        return methods
 
     if rebind is undefined: rebind = True
     for v'var p in getmethods(thisArg)':
