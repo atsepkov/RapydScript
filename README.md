@@ -322,6 +322,25 @@ Another feature of RapydScript is ability to have functions as part of your obje
 params = {
 	width:	50,
 	height:	30,
+	onclick: (def(event):
+		alert("you clicked me")
+	),
+	onmouseover: (def(event):
+		$(this).css('background', 'red')
+	),
+	onmouseout: (def(event):
+		# reset the background
+		$(this).css('background', '')
+	)
+}
+```
+
+The parentheses around the inline functions hel
+
+```python
+params = {
+	width:	50,
+	height:	30,
 	onclick:	def(event):
 		alert("you clicked me"),
 	onmouseover:	def(event):
@@ -333,9 +352,10 @@ params = {
 }
 ```
 
-<details><summary>Optionally, you can use parentheses around inner functions</summary>
+<details>
+	<summary></summary>
 
-```python
+# The following is equivalent, if you prefer this style (parentheses around the functions)
 params = {
 	width:	50,
 	height:	30,
@@ -350,11 +370,10 @@ params = {
 		$(this).css('background', '')
 	)
 }
-```
 	
 </details>
 
-Note the comma on a new line following a function declaration, it needs to be there to let the compiler know there are more attributes in this object literal, yet it can't go on the same line as the function since it would get parsed as part of the function block. Like Python, however, RapydScript supports new-line shorthand using a `;`, which you could use to place the comma on the same line:
+Note the comma on a new line following a function declaration (like `onmouseover` in the example), it's letting the compiler know there are more attributes in this object literal, yet it can't go on the same line as the function since it would get parsed as part of the function block. Like Python, however, RapydScript supports new-line shorthand using a `;`, which you could use to place the comma on the same line:
 
 ```python
 hash = {
@@ -364,7 +383,7 @@ hash = {
 		print('bar')
 }
 
-// You could do it this way instead if you do not like the ";,"
+# The following is equivalent, if you do not like ";,"
 hash = {
 	'foo': (def():
 		print('foo')
