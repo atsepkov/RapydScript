@@ -168,15 +168,6 @@ I bundled a few demos with RapydScript itself, but several members of the commun
 GlowScript is a WebGL-based environment and a physics engine, originally written in Python for the desktop, the author ported it to the browser using
 RapydScript compiler.
 
-<http://salvatore.pythonanywhere.com/RapydScript>  
-This includes the demos from RapydScript's `examples` directory, as well as a few others.
-
-<http://salvatore.pythonanywhere.com/RapydBox>  
-This is a collection of very cool demos, showcasing RapydScript's similarity to real Python and at the same time its ability to work with other JavaScript. It relies on a JavaScript port of NodeBox (which was originally written in Python). NodeBox was ported from Python to JavaScript to allow cross-platform compatibility. Ironically, the original demos from Python version of NodeBox now work with JavaScript version of NodeBox with few changes (and sometimes none at all) by using RapydScript.
-
-<http://salvatore.pythonanywhere.com/RapydGlow>  
-RapydScript making use of GlowScript, another project done by a member of our community
-
 <https://github.com/adousen/RapydScript-pyjTransformer>
 An in-browser compiler that allows you to use uncompiled RapydScript files in the browser directly via script tags:
 ```html
@@ -186,6 +177,22 @@ An in-browser compiler that allows you to use uncompiled RapydScript files in th
 <https://github.com/atsepkov/puzzles/tree/master/project-euler>  
 My solutions to Project Euler challenges in RapydScript. For those unfamiliar with projecteuler.net, it's a collection of mathematical puzzles for developers testing their ability to come up with clever/efficient algorithms as well as brevity/elegance of their chosen language. While Python and Ruby are popular choices, barely any solutions are in JavaScript (probably due to the language's arcane syntax and error handling and very limited utility for mathematical challenges out of the box). RapydScript, however, does quite well - sometimes allowing for identical solution as Python, sometimes a more clever one. Execution speed is typically faster than Python, but in some cases lags behind (i.e. when Python version uses sets or optimized numpy logic).
 
+<details>
+	
+<summary>Additional</summary>
+
+Here are some additional highlighted community projects.
+	
+* [Possibly deleted?] <http://salvatore.pythonanywhere.com/RapydScript>  
+This includes the demos from RapydScript's `examples` directory, as well as a few others.
+
+* [Possibly deleted?] <http://salvatore.pythonanywhere.com/RapydBox>  
+This is a collection of very cool demos, showcasing RapydScript's similarity to real Python and at the same time its ability to work with other JavaScript. It relies on a JavaScript port of NodeBox (which was originally written in Python). NodeBox was ported from Python to JavaScript to allow cross-platform compatibility. Ironically, the original demos from Python version of NodeBox now work with JavaScript version of NodeBox with few changes (and sometimes none at all) by using RapydScript.
+
+* [Possibly deleted?] <http://salvatore.pythonanywhere.com/RapydGlow>  
+RapydScript making use of GlowScript, another project done by a member of our community
+
+</details>
 
 Compilation
 -----------
