@@ -335,27 +335,11 @@ params = {
 }
 ```
 
-The parentheses around the inline functions hel
-
-```python
-params = {
-	width:	50,
-	height:	30,
-	onclick:	def(event):
-		alert("you clicked me"),
-	onmouseover:	def(event):
-		$(this).css('background', 'red')
-	,
-	onmouseout:	def(event):
-		# reset the background
-		$(this).css('background', '')
-}
-```
-
 <details>
-	<summary></summary>
+	<summary>Optional: You can surround inline functions with parentheses</summary>
 
-# The following is equivalent, if you prefer this style (parentheses around the functions)
+```
+# the following is equivalent:
 params = {
 	width:	50,
 	height:	30,
@@ -370,6 +354,7 @@ params = {
 		$(this).css('background', '')
 	)
 }
+```
 	
 </details>
 
@@ -383,7 +368,7 @@ hash = {
 		print('bar')
 }
 
-# The following is equivalent, if you do not like ";,"
+# the following is equivalent:
 hash = {
 	'foo': (def():
 		print('foo')
