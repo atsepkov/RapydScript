@@ -17,6 +17,7 @@
 
 pi = Math.PI
 e = Math.E
+inf = Infinity
 
 ########################################
 # Number-theoretic and representation functions
