@@ -322,18 +322,43 @@ Another feature of RapydScript is ability to have functions as part of your obje
 params = {
 	width:	50,
 	height:	30,
-	onclick:	def(event):
-		alert("you clicked me"),
-	onmouseover:	def(event):
+	onclick: (def(event):
+		alert("you clicked me")
+	),
+	onmouseover: (def(event):
 		$(this).css('background', 'red')
-	,
-	onmouseout:	def(event):
+	),
+	onmouseout: (def(event):
 		# reset the background
 		$(this).css('background', '')
+	)
 }
 ```
 
-Note the comma on a new line following a function declaration, it needs to be there to let the compiler know there are more attributes in this object literal, yet it can't go on the same line as the function since it would get parsed as part of the function block. Like Python, however, RapydScript supports new-line shorthand using a `;`, which you could use to place the comma on the same line:
+<details>
+	<summary>Optional: You can surround inline functions with parentheses</summary>
+
+```
+# the following is equivalent:
+params = {
+	width:	50,
+	height:	30,
+	onclick: (def(event):
+		alert("you clicked me")
+	),
+	onmouseover: (def(event):
+		$(this).css('background', 'red')
+	),
+	onmouseout: (def(event):
+		# reset the background
+		$(this).css('background', '')
+	)
+}
+```
+	
+</details>
+
+Note the comma on a new line following a function declaration (like `onmouseover` in the example), it's letting the compiler know there are more attributes in this object literal, yet it can't go on the same line as the function since it would get parsed as part of the function block. Like Python, however, RapydScript supports new-line shorthand using a `;`, which you could use to place the comma on the same line:
 
 ```python
 hash = {
@@ -341,6 +366,16 @@ hash = {
 		print('foo');,
 	'bar':	def():
 		print('bar')
+}
+
+# the following is equivalent:
+hash = {
+	'foo': (def():
+		print('foo')
+	),
+	'bar': (def():
+		print('bar')
+	),
 }
 ```
 
@@ -368,9 +403,16 @@ factorial = def(n):
 	if n == 0:
 		return 1
 	return n * factorial(n-1)
+	
+
+factorial = (def(n):
+	if n == 0:
+		return 1
+	return n * factorial(n-1)
+)
 ```
 
-This might not seem like much at first, but if you're familiar with JavaScript, you know that this can be extermely useful to the programmer, especially when dealing with nested functions, which are a bit syntactically awkward in Python (it's not immediatelly obvious that those can be copied and assigned to other objects). To illustrate the usefulness, let's create a method that creates and returns an element that changes color while the user keeps the mouse pressed on it.
+This might not seem like much at first, but if you're familiar with JavaScript, you know inline functions are extremely useful to the programmer. To illustrate the usefulness, let's create a method that creates and returns an element that changes color while the user keeps the mouse pressed on it.
 
 ```python
 def makeDivThatTurnsGreen():
